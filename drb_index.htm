@@ -1,0 +1,43 @@
+<html>
+<head>
+    <title>Dataverse REST Builder 1.0.0.0</title>
+    <script src="js/drb_requirements.js" type="text/javascript" charset="utf-8"></script>
+    <script src="js/drb_custom.js" type="text/javascript" charset="utf-8"></script>
+
+    <link rel="stylesheet" href="css/drb_requirements.css">
+    <link rel="stylesheet" href="css/drb_custom.css">
+</head>
+<body>
+    <div class="mainlayout col-lg-12">
+        <div class="mainheader">
+            <h3>Dataverse REST Builder 1.0.0.0 <span id="demo"></span></h3>
+            Created by Guido Preite <a target="_blank" href="https://www.twitter.com/crmanswers">Twitter</a> - <a target="_blank" href="https://www.linkedin.com/in/guidopreite/">LinkedIn</a> - <a target="_blank" href="https://github.com/GuidoPreite">GitHub</a> - <a target="_blank" href="https://www.crmanswers.net">Blog</a>
+        </div>
+        <div class="topborder maincontent split">
+            <div id="div_menu" style="margin-top: 10px; margin-right: 24px;">
+                <div class="dropdown">
+                    <button class="btn btn-primary dropdown-toggle" type="button" id="btn_file" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">File</button>
+                    <div class="dropdown-menu" aria-labelledby="btn_file" id="mnu_file"></div>
+                    <button id="btn_notice" type="button" class="btn btn-secondary">Hide Notice</button>
+                </div>
+                <br />
+                <div id="div_collection"></div>
+            </div>
+            <div id="div_content" style="margin-left: 10px; margin-top: 10px;">
+                <div id="div_notice" class="notice">
+                    The software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement. In no event shall the authors or copyright holders be liable for any claim, damages or other liability, whether in an action of contract, tort or otherwise, arising from, out of or in connection with the software or the use or other dealings in the software.
+                    <br />
+                    <br />
+                    Dataverse REST Builder is able to create, update and execute requests against the Dataverse Web API endpoint.<br />
+                    <span class="notice-red">Many of the requests generated inside this tool can modify the data if they are executed, please proceed with caution.</span>
+                    <br /><br />
+                </div>
+                <div id="main_content" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        DRB.Initialize();
+    </script>
+</body>
+</html>

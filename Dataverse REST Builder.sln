@@ -1,0 +1,70 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.1585
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{C9B80C1E-1848-47AF-8460-0D2D1C266FB8}"
+	ProjectSection(SolutionItems) = preProject
+		drb_index.htm = drb_index.htm
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "img", "img", "{F6F90D6D-CAD2-4F8B-937D-827A59F5B29B}"
+	ProjectSection(SolutionItems) = preProject
+		img\32px.png = img\32px.png
+		img\drb_icon.png = img\drb_icon.png
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "css", "css", "{B4CE0E38-C67F-43D4-895D-64F51D8949AB}"
+	ProjectSection(SolutionItems) = preProject
+		css\drb_custom.css = css\drb_custom.css
+		css\drb_requirements.css = css\drb_requirements.css
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "js", "js", "{551175FB-CD73-40F9-A36B-940B2C80F8FA}"
+	ProjectSection(SolutionItems) = preProject
+		js\drb.collection.js = js\drb.collection.js
+		js\drb.common.js = js\drb.common.js
+		js\drb.common.map.js = js\drb.common.map.js
+		js\drb.common.xrm.js = js\drb.common.xrm.js
+		js\drb.customui.js = js\drb.customui.js
+		js\drb.dom.js = js\drb.dom.js
+		js\drb.generatecode.js = js\drb.generatecode.js
+		js\drb.initialize.js = js\drb.initialize.js
+		js\drb.logic.association.js = js\drb.logic.association.js
+		js\drb.logic.bindings.js = js\drb.logic.bindings.js
+		js\drb.logic.column.js = js\drb.logic.column.js
+		js\drb.logic.create.js = js\drb.logic.create.js
+		js\drb.logic.dataverseexecute.js = js\drb.logic.dataverseexecute.js
+		js\drb.logic.delete.js = js\drb.logic.delete.js
+		js\drb.logic.executeworkflow.js = js\drb.logic.executeworkflow.js
+		js\drb.logic.filter.js = js\drb.logic.filter.js
+		js\drb.logic.js = js\drb.logic.js
+		js\drb.logic.order.js = js\drb.logic.order.js
+		js\drb.logic.predefinedquery.js = js\drb.logic.predefinedquery.js
+		js\drb.logic.retrievemultiple.js = js\drb.logic.retrievemultiple.js
+		js\drb.logic.retrievenextlink.js = js\drb.logic.retrievenextlink.js
+		js\drb.logic.retrievesingle.js = js\drb.logic.retrievesingle.js
+		js\drb.logic.set.js = js\drb.logic.set.js
+		js\drb.logic.update.js = js\drb.logic.update.js
+		js\drb.models.js = js\drb.models.js
+		js\drb.namespaces.js = js\drb.namespaces.js
+		js\drb.ui.js = js\drb.ui.js
+		js\drb.utilities.js = js\drb.utilities.js
+		js\drb.xrm.getdemodata.js = js\drb.xrm.getdemodata.js
+		js\drb.xrm.js = js\drb.xrm.js
+		js\drb_requirements.js = js\drb_requirements.js
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F6F90D6D-CAD2-4F8B-937D-827A59F5B29B} = {C9B80C1E-1848-47AF-8460-0D2D1C266FB8}
+		{B4CE0E38-C67F-43D4-895D-64F51D8949AB} = {C9B80C1E-1848-47AF-8460-0D2D1C266FB8}
+		{551175FB-CD73-40F9-A36B-940B2C80F8FA} = {C9B80C1E-1848-47AF-8460-0D2D1C266FB8}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5A7EF5CB-D852-4AF8-AEFD-1FC5A8996503}
+	EndGlobalSection
+EndGlobal
