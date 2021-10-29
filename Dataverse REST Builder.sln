@@ -29,6 +29,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "js", "js", "{551175FB-CD73-
 		js\drb.customui.js = js\drb.customui.js
 		js\drb.dom.js = js\drb.dom.js
 		js\drb.generatecode.js = js\drb.generatecode.js
+		js\drb.generatepostman.js = js\drb.generatepostman.js
 		js\drb.initialize.js = js\drb.initialize.js
 		js\drb.logic.association.js = js\drb.logic.association.js
 		js\drb.logic.bindings.js = js\drb.logic.bindings.js
