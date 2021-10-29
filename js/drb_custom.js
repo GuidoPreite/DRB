@@ -11,6 +11,7 @@ DRB.Xrm = {}; // Xrm Functions
 DRB.Collection = {}; // Collection Functions
 DRB.CustomUI = {}; // Custom UI Functions
 DRB.GenerateCode = {}; // Generate Code Functions
+DRB.GeneratePostman = {}; // Generate Postman Functions
 
 DRB.Logic = {}; // Functions defined for each operation
 DRB.Logic.RetrieveSingle = {}; // Retrieve Single Functions
@@ -42,10 +43,12 @@ DRB.DOM.TabsContent = { Id: "tabs_content" };
 // Collection
 DRB.DOM.Collection = {};
 DRB.DOM.Collection.Menu = { Id: "mnu_file" }; // defined also inside index.htm
+DRB.DOM.Collection.Separator = { Id: "", Class: "dropdown-divider" };
 DRB.DOM.Collection.LoadInput = { Id: "inp_loadfile" };
 DRB.DOM.Collection.NewButton = { Id: "btn_newcollection", Name: "New Collection", Class: "dropdown-item" };
 DRB.DOM.Collection.LoadButton = { Id: "btn_loadcollection", Name: "Load Collection", Class: "dropdown-item" };
 DRB.DOM.Collection.SaveButton = { Id: "btn_savecollection", Name: "Save Collection", Class: "dropdown-item" };
+DRB.DOM.Collection.ExportPostmanButton = { Id: "btn_exportpostmancollection", Name: "Export as Postman Collection (2.1)", Class: "dropdown-item" };
 
 // Request Type
 DRB.DOM.RequestType = {};
@@ -4223,6 +4226,139 @@ DRB.GenerateCode.GetUrlFields = function (settings) {
 }
 
 /**
+ * Generate Code - Get Function Url
+ * Used in Dataverse Execute
+ * @param {any} settings Configuration
+ */
+DRB.GenerateCode.GetFunctionUrl = function (settings) {
+    var functionUrl = '(';
+    // #region Main Url
+    // for xhr the parameters are inside the url
+    var addedUrlParameter = false;
+    settings.dataverseParameters.forEach(function (parameter, parameterIndex) {
+        if (parameter.include === true) {
+            if (parameterIndex === 0) { if (parameter.name === "entity" || parameter.name === "entityset") { return; } }
+            functionUrl += parameter.name + "=@" + parameter.name + ",";
+            addedUrlParameter = true;
+        }
+    });
+    if (addedUrlParameter === true) { functionUrl = functionUrl.slice(0, -1); } // remove the last ","
+    functionUrl += ")";
+    if (addedUrlParameter === true) { functionUrl += "?"; }
+
+    if (addedUrlParameter === true) {
+        settings.dataverseParameters.forEach(function (parameter, parameterIndex) {
+            if (parameter.include === true) {
+                if (parameterIndex === 0) { if (parameter.name === "entity" || parameter.name === "entityset") { return; } }
+                var value = null;
+
+                var typeFound = false;
+
+                if (typeFound === false && parameter.type.indexOf("Collection(") === 0) {
+                    // Collection can be of anything: Edm.*, mscrm.crmbaseentity, mscrm.*Table, mscrm.*ComplexType
+                    // not supported: Collection(Edm.Binary), Collection(Edm.DateTimeOffset), Collection(mscrm.*ComplexType)
+                    var printedArray = '';
+
+
+                    var checkOtherParameterTypes = true;
+                    if (parameter.type.indexOf("Collection(mscrm.") === 0 && parameter.type !== "Collection(mscrm.crmbaseentity)" && Array.isArray(parameter.value)) {
+                        // because the value is an array we assume is a valid Collection(mscrm.*Table);
+                        checkOtherParameterTypes = false;
+                        typeFound = true;
+                        parameter.value.forEach(function (v) {
+                            var clearedValue = '{ "@odata.type": "Microsoft.Dynamics.CRM.' + v.entityType + '", ' + v.primaryIdField + ' : "' + v.id + '" }';
+                            printedArray += encodeURIComponent(clearedValue) + ', ';
+                        });
+                    }
+
+                    if (checkOtherParameterTypes === true) {
+
+                        switch (parameter.type) {
+                            case "Collection(Edm.Guid)":
+                            case "Collection(Edm.String)":
+                                typeFound = true;
+                                parameter.value.forEach(function (v) { printedArray += encodeURIComponent('"' + v + '"') + ', '; });
+                                break;
+
+                            case "Collection(Edm.Boolean)":
+                            case "Collection(Edm.Int32)":
+                            case "Collection(Edm.Int64)":
+                            case "Collection(Edm.Decimal)":
+                            case "Collection(Edm.Double)":
+                                typeFound = true;
+                                parameter.value.forEach(function (v) { printedArray += v + ', '; });
+                                break;
+
+                            case "Collection(mscrm.crmbaseentity)":
+                                typeFound = true;
+                                parameter.value.forEach(function (v) {
+                                    var clearedValue = '{ "@odata.type": "Microsoft.Dynamics.CRM.' + v.entityType + '", ' + v.primaryIdField + ' : "' + v.id + '" }';
+                                    printedArray += encodeURIComponent(clearedValue) + ', ';
+                                });
+                                break;
+                        }
+                    }
+
+                    if (typeFound === true) {
+                        if (parameter.value.length > 0) { printedArray = printedArray.slice(0, -2); }
+                        printedArray = '[' + printedArray + ']';
+                        value = printedArray;
+                    }
+                    // Not supported
+                }
+
+                if (typeFound === false && parameter.type === "mscrm.crmbaseentity") {
+                    typeFound = true;
+                    if (DRB.Utilities.HasValue(parameter.value.id) && DRB.Utilities.HasValue(parameter.value.entityType)) {
+                        var clearedValue = '{ "@odata.type": "Microsoft.Dynamics.CRM.' + parameter.value.entityType + '", ' + parameter.value.primaryIdField + ' : "' + parameter.value.id + '" }';
+                        value = encodeURIComponent(clearedValue);
+                    }
+                }
+
+                if (typeFound === false && parameter.type.indexOf("mscrm.") === 0) {
+                    typeFound = true;
+                    if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.id) && DRB.Utilities.HasValue(parameter.value.entityType)) {
+                        var clearedValue = '{ "@odata.type": "Microsoft.Dynamics.CRM.' + parameter.value.entityType + '", ' + parameter.value.primaryIdField + ' : "' + parameter.value.id + '" }';
+                        value = encodeURIComponent(clearedValue);
+                    } else {
+                        // Complex Type Not supported
+                    }
+                }
+
+                if (typeFound === false && parameter.type.indexOf("Edm.") === 0) {
+                    switch (parameter.type) {
+                        case "Edm.Binary":
+                            // Not supported
+                            break;
+                        case "Edm.Guid":
+                            if (DRB.Utilities.HasValue(parameter.value)) { value = parameter.value; }
+                            break;
+                        case "Edm.String":
+                            if (DRB.Utilities.HasValue(parameter.value)) { value = "'" + encodeURIComponent(parameter.value) + "'"; }
+                            break;
+                        case "Edm.Int32":
+                        case "Edm.Int64":
+                        case "Edm.Decimal":
+                        case "Edm.Double":
+                        case "Edm.Boolean":
+                            if (DRB.Utilities.HasValue(parameter.value)) { value = parameter.value; }
+                            value = parameter.value;
+                            break;
+                        case "Edm.DateTimeOffset":
+                            if (DRB.Utilities.HasValue(parameter.value)) { value = new Date(parameter.value).toISOString(); }
+                            break;
+                    }
+                }
+                functionUrl += "@" + parameter.name + "=" + value + "&"; // assign the value, default is null if the parameter type is not supported
+            }
+        });
+        functionUrl = functionUrl.slice(0, -1); // remove the last "&"
+    }
+        // #endregion
+    return functionUrl;
+}
+
+/**
  * Generate Code - Parse Filter Criteria
  * @param {any} configurationObject Configuration Object
  */
@@ -4679,7 +4815,7 @@ DRB.GenerateCode.GetXrmWebApiDefinitionParameters = function (settings, isBound,
 
 /**
  * Generate Code - Get Code Parameters
- * Used in Execute Action, Execute Function
+ * Used in Dataverse Execute
  * @param {any} settings Configuration
  */
 DRB.GenerateCode.GetCodeParameters = function (settings, xrmWebApiStyle) {
@@ -4924,7 +5060,9 @@ DRB.GenerateCode.GetCodeEntity = function (settings) {
                 var clearedValue = field.value;
                 if (!DRB.Utilities.HasValue(clearedValue)) { codeEntity.push('record.' + field.logicalName + ' = null; // ' + renamedFieldType); }
                 else {
-                    if (field.dateTimeBehavior === "DateOnly") { codeEntity.push('record.' + field.logicalName + ' = "' + clearedValue + '";'); }
+                    if (field.dateTimeBehavior === "DateOnly") {
+                        codeEntity.push('record.' + field.logicalName + ' = "' + clearedValue + '"; // ' + renamedFieldType);
+                    }
                     else { codeEntity.push('record.' + field.logicalName + ' = new Date("' + clearedValue + '").toISOString(); // ' + renamedFieldType); }
                 }
                 break;
@@ -4969,7 +5107,7 @@ DRB.GenerateCode.GetXrmWebApiWarnings = function (settings, includeExpandWarning
 
 /**
  * Generate Code - Get Return Type
- * Used in Execute Action, Execute Function
+ * Used in Dataverse Execute
  * @param {any} settings Configuration
  */
 DRB.GenerateCode.GetReturnType = function (settings) {
@@ -5414,7 +5552,7 @@ DRB.GenerateCode.Create = function () {
     codejQuery.push('\tcontentType: "application/json; charset=utf-8",');
     codejQuery.push('\tdatatype: "json",');
     codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '",');
-    codejQuery.push('\tdata: JSON.stringify(entity),');
+    codejQuery.push('\tdata: JSON.stringify(record),');
     codejQuery.push('\tbeforeSend: function (req) {');
 
     var requestHeadersJQuery = [];
@@ -5485,7 +5623,7 @@ DRB.GenerateCode.Create = function () {
     codeXMLHttpRequest.push('\t\t}');
     codeXMLHttpRequest.push('\t}');
     codeXMLHttpRequest.push('};');
-    codeXMLHttpRequest.push('req.send(JSON.stringify(entity));');
+    codeXMLHttpRequest.push('req.send(JSON.stringify(record));');
     // End XMLHttpRequest
 
 
@@ -5594,7 +5732,7 @@ DRB.GenerateCode.Update = function () {
     codejQuery.push('\tcontentType: "application/json; charset=utf-8",');
     codejQuery.push('\tdatatype: "json",');
     codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '",');
-    codejQuery.push('\tdata: JSON.stringify(entity),');
+    codejQuery.push('\tdata: JSON.stringify(record),');
     codejQuery.push('\tbeforeSend: function (req) {');
 
     var requestHeadersJQuery = [];
@@ -5658,7 +5796,7 @@ DRB.GenerateCode.Update = function () {
     codeXMLHttpRequest.push('\t\t}');
     codeXMLHttpRequest.push('\t}');
     codeXMLHttpRequest.push('};');
-    codeXMLHttpRequest.push('req.send(JSON.stringify(entity));');
+    codeXMLHttpRequest.push('req.send(JSON.stringify(record));');
     // End XMLHttpRequest
 
 
@@ -6259,131 +6397,7 @@ DRB.GenerateCode.DataverseExecute = function (requestType) {
     } else { mainUrl += settings.dataverseExecute; }
 
     if (operationType === 1) {
-        // #region Main Url
-        // for xhr the parameters are inside the url       
-        // parameters parsing for mainUrl (jQuery and XMLHttpRequest)
-        mainUrl += "(";
-        var addedUrlParameter = false;
-        settings.dataverseParameters.forEach(function (parameter, parameterIndex) {
-            if (parameter.include === true) {
-                if (parameterIndex === 0) { if (parameter.name === "entity" || parameter.name === "entityset") { return; } }
-                mainUrl += parameter.name + "=@" + parameter.name + ",";
-                addedUrlParameter = true;
-            }
-        });
-        if (addedUrlParameter === true) { mainUrl = mainUrl.slice(0, -1); } // remove the last ","
-        mainUrl += ")";
-        if (addedUrlParameter === true) { mainUrl += "?"; }
-
-        if (addedUrlParameter === true) {
-            settings.dataverseParameters.forEach(function (parameter, parameterIndex) {
-                if (parameter.include === true) {
-                    if (parameterIndex === 0) { if (parameter.name === "entity" || parameter.name === "entityset") { return; } }
-                    var value = null;
-
-                    var typeFound = false;
-
-                    if (typeFound === false && parameter.type.indexOf("Collection(") === 0) {
-                        // Collection can be of anything: Edm.*, mscrm.crmbaseentity, mscrm.*Table, mscrm.*ComplexType
-                        // not supported: Collection(Edm.Binary), Collection(Edm.DateTimeOffset), Collection(mscrm.*ComplexType)
-                        var printedArray = '';
-
-
-                        var checkOtherParameterTypes = true;
-                        if (parameter.type.indexOf("Collection(mscrm.") === 0 && parameter.type !== "Collection(mscrm.crmbaseentity)" && Array.isArray(parameter.value)) {
-                            // because the value is an array we assume is a valid Collection(mscrm.*Table);
-                            checkOtherParameterTypes = false;
-                            typeFound = true;
-                            parameter.value.forEach(function (v) {
-                                var clearedValue = '{ "@odata.type": "Microsoft.Dynamics.CRM.' + v.entityType + '", ' + v.primaryIdField + ' : "' + v.id + '" }';
-                                printedArray += encodeURIComponent(clearedValue) + ', ';
-                            });
-                        }
-
-                        if (checkOtherParameterTypes === true) {
-
-                            switch (parameter.type) {
-                                case "Collection(Edm.Guid)":
-                                case "Collection(Edm.String)":
-                                    typeFound = true;
-                                    parameter.value.forEach(function (v) { printedArray += encodeURIComponent('"' + v + '"') + ', '; });
-                                    break;
-
-                                case "Collection(Edm.Boolean)":
-                                case "Collection(Edm.Int32)":
-                                case "Collection(Edm.Int64)":
-                                case "Collection(Edm.Decimal)":
-                                case "Collection(Edm.Double)":
-                                    typeFound = true;
-                                    parameter.value.forEach(function (v) { printedArray += v + ', '; });
-                                    break;
-
-                                case "Collection(mscrm.crmbaseentity)":
-                                    typeFound = true;
-                                    parameter.value.forEach(function (v) {
-                                        var clearedValue = '{ "@odata.type": "Microsoft.Dynamics.CRM.' + v.entityType + '", ' + v.primaryIdField + ' : "' + v.id + '" }';
-                                        printedArray += encodeURIComponent(clearedValue) + ', ';
-                                    });
-                                    break;
-                            }
-                        }
-
-                        if (typeFound === true) {
-                            if (parameter.value.length > 0) { printedArray = printedArray.slice(0, -2); }
-                            printedArray = '[' + printedArray + ']';
-                            value = printedArray;
-                        }
-                        // Not supported
-                    }
-
-                    if (typeFound === false && parameter.type === "mscrm.crmbaseentity") {
-                        typeFound = true;
-                        if (DRB.Utilities.HasValue(parameter.value.id) && DRB.Utilities.HasValue(parameter.value.entityType)) {
-                            var clearedValue = '{ "@odata.type": "Microsoft.Dynamics.CRM.' + parameter.value.entityType + '", ' + parameter.value.primaryIdField + ' : "' + parameter.value.id + '" }';
-                            value = encodeURIComponent(clearedValue);
-                        }
-                    }
-
-                    if (typeFound === false && parameter.type.indexOf("mscrm.") === 0) {
-                        typeFound = true;
-                        if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.id) && DRB.Utilities.HasValue(parameter.value.entityType)) {
-                            var clearedValue = '{ "@odata.type": "Microsoft.Dynamics.CRM.' + parameter.value.entityType + '", ' + parameter.value.primaryIdField + ' : "' + parameter.value.id + '" }';
-                            value = encodeURIComponent(clearedValue);
-                        } else {
-                            // Complex Type Not supported
-                        }
-                    }
-
-                    if (typeFound === false && parameter.type.indexOf("Edm.") === 0) {
-                        switch (parameter.type) {
-                            case "Edm.Binary":
-                                // Not supported
-                                break;
-                            case "Edm.Guid":
-                                if (DRB.Utilities.HasValue(parameter.value)) { value = parameter.value; }
-                                break;
-                            case "Edm.String":
-                                if (DRB.Utilities.HasValue(parameter.value)) { value = "'" + encodeURIComponent(parameter.value) + "'"; }
-                                break;
-                            case "Edm.Int32":
-                            case "Edm.Int64":
-                            case "Edm.Decimal":
-                            case "Edm.Double":
-                            case "Edm.Boolean":
-                                if (DRB.Utilities.HasValue(parameter.value)) { value = parameter.value; }
-                                value = parameter.value;
-                                break;
-                            case "Edm.DateTimeOffset":
-                                if (DRB.Utilities.HasValue(parameter.value)) { value = new Date(parameter.value).toISOString(); }
-                                break;
-                        }
-                    }
-                    mainUrl += "@" + parameter.name + "=" + value + "&"; // assign the value, default is null if the parameter type is not supported
-                }
-            });
-            mainUrl = mainUrl.slice(0, -1); // remove the last "&"
-        }
-        // #endregion
+        mainUrl += DRB.GenerateCode.GetFunctionUrl(settings);
     }
 
     // ReturnType
@@ -6686,6 +6700,598 @@ DRB.GenerateCode.Start = function () {
         case "executeaction":
         case "executefunction":
             DRB.GenerateCode.DataverseExecute(requestType);
+            break;
+    }
+}
+// #endregion  
+ 
+// #region DRB.GeneratePostman
+/**
+ * Generate Postman - Return Values
+ * @param {string} url Url
+ * @param {any[]} headers Headers
+ * @param {string} body Body
+ */
+DRB.GeneratePostman.ReturnValues = function (settings, method, url, body) {
+    var postmanUrl = { raw: "{{url}}" + url, host: ["{{url}}" + url] };
+    var postmanBody = { mode: "raw", raw: body, options: { raw: { language: "json" } } };
+    var postmanHeader = DRB.GeneratePostman.GetRequestHeaders(settings, method);
+    return { postmanMethod: method, postmanUrl: postmanUrl, postmanHeader: postmanHeader, postmanBody: postmanBody };
+}
+
+/**
+ * Generate Postman - Get Request Headers
+ * @param {any} settings Configuration
+ */
+DRB.GeneratePostman.GetRequestHeaders = function (settings, method) {
+    // Request Headers
+    var headers = [];
+
+    headers.push({ key: "OData-MaxVersion", value: "4.0", type: "text" });
+    headers.push({ key: "OData-Version", value: "4.0", type: "text" });
+    headers.push({ key: "Accept", value: "application/json", type: "text" });
+
+    if (method === "POST" || method === "PATCH") {
+        headers.push({ key: "Content-Type", value: "application/json; charset=utf-8", type: "text" });
+    }
+
+    // Formatted Values and Return Record
+    if (settings.hasOwnProperty("formattedValues")) {
+        if (!settings.hasOwnProperty("returnRecord") && !settings.hasOwnProperty("topCount")) {
+            if (settings.formattedValues === true) { headers.push({ key: "Prefer", value: 'odata.include-annotations="*"', type: "text" }); }
+        }
+        else {
+            if (settings.hasOwnProperty("returnRecord")) {
+                if (settings.formattedValues === true && settings.returnRecord !== true) { headers.push({ key: "Prefer", value: 'odata.include-annotations="*"', type: "text" }); }
+                if (settings.formattedValues !== true && settings.returnRecord === true) { headers.push({ key: "Prefer", value: 'return=representation', type: "text" }); }
+                if (settings.formattedValues === true && settings.returnRecord === true) { headers.push({ key: "Prefer", value: 'odata.include-annotations="*",return=representation', type: "text" }); }
+            }
+            if (settings.hasOwnProperty("topCount")) {
+                var hasTopCount = DRB.Utilities.HasValue(settings.topCount);
+                if (settings.formattedValues === true && hasTopCount !== true) { headers.push({ key: "Prefer", value: 'odata.include-annotations="*"', type: "text" }); }
+                if (settings.formattedValues !== true && hasTopCount === true) { headers.push({ key: "Prefer", value: 'odata.maxpagesize=' + settings.topCount, type: "text" }); }
+                if (settings.formattedValues === true && hasTopCount === true) { headers.push({ key: "Prefer", value: 'odata.include-annotations="*",odata.maxpagesize=' + settings.topCount, type: "text" }); }
+            }
+        }
+    }
+
+    // Token Header
+    if (settings.hasOwnProperty("tokenHeader") && settings.tokenHeader === true) {
+        headers.push({ key: "Authorization", value: "Bearer ", type: "text" });
+    }
+
+    // Impersonate
+    if (settings.hasOwnProperty("impersonate") && settings.impersonate === true) {
+        var impersonateId = "";
+        if (DRB.Utilities.HasValue(settings.impersonateId)) { impersonateId = settings.impersonateId; }
+        headers.push({ key: "MSCRMCallerID", value: impersonateId, type: "text" });
+    }
+
+    // Detect Changes
+    if (settings.hasOwnProperty("detectChanges") && settings.detectChanges === true) { headers.push({ key: "If-None-Match", value: 'W/"000000', type: "text" }); }
+
+    // Detect Duplicates
+    if (settings.hasOwnProperty("detectDuplicates") && settings.detectDuplicates === true) { headers.push({ key: "MSCRM.SuppressDuplicateDetection", value: "false", type: "text" }); }
+
+    // Prevent
+    if (settings.hasOwnProperty("prevent")) {
+        if (settings.prevent === "create") { headers.push({ key: "If-Match", value: "*", type: "text" }); }
+        if (settings.prevent === "update") { headers.push({ key: "If-None-Match", value: "*", type: "text" }); }
+    }
+    return headers;
+}
+
+/**
+ * Generate Postman - Get Body
+ * Used in Create, Update
+ * @param {any} settings Configuration
+ */
+DRB.GeneratePostman.GetUpsertBody = function (settings) {
+    var upsertBody = [];
+    settings.setFields.forEach(function (field) {
+        switch (field.type) {
+            case "Uniqueidentifier":
+            case "String":
+            case "Memo":
+                var clearedValue = field.value;
+                if (DRB.Utilities.HasValue(clearedValue)) {
+                    clearedValue = field.value.replace(/"/g, '\\"');
+                    clearedValue = clearedValue.replace(/\r?\n/g, "\\n");
+                }
+                if (!DRB.Utilities.HasValue(clearedValue)) { upsertBody.push('\t"' + field.logicalName + '": null,'); }
+                else { upsertBody.push('\t"' + field.logicalName + '": "' + clearedValue + '",'); }
+                break;
+            case "BigInt":
+            case "Integer":
+            case "Decimal":
+            case "Double":
+            case "Boolean":
+            case "Picklist":
+            case "State":
+            case "Status":
+                var clearedValue = field.value;
+                if (!DRB.Utilities.HasValue(clearedValue)) { clearedValue = null; }
+                upsertBody.push('\t"' + field.logicalName + '": ' + clearedValue + ',');
+                break;
+            case "Money":
+                var clearedValue = field.value;
+                if (DRB.Utilities.HasValue(clearedValue)) {
+                    clearedValue = Number(parseFloat(clearedValue).toFixed(4));
+                } else { clearedValue = null; }
+                upsertBody.push('\t"' + field.logicalName + '": ' + clearedValue + ',');
+                break;
+            case "MultiPicklist":
+                var clearedValue = null;
+                if (DRB.Utilities.HasValue(field.value)) {
+                    if (field.value.length === 0) { clearedValue = null; }
+                    else { clearedValue = '"' + field.value.join(",") + '"'; }
+                }
+                upsertBody.push('\t"' + field.logicalName + '": ' + clearedValue + ',');
+                break;
+            case "Lookup":
+            case "Owner":
+            case "Customer":
+                if (DRB.Utilities.HasValue(field.value)) {
+                    var clearedValue = null;
+                    if (DRB.Utilities.HasValue(field.value.id)) {
+                        clearedValue = '"/' + field.value.entitySetName + '(' + field.value.id + ')"';
+                    }
+                    upsertBody.push('\t"' + field.value.navigationProperty + '@odata.bind": ' + clearedValue + ',');
+                }
+                break;
+            case "DateTime":
+                var clearedValue = field.value;
+                if (!DRB.Utilities.HasValue(clearedValue)) { upsertBody.push('\t"' + field.logicalName + '": null,'); }
+                else {
+                    if (field.dateTimeBehavior === "DateOnly") { upsertBody.push('\t"' + field.logicalName + '": "' + clearedValue + '",'); }
+                    else {
+                        clearedValue = new Date(clearedValue).toISOString();
+                        upsertBody.push('\t"' + field.logicalName + '": "' + clearedValue + '",');
+                    }
+                }
+                break;
+            case "Image":
+                var clearedValue = field.value;
+                if (!DRB.Utilities.HasValue(clearedValue)) { upsertBody.push('\t"' + field.logicalName + '": null,'); }
+                else { upsertBody.push('\t"' + field.logicalName + '": "' + clearedValue + '",'); }
+                break;
+        }
+    });
+    if (upsertBody.length > 0) {
+        var lastComma = upsertBody[upsertBody.length - 1].lastIndexOf(",");
+        if (lastComma > -1) { upsertBody[upsertBody.length - 1] = upsertBody[upsertBody.length - 1].slice(0, lastComma); }
+    }
+    upsertBody.unshift('{');
+    upsertBody.push('}');
+    return upsertBody.join("\n");
+}
+
+/**
+ * Generate Postman - Get Execute Parameters
+ * Used in Execute Action, Execute Function
+ * @param {any} settings Configuration
+ */
+DRB.GeneratePostman.GetExecuteParameters = function (settings) {
+    var executeParameters = [];
+
+    var isBound = false;
+    if (settings.primaryEntity.logicalName !== "none") { isBound = true; }
+
+    settings.dataverseParameters.forEach(function (parameter, parameterIndex) {
+        if (isBound === true && parameterIndex === 0) { return; } // skip the first parameter if the request is bound
+
+        if (parameter.include === true) {
+            var typeFound = false;
+
+            if (typeFound === false && parameter.type.indexOf("Collection(") === 0) {
+                typeFound = true;
+                // Collection can be of anything: Edm.*, mscrm.crmbaseentity, mscrm.*Table, mscrm.*ComplexType
+                // not supported: Collection(Edm.Binary), Collection(Edm.DateTimeOffset), Collection(mscrm.*ComplexType)
+                var collectionTypeFound = false;
+                var printedArray = '';
+
+                var checkOtherParameterTypes = true;
+                if (parameter.type.indexOf("Collection(mscrm.") === 0 && parameter.type !== "Collection(mscrm.crmbaseentity)" && Array.isArray(parameter.value)) {
+                    // because the value is an array we assume is a valid Collection(mscrm.*Table);
+                    checkOtherParameterTypes = false;
+                    collectionTypeFound = true;
+                    parameter.value.forEach(function (v) {
+                        printedArray += '{ "@odata.type": "Microsoft.Dynamics.CRM.' + v.entityType + '", "' + v.primaryIdField + '": "' + v.id + '" }, ';
+                    });
+                }
+
+                if (checkOtherParameterTypes === true) {
+                    switch (parameter.type) {
+                        case "Collection(Edm.Guid)":
+                        case "Collection(Edm.String)":
+                            collectionTypeFound = true;
+                            parameter.value.forEach(function (v) {
+                                var clearedValue = v.replace(/"/g, '\\"');
+                                clearedValue = clearedValue.replace(/\r?\n/g, "\\n");
+                                printedArray += '"' + clearedValue + '", ';
+                            });
+                            break;
+                        case "Collection(Edm.Boolean)":
+                        case "Collection(Edm.Int32)":
+                        case "Collection(Edm.Int64)":
+                        case "Collection(Edm.Decimal)":
+                        case "Collection(Edm.Double)":
+                            collectionTypeFound = true;
+                            parameter.value.forEach(function (v) { printedArray += v + ', '; });
+                            break;
+                        case "Collection(mscrm.crmbaseentity)":
+                            collectionTypeFound = true;
+                            parameter.value.forEach(function (v) {
+                                printedArray += '{ "@odata.type": "Microsoft.Dynamics.CRM.' + v.entityType + '", "' + v.primaryIdField + '": "' + v.id + '" }, ';
+                            });
+                            break;
+                    }
+                }
+                if (collectionTypeFound === true) {
+                    if (parameter.value.length > 0) { printedArray = printedArray.slice(0, -2); }
+                    printedArray = '[' + printedArray + ']';
+                    executeParameters.push('\t"' + parameter.name + '": ' + printedArray + ',');
+                } else {
+                    executeParameters.push('\t"' + parameter.name + '": null,');
+                }
+            }
+
+            if (typeFound === false && parameter.type === "mscrm.crmbaseentity") {
+                typeFound = true;
+                if (DRB.Utilities.HasValue(parameter.value.id) && DRB.Utilities.HasValue(parameter.value.entityType)) {
+                    var clearedValue = '{ "@odata.type": "Microsoft.Dynamics.CRM.' + parameter.value.entityType + '", "' + parameter.value.primaryIdField + '": "' + parameter.value.id + '" }';
+                    executeParameters.push('\t"' + parameter.name + '": ' + clearedValue + ',');
+                } else {
+                    executeParameters.push('\t"' + parameter.name + '": null,');
+                }
+            }
+
+            if (typeFound === false && parameter.type.indexOf("mscrm.") === 0) {
+                typeFound = true;
+                if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.id) && DRB.Utilities.HasValue(parameter.value.entityType)) {
+                    var clearedValue = '{ "@odata.type": "Microsoft.Dynamics.CRM.' + parameter.value.entityType + '", "' + parameter.value.primaryIdField + '": "' + parameter.value.id + '" }';
+                    executeParameters.push('\t"' + parameter.name + '": ' + clearedValue + ',');
+                } else {
+                    executeParameters.push('\t"' + parameter.name + '": null,');
+                }
+            }
+
+            if (typeFound === false && parameter.type.indexOf("Edm.") === 0) {
+                switch (parameter.type) {
+                    case "Edm.Binary":
+                        executeParameters.push('\t"' + parameter.name + '": null');
+                        break;
+                    case "Edm.Guid":
+                        var clearedValue = parameter.value;
+                        if (DRB.Utilities.HasValue(clearedValue)) {
+                            clearedValue = parameter.value.replace(/"/g, '\\"');
+                            clearedValue = clearedValue.replace(/\r?\n/g, "\\n");
+                        }
+
+                        if (!DRB.Utilities.HasValue(clearedValue)) {
+                            executeParameters.push('\t"' + parameter.name + '": null,');
+                        }
+                        else {
+                            executeParameters.push('\t"' + parameter.name + '": "' + clearedValue + '"' + ',');
+                        }
+                        break;
+                    case "Edm.String":
+                        var clearedValue = parameter.value;
+                        if (DRB.Utilities.HasValue(clearedValue)) {
+                            clearedValue = parameter.value.replace(/"/g, '\\"');
+                            clearedValue = clearedValue.replace(/\r?\n/g, "\\n");
+                        }
+                        if (!DRB.Utilities.HasValue(clearedValue)) { executeParameters.push('\t"' + parameter.name + '": null,'); }
+                        else {
+                            executeParameters.push('\t"' + parameter.name + '": "' + clearedValue + '"' + ',');
+                        }
+                        break;
+                    case "Edm.Int32":
+                    case "Edm.Int64":
+                    case "Edm.Decimal":
+                    case "Edm.Double":
+                    case "Edm.Boolean":
+                        var clearedValue = parameter.value;
+                        if (!DRB.Utilities.HasValue(clearedValue)) { clearedValue = null; }
+                        executeParameters.push('\t"' + parameter.name + '": ' + clearedValue + ',');
+                        break;
+                    case "Edm.DateTimeOffset":
+                        var clearedValue = parameter.value;
+                        if (!DRB.Utilities.HasValue(clearedValue)) { executeParameters.push('\t"' + parameter.name + '": null,'); }
+                        else {
+                            clearedValue = new Date(clearedValue).toISOString();
+                            executeParameters.push('\t"' + parameter.name + '": ' + clearedValue + ',');
+                        }
+                        break;
+                }
+            }
+        }
+    });
+
+    if (executeParameters.length > 0) {
+        var lastComma = executeParameters[executeParameters.length - 1].lastIndexOf(",");
+        if (lastComma > -1) { executeParameters[executeParameters.length - 1] = executeParameters[executeParameters.length - 1].slice(0, lastComma); }
+    }
+
+    executeParameters.unshift('{');
+    executeParameters.push('}');
+
+    return executeParameters.join("\n");
+}
+
+/**
+ * Generate Postman - Retrieve Single
+ */
+DRB.GeneratePostman.RetrieveSingle = function (settings) {
+    var url = "";
+    var body = "";
+
+    if (DRB.Utilities.HasValue(settings.primaryEntity)) {
+        var urlFields = DRB.GenerateCode.GetUrlFields(settings);
+        var entityCriteria = settings.primaryId;
+        if (settings.useAlternateKey === true) { entityCriteria = DRB.GenerateCode.GetAlternateKeys(settings); }
+
+        // Url
+        url = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")" + urlFields;
+    }
+    return DRB.GeneratePostman.ReturnValues(settings, "GET", url, body);
+}
+
+/**
+ * Generate Postman - Retrieve Multiple
+ */
+DRB.GeneratePostman.RetrieveMultiple = function (settings) {
+    var url = "";
+    var body = "";
+
+    if (DRB.Utilities.HasValue(settings.primaryEntity)) {
+        var urlFields = DRB.GenerateCode.GetUrlFields(settings);
+        var filterFields = DRB.GenerateCode.GetFilterFields(settings);
+        var orderFields = DRB.GenerateCode.GetOrderFields(settings);
+
+        if (filterFields !== '') {
+            if (urlFields === '') { filterFields = '?' + filterFields; } else { filterFields = '&' + filterFields; }
+            urlFields = urlFields + filterFields;
+        }
+
+        if (orderFields !== '') {
+            if (urlFields === '') { orderFields = '?' + orderFields; } else { orderFields = '&' + orderFields; }
+            urlFields = urlFields + orderFields;
+        }
+
+        if (settings.retrieveCount === true) {
+            if (urlFields === '') { urlFields = '?'; } else { urlFields += '&'; }
+            urlFields += '$count=true';
+        }
+        // Url
+        url = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + urlFields;
+
+    }
+    return DRB.GeneratePostman.ReturnValues(settings, "GET", url, body);
+}
+
+/**
+ * Generate Postman - Create
+ */
+DRB.GeneratePostman.Create = function (settings) {
+    var url = "";
+    var body = "";
+
+    if (DRB.Utilities.HasValue(settings.primaryEntity)) {
+        var urlFields = '';
+        if (settings.returnRecord === true) {
+            urlFields = DRB.GenerateCode.GetUrlFields(settings);
+        }
+        // Url
+        url = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + urlFields;
+
+        // Body
+        body = DRB.GeneratePostman.GetUpsertBody(settings, "POST");
+    }
+    return DRB.GeneratePostman.ReturnValues(settings, "POST", url, body);
+}
+
+/**
+ * Generate Postman - Update
+ */
+DRB.GeneratePostman.Update = function (settings) {
+    var url = "";
+    var body = "";
+
+    if (DRB.Utilities.HasValue(settings.primaryEntity)) {
+        var urlFields = '';
+        if (settings.returnRecord === true) {
+            urlFields = DRB.GenerateCode.GetUrlFields(settings);
+        }
+        var entityCriteria = settings.primaryId;
+        if (settings.useAlternateKey === true) { entityCriteria = DRB.GenerateCode.GetAlternateKeys(settings); }
+        // Url
+        url = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")" + urlFields;
+
+        // Body
+        body = DRB.GeneratePostman.GetUpsertBody(settings, "PATCH");
+    }
+    return DRB.GeneratePostman.ReturnValues(settings, "PATCH", url, body);
+}
+
+/**
+ * Generate Postman - Delete
+ */
+DRB.GeneratePostman.Delete = function (settings) {
+    var url = "";
+    var body = "";
+
+    if (DRB.Utilities.HasValue(settings.primaryEntity)) {
+        var entityCriteria = settings.primaryId;
+        if (settings.useAlternateKey === true) { entityCriteria = DRB.GenerateCode.GetAlternateKeys(settings); }
+        // Url
+        url = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")";
+    }
+    return DRB.GeneratePostman.ReturnValues(settings, "DELETE", url, body);
+}
+
+/**
+ * Generate Postman - Associate
+ */
+DRB.GeneratePostman.Associate = function (settings) {
+    var url = "";
+    var body = "";
+
+    if (DRB.Utilities.HasValue(settings.primaryEntity) && DRB.Utilities.HasValue(settings.primaryEntity) && DRB.Utilities.HasValue(settings.relationship)) {
+        // Url
+        url = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + settings.primaryId + ")/" + settings.relationship + "/$ref";
+
+        var clientUrl = DRB.Xrm.GetClientUrl();
+        body = '{ "@odata.id": "' + clientUrl + '/api/data/' + settings.version + '/' + settings.secondaryEntity.entitySetName + '(' + settings.secondaryIds[0] + ')" }';
+    }
+    return DRB.GeneratePostman.ReturnValues(settings, "POST", url, body);
+}
+
+/**
+ * Generate Postman - Disassociate
+ */
+DRB.GeneratePostman.Disassociate = function (settings) {
+    var url = "";
+    var body = "";
+
+    if (DRB.Utilities.HasValue(settings.primaryEntity) && DRB.Utilities.HasValue(settings.primaryEntity) && DRB.Utilities.HasValue(settings.relationship)) {
+        // Url
+        url = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + settings.primaryId + ")/" + settings.relationship + "(" + settings.secondaryIds[0] + ")/$ref";
+    }
+    return DRB.GeneratePostman.ReturnValues(settings, "DELETE", url, body);
+}
+
+/**
+ * Generate Postman - Retrieve NextLink
+ */
+DRB.GeneratePostman.RetrieveNextLink = function (settings) {
+    var url = "";
+    var body = "";
+
+    if (DRB.Utilities.HasValue(settings.nextLink)) {
+        // Url
+        var mainUrl = settings.nextLink;
+        if (settings.retrieveCount === true && mainUrl.indexOf("$count=true") === -1) {
+            if (mainUrl.indexOf("?") === -1) { mainUrl += "?$count=true"; }
+            else { mainUrl += "&$count=true"; }
+        }
+        url = mainUrl;
+    }
+    return DRB.GeneratePostman.ReturnValues(settings, "GET", url, body);
+}
+
+/**
+ * Generate Postman - Predefined Query
+ */
+DRB.GeneratePostman.PredefinedQuery = function (settings) {
+    var url = "";
+    var body = "";
+
+    if (DRB.Utilities.HasValue(settings.primaryEntity) && DRB.Utilities.HasValue(settings.queryType)) {
+
+        var queryParameter = "";
+        switch (settings.queryType) {
+            case "savedquery": queryParameter = '?savedQuery=' + settings.systemViewId; break;
+            case "userquery": queryParameter = '?userQuery=' + settings.personalViewId; break;
+            case "fetchxml":
+                var escapedFetchXML = encodeURIComponent(settings.fetchXML);
+                queryParameter = '?fetchXml=' + escapedFetchXML;
+                break;
+        }
+        // Url
+        var mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + queryParameter;
+
+        if (settings.retrieveCount === true) {
+            if (settings.queryType === "fetchxml") { mainUrl += " + \"&$count=true"; }
+            else { mainUrl += "&$count=true"; }
+        }
+        url = mainUrl;
+    }
+    return DRB.GeneratePostman.ReturnValues(settings, "GET", url, body);
+}
+
+/**
+ * Generate Postman - Dataverse Execute
+ */
+DRB.GeneratePostman.DataverseExecute = function (settings) {
+    var url = "";
+    var body = "";
+    if (DRB.Utilities.HasValue(settings.primaryEntity) && DRB.Utilities.HasValue(settings.dataverseExecute)) {
+        // isBound and isCollectionBound
+        var isBound = false;
+        var isCollectionBound = false;
+        if (settings.primaryEntity.logicalName !== "none") { isBound = true; }
+        // if the action is bounded and the first parameter is "entityset" then is "collection bound"
+        // NOTE: this is a valid check because if a Custom Action is bounded to an entity (making isBound to true) the first parameter in that case is "entity" and not "entityset"
+        if (isBound === true && settings.dataverseParameters.length > 0 && settings.dataverseParameters[0].name === "entityset") { isCollectionBound = true; }
+
+
+        var mainUrl = "/api/data/" + settings.version + "/";
+        if (isBound === true) {
+            if (isCollectionBound === false) {
+                var primaryId = "";
+                if (DRB.Utilities.HasValue(settings.dataverseParameters[0].value.id)) { primaryId = settings.dataverseParameters[0].value.id; }
+                mainUrl += settings.primaryEntity.entitySetName + "(" + primaryId + ")/Microsoft.Dynamics.CRM." + settings.dataverseExecute;
+            }
+            else { mainUrl += settings.primaryEntity.entitySetName + "/Microsoft.Dynamics.CRM." + settings.dataverseExecute; }
+        } else { mainUrl += settings.dataverseExecute; }
+
+        // OperationType
+        var method = "POST";
+        var operationType = settings.dataverseOperationType;
+        if (operationType === 1) {
+            method = "GET";
+            mainUrl += DRB.GenerateCode.GetFunctionUrl(settings);
+        }
+
+        // Url
+        url = mainUrl;
+
+        if (method === "POST") {
+            body = DRB.GeneratePostman.GetExecuteParameters(settings);
+        }
+    }
+    return DRB.GeneratePostman.ReturnValues(settings, method, url, body);
+}
+
+/**
+ * Generate Postman - Execute Workflow
+ */
+DRB.GeneratePostman.ExecuteWorkflow = function (settings) {
+    var url = "";
+    var body = "";
+
+    // Url
+    url = "/api/data/" + settings.version + "/workflows(" + settings.workflowId + ")/Microsoft.Dynamics.CRM.ExecuteWorkflow";
+
+    // Body
+    body = '{ "EntityId": "' + settings.primaryId + '" }';
+
+    return DRB.GeneratePostman.ReturnValues(settings, "POST", url, body);
+}
+
+/**
+ * Generate Postman - Start
+ */
+DRB.GeneratePostman.Start = function (requestType, settings) {
+    switch (requestType) {
+        case "retrievesingle": return DRB.GeneratePostman.RetrieveSingle(settings); break;
+        case "retrievemultiple": return DRB.GeneratePostman.RetrieveMultiple(settings); break;
+        case "create": return DRB.GeneratePostman.Create(settings); break;
+        case "update": return DRB.GeneratePostman.Update(settings); break;
+        case "delete": return DRB.GeneratePostman.Delete(settings); break;
+        case "associate": return DRB.GeneratePostman.Associate(settings); break;
+        case "disassociate": return DRB.GeneratePostman.Disassociate(settings); break;
+        case "retrievenextlink": return DRB.GeneratePostman.RetrieveNextLink(settings); break;
+        case "predefinedquery": return DRB.GeneratePostman.PredefinedQuery(settings); break;
+        case "executeworkflow": return DRB.GeneratePostman.ExecuteWorkflow(settings); break;
+
+        // Custom API, Custom Action, Action, Function share the same code
+        case "executecustomapi":
+        case "executecustomaction":
+        case "executeaction":
+        case "executefunction":
+            return DRB.GeneratePostman.DataverseExecute(settings);
             break;
     }
 }
@@ -11377,6 +11983,37 @@ DRB.Collection.ExportNodes = function (currentNode, exportNode) {
 }
 
 /**
+ * Collection - Export Nodes Postman
+ * @param {any} currentNode Current Node
+ * @param {any} exportNode Export Node
+ */
+DRB.Collection.ExportNodesPostman = function (currentNode, exportNode) {
+    // recursive function to convert a jsTree node to a Postman collection node
+    if (currentNode.type === "collection" || currentNode.type === "folder") { exportNode.item = []; }
+    if (currentNode.type === "folder" || currentNode.type === "request") { exportNode.name = currentNode.text; }
+    if (currentNode.type === "request") {
+        exportNode.request = { method: "GET", header: [], url: null };
+
+        if (DRB.Utilities.HasValue(currentNode.data.requestType)) {
+            var postmanSettings = DRB.GeneratePostman.Start(currentNode.data.requestType, currentNode.data.configuration);
+            exportNode.request.method = postmanSettings.postmanMethod;
+            exportNode.request.url = postmanSettings.postmanUrl;
+            exportNode.request.header = postmanSettings.postmanHeader;
+            if (postmanSettings.postmanMethod === "POST" || postmanSettings.postmanMethod === "PATCH") {
+                exportNode.request.body = postmanSettings.postmanBody;
+            }
+        }
+
+        exportNode.response = [];
+    }
+    if (currentNode.children.length === 0) { return; }
+    for (var count = 0; count < currentNode.children.length; count++) {
+        exportNode.item.push({});
+        DRB.Collection.ExportNodesPostman(currentNode.children[count], exportNode.item[count]);
+    }
+}
+
+/**
  * Collection - Save 
  */
 DRB.Collection.Save = function () {
@@ -11402,6 +12039,66 @@ DRB.Collection.Save = function () {
         var customLink = document.createElement("a");
         customLink.href = URL.createObjectURL(saveFile);
         customLink.download = fileName + "_" + fileDate + ".json";
+        customLink.click();
+    }
+}
+
+/**
+ * Collection - Export Postman 
+ */
+DRB.Collection.ExportPostman = function () {
+    // get jsTree data structure
+    var currentNodes = $("#" + DRB.DOM.TreeView.Id).jstree(true).get_json("#");
+    // if no nodes then show error
+    if (currentNodes.length === 0) { DRB.UI.ShowError("Save Collection", "Create or Load a Collection before Save"); }
+    else {
+        // get current DateTime
+        var now = new Date();
+        // create json collection
+        var collection = { info: {}, auth: {}, event: [], variable: [] };
+
+        // #region info
+        collection.info._postman_id = DRB.Utilities.GenerateGuid();
+        collection.info.name = currentNodes[0].text;
+        collection.info.schema = "https://schema.getpostman.com/json/collection/v2.1.0/collection.json";
+        // #endregion
+
+        // #region auth
+        collection.auth.type = "oauth2";
+        collection.auth.oauth2 = [];
+        collection.auth.oauth2.push({ key: "grant_type", value: "implicit", type: "string" });
+        collection.auth.oauth2.push({ key: "addTokenTo", value: "header", type: "string" });
+        collection.auth.oauth2.push({ key: "client_authentication", value: "header", type: "string" });
+        collection.auth.oauth2.push({ key: "challengeAlgorithm", value: "S256", type: "string" });
+        collection.auth.oauth2.push({ key: "tokenName", value: "Dataverse Token", type: "string" });
+        collection.auth.oauth2.push({ key: "redirect_uri", value: "{{callback}}", type: "string" });
+        collection.auth.oauth2.push({ key: "clientId", value: "{{clientid}}", type: "string" });
+        collection.auth.oauth2.push({ key: "authUrl", value: "{{authurl}}", type: "string" });
+        // #endregion
+
+        // #region event
+        collection.event.push({ listen: "prerequest", script: { type: "text/javascript", exec: [""] } });
+        collection.event.push({ listen: "test", script: { type: "text/javascript", exec: [""] } });
+        // #endregion
+
+        // #region variable        
+        collection.variable.push({ key: "url", value: DRB.Xrm.GetClientUrl() });
+        collection.variable.push({ key: "authurl", value: "https://login.microsoftonline.com/common/oauth2/authorize?resource={{url}}" });
+        collection.variable.push({ key: "clientid", value: "51f81489-12ee-4a9e-aaae-a2591f45987d" });
+        collection.variable.push({ key: "callback", value: "https://callbackurl" });
+        // #endregion
+
+        // export jsTree nodes to the json collection
+        DRB.Collection.ExportNodesPostman(currentNodes[0], collection);
+        // create fileName and fileDate (coming from current DateTime) to be used inside a valid filename
+        var fileName = currentNodes[0].text.replace(/[^a-z0-9]/gi, "_");
+        var fileDate = now.toLocaleString("sv").replace(/ /g, "_").replace(/-/g, "").replace(/:/g, "");
+        // create the blob content holding the json collection
+        var saveFile = new Blob([JSON.stringify(collection, null, "\t")], { type: "application/json" });
+        // download the blob content with the provided filename
+        var customLink = document.createElement("a");
+        customLink.href = URL.createObjectURL(saveFile);
+        customLink.download = fileName + "_" + fileDate + ".postman_collection.json";
         customLink.click();
     }
 }
@@ -11511,12 +12208,15 @@ DRB.DefineOperations = function () {
     var btn_NewCollection = DRB.UI.CreateButton(DRB.DOM.Collection.NewButton.Id, DRB.DOM.Collection.NewButton.Name, DRB.DOM.Collection.NewButton.Class, DRB.Collection.New);
     var btn_LoadCollection = DRB.UI.CreateButton(DRB.DOM.Collection.LoadButton.Id, DRB.DOM.Collection.LoadButton.Name, DRB.DOM.Collection.LoadButton.Class, DRB.Collection.Load);
     var btn_SaveCollection = DRB.UI.CreateButton(DRB.DOM.Collection.SaveButton.Id, DRB.DOM.Collection.SaveButton.Name, DRB.DOM.Collection.SaveButton.Class, DRB.Collection.Save);
+    var btn_ExportPostmanCollection = DRB.UI.CreateButton(DRB.DOM.Collection.ExportPostmanButton.Id, DRB.DOM.Collection.ExportPostmanButton.Name, DRB.DOM.Collection.ExportPostmanButton.Class, DRB.Collection.ExportPostman);
 
     var menu = $("#" + DRB.DOM.Collection.Menu.Id);
     menu.append(inp_LoadFile);
     menu.append(btn_NewCollection);
     menu.append(btn_LoadCollection);
     menu.append(btn_SaveCollection);
+    menu.append(DRB.UI.CreateEmptyDiv(DRB.DOM.Collection.Separator.Id, DRB.DOM.Collection.Separator.Class));
+    menu.append(btn_ExportPostmanCollection);
     // #endregion
 
     // #region jsTree

@@ -134,6 +134,37 @@ DRB.Collection.ExportNodes = function (currentNode, exportNode) {
 }
 
 /**
+ * Collection - Export Nodes Postman
+ * @param {any} currentNode Current Node
+ * @param {any} exportNode Export Node
+ */
+DRB.Collection.ExportNodesPostman = function (currentNode, exportNode) {
+    // recursive function to convert a jsTree node to a Postman collection node
+    if (currentNode.type === "collection" || currentNode.type === "folder") { exportNode.item = []; }
+    if (currentNode.type === "folder" || currentNode.type === "request") { exportNode.name = currentNode.text; }
+    if (currentNode.type === "request") {
+        exportNode.request = { method: "GET", header: [], url: null };
+
+        if (DRB.Utilities.HasValue(currentNode.data.requestType)) {
+            var postmanSettings = DRB.GeneratePostman.Start(currentNode.data.requestType, currentNode.data.configuration);
+            exportNode.request.method = postmanSettings.postmanMethod;
+            exportNode.request.url = postmanSettings.postmanUrl;
+            exportNode.request.header = postmanSettings.postmanHeader;
+            if (postmanSettings.postmanMethod === "POST" || postmanSettings.postmanMethod === "PATCH") {
+                exportNode.request.body = postmanSettings.postmanBody;
+            }
+        }
+
+        exportNode.response = [];
+    }
+    if (currentNode.children.length === 0) { return; }
+    for (var count = 0; count < currentNode.children.length; count++) {
+        exportNode.item.push({});
+        DRB.Collection.ExportNodesPostman(currentNode.children[count], exportNode.item[count]);
+    }
+}
+
+/**
  * Collection - Save 
  */
 DRB.Collection.Save = function () {
@@ -159,6 +190,66 @@ DRB.Collection.Save = function () {
         var customLink = document.createElement("a");
         customLink.href = URL.createObjectURL(saveFile);
         customLink.download = fileName + "_" + fileDate + ".json";
+        customLink.click();
+    }
+}
+
+/**
+ * Collection - Export Postman 
+ */
+DRB.Collection.ExportPostman = function () {
+    // get jsTree data structure
+    var currentNodes = $("#" + DRB.DOM.TreeView.Id).jstree(true).get_json("#");
+    // if no nodes then show error
+    if (currentNodes.length === 0) { DRB.UI.ShowError("Save Collection", "Create or Load a Collection before Save"); }
+    else {
+        // get current DateTime
+        var now = new Date();
+        // create json collection
+        var collection = { info: {}, auth: {}, event: [], variable: [] };
+
+        // #region info
+        collection.info._postman_id = DRB.Utilities.GenerateGuid();
+        collection.info.name = currentNodes[0].text;
+        collection.info.schema = "https://schema.getpostman.com/json/collection/v2.1.0/collection.json";
+        // #endregion
+
+        // #region auth
+        collection.auth.type = "oauth2";
+        collection.auth.oauth2 = [];
+        collection.auth.oauth2.push({ key: "grant_type", value: "implicit", type: "string" });
+        collection.auth.oauth2.push({ key: "addTokenTo", value: "header", type: "string" });
+        collection.auth.oauth2.push({ key: "client_authentication", value: "header", type: "string" });
+        collection.auth.oauth2.push({ key: "challengeAlgorithm", value: "S256", type: "string" });
+        collection.auth.oauth2.push({ key: "tokenName", value: "Dataverse Token", type: "string" });
+        collection.auth.oauth2.push({ key: "redirect_uri", value: "{{callback}}", type: "string" });
+        collection.auth.oauth2.push({ key: "clientId", value: "{{clientid}}", type: "string" });
+        collection.auth.oauth2.push({ key: "authUrl", value: "{{authurl}}", type: "string" });
+        // #endregion
+
+        // #region event
+        collection.event.push({ listen: "prerequest", script: { type: "text/javascript", exec: [""] } });
+        collection.event.push({ listen: "test", script: { type: "text/javascript", exec: [""] } });
+        // #endregion
+
+        // #region variable        
+        collection.variable.push({ key: "url", value: DRB.Xrm.GetClientUrl() });
+        collection.variable.push({ key: "authurl", value: "https://login.microsoftonline.com/common/oauth2/authorize?resource={{url}}" });
+        collection.variable.push({ key: "clientid", value: "51f81489-12ee-4a9e-aaae-a2591f45987d" });
+        collection.variable.push({ key: "callback", value: "https://callbackurl" });
+        // #endregion
+
+        // export jsTree nodes to the json collection
+        DRB.Collection.ExportNodesPostman(currentNodes[0], collection);
+        // create fileName and fileDate (coming from current DateTime) to be used inside a valid filename
+        var fileName = currentNodes[0].text.replace(/[^a-z0-9]/gi, "_");
+        var fileDate = now.toLocaleString("sv").replace(/ /g, "_").replace(/-/g, "").replace(/:/g, "");
+        // create the blob content holding the json collection
+        var saveFile = new Blob([JSON.stringify(collection, null, "\t")], { type: "application/json" });
+        // download the blob content with the provided filename
+        var customLink = document.createElement("a");
+        customLink.href = URL.createObjectURL(saveFile);
+        customLink.download = fileName + "_" + fileDate + ".postman_collection.json";
         customLink.click();
     }
 }

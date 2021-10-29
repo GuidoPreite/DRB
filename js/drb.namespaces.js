@@ -11,6 +11,7 @@ DRB.Xrm = {}; // Xrm Functions
 DRB.Collection = {}; // Collection Functions
 DRB.CustomUI = {}; // Custom UI Functions
 DRB.GenerateCode = {}; // Generate Code Functions
+DRB.GeneratePostman = {}; // Generate Postman Functions
 
 DRB.Logic = {}; // Functions defined for each operation
 DRB.Logic.RetrieveSingle = {}; // Retrieve Single Functions

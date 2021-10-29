@@ -15,10 +15,12 @@ DRB.DOM.TabsContent = { Id: "tabs_content" };
 // Collection
 DRB.DOM.Collection = {};
 DRB.DOM.Collection.Menu = { Id: "mnu_file" }; // defined also inside index.htm
+DRB.DOM.Collection.Separator = { Id: "", Class: "dropdown-divider" };
 DRB.DOM.Collection.LoadInput = { Id: "inp_loadfile" };
 DRB.DOM.Collection.NewButton = { Id: "btn_newcollection", Name: "New Collection", Class: "dropdown-item" };
 DRB.DOM.Collection.LoadButton = { Id: "btn_loadcollection", Name: "Load Collection", Class: "dropdown-item" };
 DRB.DOM.Collection.SaveButton = { Id: "btn_savecollection", Name: "Save Collection", Class: "dropdown-item" };
+DRB.DOM.Collection.ExportPostmanButton = { Id: "btn_exportpostmancollection", Name: "Export as Postman Collection (2.1)", Class: "dropdown-item" };
 
 // Request Type
 DRB.DOM.RequestType = {};
