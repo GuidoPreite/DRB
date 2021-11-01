@@ -256,6 +256,7 @@ DRB.DefineOperations = function () {
     DRB.Settings.Tabs.push({ id: "code_xrmwebapiexecute", name: "Xrm.WebApi execute" });
     DRB.Settings.Tabs.push({ id: "code_jquery", name: "jQuery" });
     DRB.Settings.Tabs.push({ id: "code_xmlhttprequest", name: "XMLHttpRequest" });
+    DRB.Settings.Tabs.push({ id: "code_portals", name: "Portals" });
     DRB.Settings.Tabs.push({ id: "code_editor", name: "Editor" });
     DRB.Settings.Tabs.push({ id: "code_results", name: "Results" });
 
@@ -269,32 +270,35 @@ DRB.DefineOperations = function () {
         var spacer = DRB.UI.CreateSpacer();
         $("#" + tab.id).append(spacer);
         if (tabIndex > 0) {
-            if (tabIndex < 5) {
+            if (tabIndex < 6) {
                 var btn_copyCode = DRB.UI.CreateButton("btn_" + tab.id + "_copy", "Copy Code", "btn-secondary", DRB.Logic.CopyCodeFromEditor, tab.id);
                 var btn_moveCode = DRB.UI.CreateButton("btn_" + tab.id + "_move", "Move Code to Editor", "btn-secondary", DRB.Logic.MoveCodeToMainEditor, tab.id);
+
                 $("#" + tab.id).append(btn_copyCode);
                 $("#" + tab.id).append(btn_moveCode);
-                var spacer2 = DRB.UI.CreateSpacer();
-                $("#" + tab.id).append(spacer2);
-            }
-            if (tabIndex === 5) {
-                var btn_copyCode = DRB.UI.CreateButton("btn_" + tab.id + "_copy", "Copy Code", "btn-secondary", DRB.Logic.CopyCodeFromEditor, tab.id);
-                var btn_executeCode = DRB.UI.CreateButton("btn_" + tab.id + "_execute", "Execute Code", "btn-danger", DRB.Logic.ExecuteCodeFromEditor);
-                var span_warning2 = DRB.UI.CreateSpan("span_warning2", "NOTE: console.log messages will appear inside the Results tab");
-                $("#" + tab.id).append(btn_copyCode);
-                $("#" + tab.id).append(btn_executeCode);
-                $("#" + tab.id).append(span_warning2);
-                var spacer2 = DRB.UI.CreateSpacer();
-                $("#" + tab.id).append(spacer2);
+                if (tab.id === "code_portals") {
+                    var span_warning_portals = DRB.UI.CreateSpan("span_warning_portals", "NOTE: Inside DRB, Portals endpoint (<i>/_api/</i>) is routed to the default Web API endpoint");
+                    $("#" + tab.id).append(span_warning_portals);
+                }
+                $("#" + tab.id).append(DRB.UI.CreateSpacer());
             }
 
             if (tabIndex === 6) {
+                var btn_copyCode = DRB.UI.CreateButton("btn_" + tab.id + "_copy", "Copy Code", "btn-secondary", DRB.Logic.CopyCodeFromEditor, tab.id);
+                var btn_executeCode = DRB.UI.CreateButton("btn_" + tab.id + "_execute", "Execute Code", "btn-danger", DRB.Logic.ExecuteCodeFromEditor);
+                var span_warning_editor = DRB.UI.CreateSpan("span_warning_editor", "NOTE: console.log messages will appear inside the Results tab");
+                $("#" + tab.id).append(btn_copyCode);
+                $("#" + tab.id).append(btn_executeCode);
+                $("#" + tab.id).append(span_warning_editor);
+                $("#" + tab.id).append(DRB.UI.CreateSpacer());
+            }
+
+            if (tabIndex === 7) {
                 var btn_copyResults = DRB.UI.CreateButton("btn_" + tab.id + "_copy", "Copy Results", "btn-secondary", DRB.Logic.CopyCodeFromEditor, tab.id);
-                var span_warning = DRB.UI.CreateSpan("span_warning", "NOTE: Due to asynchronous calls the output can appear later");
+                var span_warning_result = DRB.UI.CreateSpan("span_warning_result", "NOTE: Due to asynchronous calls the output can appear later");
                 $("#" + tab.id).append(btn_copyResults);
-                $("#" + tab.id).append(span_warning);
-                var spacer2 = DRB.UI.CreateSpacer();
-                $("#" + tab.id).append(spacer2);
+                $("#" + tab.id).append(span_warning_result);
+                $("#" + tab.id).append(DRB.UI.CreateSpacer());
             }
 
             var divEditor = DRB.UI.CreateEmptyDiv(tab.id + "_editor", "code_editor");
@@ -326,6 +330,11 @@ DRB.DefineOperations = function () {
     DRB.Settings.XMLHttpRequestEditor.session.setMode("ace/mode/javascript");
     DRB.Settings.XMLHttpRequestEditor.setShowPrintMargin(false);
     DRB.Settings.XMLHttpRequestEditor.setOptions({ readOnly: true });
+
+    DRB.Settings.PortalsEditor = ace.edit("code_portals_editor", { useWorker: false });
+    DRB.Settings.PortalsEditor.session.setMode("ace/mode/javascript");
+    DRB.Settings.PortalsEditor.setShowPrintMargin(false);
+    DRB.Settings.PortalsEditor.setOptions({ readOnly: true });
 
     DRB.Settings.MainEditor = ace.edit("code_editor_editor", { useWorker: false });
     DRB.Settings.MainEditor.session.setMode("ace/mode/javascript");
@@ -373,7 +382,8 @@ DRB.Initialize = function () {
                 case "a_code_xrmwebapi":
                 case "a_code_xrmwebapiexecute":
                 case "a_code_jquery":
-                case "a_code_xmlhttprequest": DRB.GenerateCode.Start(); break;
+                case "a_code_xmlhttprequest":
+                case "a_code_portals": DRB.GenerateCode.Start(); break;
             }
             $(this).tab('show');
         });

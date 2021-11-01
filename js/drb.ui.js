@@ -601,7 +601,7 @@ DRB.UI.OpenLookup = function (settings) {
             $("#" + settings.textId).val(DRB.Utilities.GenerateGuid()).trigger("input").change();
             return;
         }
-        parent.Xrm.Utility.lookupObjects(lookupOptions).then(
+        DRB.Xrm.GetXrmObject().Utility.lookupObjects(lookupOptions).then(
             function (success) {
                 if (success.length > 0) {
                     $("#" + settings.textId).val(success[0].id).trigger("input").change();

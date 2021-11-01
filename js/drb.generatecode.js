@@ -4,18 +4,21 @@
  * @param {string[]} codeXrmWebApi Code Xrm.WebApi
  * @param {string[]} codejQuery Code jQuery
  * @param {string[]} codeXMLHttpRequest Code XMLHttpRequest
+ * @param {string[]} codePortals Code Portals
  */
-DRB.GenerateCode.SetCodeEditors = function (codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest) {
+DRB.GenerateCode.SetCodeEditors = function (codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codePortals) {
     if (!DRB.Utilities.HasValue(codeXrmWebApi)) { codeXrmWebApiExecute = []; }
     if (!DRB.Utilities.HasValue(codeXrmWebApiExecute)) { codeXrmWebApiExecute = []; } // Xrm.WebApi execute is available only for Retrieve Single, Create, Update, Delete
     if (!DRB.Utilities.HasValue(codejQuery)) { codeXrmWebApiExecute = []; }
     if (!DRB.Utilities.HasValue(codeXMLHttpRequest)) { codeXrmWebApiExecute = []; }
+    if (!DRB.Utilities.HasValue(codePortals)) { codePortals = []; }
 
     // Insert the code inside the editors
     DRB.Settings.XrmWebApiEditor.session.setValue(codeXrmWebApi.join('\n'));
     DRB.Settings.XrmWebApiExecuteEditor.session.setValue(codeXrmWebApiExecute.join('\n'));
     DRB.Settings.jQueryEditor.session.setValue(codejQuery.join('\n'));
     DRB.Settings.XMLHttpRequestEditor.session.setValue(codeXMLHttpRequest.join('\n'));
+    DRB.Settings.PortalsEditor.session.setValue(codePortals.join('\n'));
 }
 
 /**
@@ -186,7 +189,7 @@ DRB.GenerateCode.GetFunctionUrl = function (settings) {
         });
         functionUrl = functionUrl.slice(0, -1); // remove the last "&"
     }
-        // #endregion
+    // #endregion
     return functionUrl;
 }
 
@@ -936,6 +939,36 @@ DRB.GenerateCode.GetXrmWebApiWarnings = function (settings, includeExpandWarning
     return code;
 }
 
+/**
+ * Generate Code - Get Portals Warnings
+ * @param {any} settings Configuration
+ */
+DRB.GenerateCode.GetPortalsWarnings = function (settings) {
+    var code = [];
+    var warnings = [];
+    code.push("// IMPORTANT NOTE! Web API operations in Portals is a PREVIEW feature, please read the following documentation:");
+    code.push('// https://docs.microsoft.com/en-us/powerapps/maker/portals/web-api-overview');
+    code.push('// "webapi.safeAjax" wrapper is based on the code from this page:');
+    code.push('// https://docs.microsoft.com/en-us/powerapps/maker/portals/web-api-http-requests-handle-errors');
+    code.push('');
+
+    if (settings.hasOwnProperty("async") && settings.async === false) { warnings.push("// WARNING: Portals doesn't support Synchronous mode"); }
+    if (settings.hasOwnProperty("tokenHeader") && settings.tokenHeader === true) { warnings.push("// WARNING: Portals doesn't support Token Header"); }
+    if (settings.hasOwnProperty("impersonate") && settings.impersonate === true) { warnings.push("// WARNING: Portals doesn't support Impersonation"); }
+    if (settings.hasOwnProperty("formattedValues") && settings.formattedValues === true) { warnings.push("// WARNING: Portals doesn't support Formatted Values"); }
+    if (settings.hasOwnProperty("detectChanges") && settings.detectChanges === true) { warnings.push("// WARNING: Portals doesn't support Detect Changes"); }
+    if (settings.hasOwnProperty("returnRecord") && settings.returnRecord === true) { warnings.push("// WARNING: Portals doesn't support Return Record"); }
+    if (settings.hasOwnProperty("detectDuplicates") && settings.detectDuplicates === true) { warnings.push("// WARNING: Portals doesn't support Detect Duplicates"); }
+    if (settings.hasOwnProperty("prevent") && settings.prevent !== "none") { warnings.push("// WARNING: Portals doesn't support Prevent"); }
+
+    if (warnings.length > 0) {
+        code.push("// NOTE: The following warnings may not be correct");
+        code.push(warnings.join('\n'));
+        code.push('');
+    }
+
+    return code;
+}
 
 /**
  * Generate Code - Get Return Type
@@ -968,6 +1001,7 @@ DRB.GenerateCode.RetrieveSingle = function () {
     var codeXrmWebApiExecute = [];
     var codejQuery = [];
     var codeXMLHttpRequest = [];
+    var codePortals = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity)) {
         // Don't generate the code if a table is not selected
@@ -976,8 +1010,9 @@ DRB.GenerateCode.RetrieveSingle = function () {
         codeXrmWebApiExecute.push(errorMessage);
         codejQuery.push(errorMessage);
         codeXMLHttpRequest.push(errorMessage);
+        codePortals.push(errorMessage);
 
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest);
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codePortals);
         return;
     }
 
@@ -986,7 +1021,9 @@ DRB.GenerateCode.RetrieveSingle = function () {
     var entityCriteria = settings.primaryId;
     if (settings.useAlternateKey === true) { entityCriteria = DRB.GenerateCode.GetAlternateKeys(settings); }
 
+
     var mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")" + urlFields;
+    var portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")" + urlFields;
 
     // Request Headers
     var requestHeaders = DRB.GenerateCode.GetRequestHeaders(settings);
@@ -997,7 +1034,7 @@ DRB.GenerateCode.RetrieveSingle = function () {
     var codeFieldsFormatted = getCodeFields[1];
     var codeFieldsFormattedOnlyRecord = getCodeFields[2];
 
-    // Xrm.WebApi
+    // #region Xrm.WebApi
     codeXrmWebApi = DRB.GenerateCode.GetXrmWebApiWarnings(settings);
 
     codeXrmWebApi.push('// NOTE: retrieveRecord is available in offline mode, if you need this functionality change the call to Xrm.WebApi.offline.retrieveRecord');
@@ -1018,9 +1055,9 @@ DRB.GenerateCode.RetrieveSingle = function () {
     codeXrmWebApi.push('\t\tconsole.log(error.message);');
     codeXrmWebApi.push('\t}');
     codeXrmWebApi.push(');');
-    // End Xrm.WebApi
+    // #endregion
 
-    // Xrm.WebApi.execute
+    // #region Xrm.WebApi.execute
     var urlHasExpand = false;
     if (urlFields.indexOf("$expand") > -1) { urlHasExpand = true; }
     codeXrmWebApiExecute = DRB.GenerateCode.GetXrmWebApiWarnings(settings, urlHasExpand);
@@ -1056,9 +1093,9 @@ DRB.GenerateCode.RetrieveSingle = function () {
     codeXrmWebApiExecute.push('}).catch(function (error) {');
     codeXrmWebApiExecute.push('\tconsole.log(error.message);');
     codeXrmWebApiExecute.push('});');
-    // End Xrm.WebApi.execute
+    // #endregion
 
-    // jQuery
+    // #region jQuery
     codejQuery.push('$.ajax({');
     codejQuery.push('\ttype: "GET",');
     codejQuery.push('\tcontentType: "application/json; charset=utf-8",');
@@ -1096,9 +1133,9 @@ DRB.GenerateCode.RetrieveSingle = function () {
     codejQuery.push('\t\tconsole.log(xhr.responseText);');
     codejQuery.push('\t}');
     codejQuery.push('});');
-    // End jQuery
+    // #endregion
 
-    // XMLHttpRequest
+    // #region XMLHttpRequest
     codeXMLHttpRequest.push('var req = new XMLHttpRequest();');
     codeXMLHttpRequest.push('req.open("GET", Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", ' + settings.async + ');');
     codeXMLHttpRequest.push(requestHeaders.join('\n'));
@@ -1126,9 +1163,27 @@ DRB.GenerateCode.RetrieveSingle = function () {
     codeXMLHttpRequest.push('\t}');
     codeXMLHttpRequest.push('};');
     codeXMLHttpRequest.push('req.send();');
-    // End XMLHttpRequest
+    // #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest);
+    // #region Portals
+    codePortals = DRB.GenerateCode.GetPortalsWarnings(settings);
+    codePortals.push('webapi.safeAjax({');
+    codePortals.push('\ttype: "GET",');
+    codePortals.push('\turl: "' + portalsUrl + '",');
+    codePortals.push('\tcontentType: "application/json",');
+    codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
+    codePortals.push('\t\tvar result = data;');
+    codePortals.push('\t\tconsole.log(result);');
+
+    var codeFieldsPortals = [];
+    codeFields.forEach(function (codeField) { codeFieldsPortals.push('\t\t' + codeField); });
+    codePortals.push(codeFieldsPortals.join('\n'));
+
+    codePortals.push('\t}');
+    codePortals.push('});');
+    // #endregion
+
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codePortals);
 }
 
 /**
@@ -1141,6 +1196,7 @@ DRB.GenerateCode.RetrieveMultiple = function () {
     var codeXrmWebApi = [];
     var codejQuery = [];
     var codeXMLHttpRequest = [];
+    var codePortals = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity)) {
         // Don't generate the code if a table is not selected
@@ -1148,8 +1204,9 @@ DRB.GenerateCode.RetrieveMultiple = function () {
         codeXrmWebApi.push(errorMessage);
         codejQuery.push(errorMessage);
         codeXMLHttpRequest.push(errorMessage);
+        codePortals.push(errorMessage);
 
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest);
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codePortals);
         return;
     }
 
@@ -1166,8 +1223,6 @@ DRB.GenerateCode.RetrieveMultiple = function () {
         if (urlFields === '') { orderFields = '?' + orderFields; } else { orderFields = '&' + orderFields; }
         urlFields = urlFields + orderFields;
     }
-
-
 
     // Request Headers
     var requestHeaders = DRB.GenerateCode.GetRequestHeaders(settings);
@@ -1192,7 +1247,9 @@ DRB.GenerateCode.RetrieveMultiple = function () {
         if (urlFields === '') { urlFields = '?'; } else { urlFields += '&'; }
         urlFields += '$count=true';
     }
+
     var mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + urlFields;
+    var portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + urlFields;
 
     // Xrm.WebApi
     codeXrmWebApi = DRB.GenerateCode.GetXrmWebApiWarnings(settings);
@@ -1283,7 +1340,27 @@ DRB.GenerateCode.RetrieveMultiple = function () {
     codeXMLHttpRequest.push('req.send();');
     // End XMLHttpRequest
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest);
+    // #region Portals
+    codePortals = DRB.GenerateCode.GetPortalsWarnings(settings);
+    codePortals.push('webapi.safeAjax({');
+    codePortals.push('\ttype: "GET",');
+    codePortals.push('\turl: "' + portalsUrl + '",');
+    codePortals.push('\tcontentType: "application/json",');
+    codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
+    codePortals.push('\t\tvar results = data;');
+    codePortals.push('\t\tconsole.log(results);');
+    if (settings.retrieveCount === true) { codePortals.push('\t\tvar odata_count = results["@odata.count"];'); }
+    codePortals.push('\t\tfor (var i = 0; i < results.value.length; i++) {');
+    codePortals.push('\t\t\tvar result = results.value[i];');
+    var codeFieldsPortals = [];
+    codeFields.forEach(function (codeField) { codeFieldsPortals.push('\t\t\t' + codeField); });
+    codePortals.push(codeFieldsPortals.join('\n'));
+    codePortals.push('\t\t}');
+    codePortals.push('\t}');
+    codePortals.push('});');
+    // #endregion
+
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codePortals);
 }
 
 /**
@@ -1297,6 +1374,7 @@ DRB.GenerateCode.Create = function () {
     var codeXrmWebApiExecute = [];
     var codejQuery = [];
     var codeXMLHttpRequest = [];
+    var codePortals = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity)) {
         // Don't generate the code if a table is not selected
@@ -1305,8 +1383,9 @@ DRB.GenerateCode.Create = function () {
         codeXrmWebApiExecute.push(errorMessage);
         codejQuery.push(errorMessage);
         codeXMLHttpRequest.push(errorMessage);
+        codePortals.push(errorMessage);
 
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest);
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codePortals);
         return;
     }
 
@@ -1322,6 +1401,7 @@ DRB.GenerateCode.Create = function () {
     }
 
     var mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + urlFields;
+    var portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + urlFields;
 
     // Request Headers
     var requestHeaders = DRB.GenerateCode.GetRequestHeaders(settings);
@@ -1458,8 +1538,22 @@ DRB.GenerateCode.Create = function () {
     codeXMLHttpRequest.push('req.send(JSON.stringify(record));');
     // End XMLHttpRequest
 
+    // #region Portals
+    codePortals = DRB.GenerateCode.GetPortalsWarnings(settings);
+    codeEntity.forEach(function (line) { codePortals.push(line); });
+    codePortals.push('webapi.safeAjax({');
+    codePortals.push('\ttype: "POST",');
+    codePortals.push('\tcontentType: "application/json",');
+    codePortals.push('\turl: "' + portalsUrl + '",');
+    codePortals.push('\tdata: JSON.stringify(record),');
+    codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
+    codePortals.push('\t\tvar newId = xhr.getResponseHeader("entityid");');
+    codePortals.push('\t\tconsole.log(newId);');
+    codePortals.push('\t}');
+    codePortals.push('});');
+    // #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest);
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codePortals);
 }
 
 /**
@@ -1473,6 +1567,7 @@ DRB.GenerateCode.Update = function () {
     var codeXrmWebApiExecute = [];
     var codejQuery = [];
     var codeXMLHttpRequest = [];
+    var codePortals = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity)) {
         // Don't generate the code if a table is not selected
@@ -1481,8 +1576,9 @@ DRB.GenerateCode.Update = function () {
         codeXrmWebApiExecute.push(errorMessage);
         codejQuery.push(errorMessage);
         codeXMLHttpRequest.push(errorMessage);
+        codePortals.push(errorMessage);
 
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest);
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codePortals);
         return;
     }
     var urlFields = '';
@@ -1499,6 +1595,7 @@ DRB.GenerateCode.Update = function () {
     if (settings.useAlternateKey === true) { entityCriteria = DRB.GenerateCode.GetAlternateKeys(settings); }
 
     var mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")" + urlFields;
+    var portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")" + urlFields;
 
     // Request Headers
     var requestHeaders = DRB.GenerateCode.GetRequestHeaders(settings);
@@ -1574,8 +1671,6 @@ DRB.GenerateCode.Update = function () {
     codejQuery.push('\t},');
     codejQuery.push('\tasync: ' + settings.async + ',');
     codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
-    codejQuery.push('\t\tvar result = data;');
-    codejQuery.push('\t\tconsole.log(result);');
     if (settings.returnRecord === true) {
         codejQuery.push('\t\tvar result = data;');
         codejQuery.push('\t\tconsole.log(result);');
@@ -1631,8 +1726,21 @@ DRB.GenerateCode.Update = function () {
     codeXMLHttpRequest.push('req.send(JSON.stringify(record));');
     // End XMLHttpRequest
 
+    // #region Portals
+    codePortals = DRB.GenerateCode.GetPortalsWarnings(settings);
+    codeEntity.forEach(function (line) { codePortals.push(line); });
+    codePortals.push('webapi.safeAjax({');
+    codePortals.push('\ttype: "PATCH",');
+    codePortals.push('\tcontentType: "application/json",');
+    codePortals.push('\turl: "' + portalsUrl + '",');
+    codePortals.push('\tdata: JSON.stringify(record),');
+    codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
+    codePortals.push('\t\tconsole.log("Record updated");');
+    codePortals.push('\t}');
+    codePortals.push('});');
+    // #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest);
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codePortals);
 }
 
 /**
@@ -1645,6 +1753,7 @@ DRB.GenerateCode.Delete = function () {
     var codeXrmWebApiExecute = [];
     var codejQuery = [];
     var codeXMLHttpRequest = [];
+    var codePortals = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity)) {
         // Don't generate the code if a table is not selected
@@ -1653,7 +1762,9 @@ DRB.GenerateCode.Delete = function () {
         codeXrmWebApiExecute.push(errorMessage);
         codejQuery.push(errorMessage);
         codeXMLHttpRequest.push(errorMessage);
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest);
+        codePortals.push(errorMessage);
+
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codePortals);
         return;
     }
 
@@ -1661,6 +1772,7 @@ DRB.GenerateCode.Delete = function () {
     if (settings.useAlternateKey === true) { entityCriteria = DRB.GenerateCode.GetAlternateKeys(settings); }
 
     var mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")";
+    var portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")";
 
     // Request Headers
     var requestHeaders = DRB.GenerateCode.GetRequestHeaders(settings);
@@ -1737,7 +1849,19 @@ DRB.GenerateCode.Delete = function () {
     codeXMLHttpRequest.push('req.send();');
     // #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest);
+    // #region Portals
+    codePortals = DRB.GenerateCode.GetPortalsWarnings(settings);
+    codePortals.push('webapi.safeAjax({');
+    codePortals.push('\ttype: "DELETE",');
+    codePortals.push('\turl: "' + portalsUrl + '",');
+    codePortals.push('\tcontentType: "application/json",');
+    codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
+    codePortals.push('\t\tconsole.log("Record deleted");');
+    codePortals.push('\t}');
+    codePortals.push('});');
+    // #endregion
+
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codePortals);
 }
 
 /**
@@ -1750,6 +1874,8 @@ DRB.GenerateCode.Associate = function () {
     var codeXrmWebApi = [];
     var codejQuery = [];
     var codeXMLHttpRequest = [];
+    var codePortals = [];
+
     if (!DRB.Utilities.HasValue(settings.primaryEntity) || !DRB.Utilities.HasValue(settings.secondaryEntity)) {
         // Don't generate the code if a table is not selected
 
@@ -1760,11 +1886,14 @@ DRB.GenerateCode.Associate = function () {
         codeXrmWebApi.push(errorMessage);
         codejQuery.push(errorMessage);
         codeXMLHttpRequest.push(errorMessage);
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest);
+        codePortals.push(errorMessage);
+
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codePortals);
         return;
     }
 
     var mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + settings.primaryId + ")/" + settings.relationship + "/$ref";
+    var portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + "(" + settings.primaryId + ")/" + settings.relationship + "/$ref";
 
     // Request Headers
     var requestHeaders = DRB.GenerateCode.GetRequestHeaders(settings);
@@ -1849,8 +1978,27 @@ DRB.GenerateCode.Associate = function () {
     codeXMLHttpRequest.push('};');
     codeXMLHttpRequest.push('req.send(JSON.stringify(association));');
 
+    // #region Portals
+    var portalsCodeAssociated = [];
+    portalsCodeAssociated.push('var association = {');
+    portalsCodeAssociated.push('\t"@odata.id": portalUri + "/_api/' + settings.secondaryEntity.entitySetName + '(' + settings.secondaryIds[0] + ')"');
+    portalsCodeAssociated.push('};');
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest);
+    codePortals = DRB.GenerateCode.GetPortalsWarnings(settings);
+    portalsCodeAssociated.forEach(function (associated) { codePortals.push(associated); });
+    codePortals.push('');
+    codePortals.push('webapi.safeAjax({');
+    codePortals.push('\ttype: "POST",');
+    codePortals.push('\tcontentType: "application/json",');
+    codePortals.push('\turl: "' + portalsUrl + '",');
+    codePortals.push('\tdata: JSON.stringify(association),');
+    codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
+    codePortals.push('\t\tconsole.log("Success");');
+    codePortals.push('\t}');
+    codePortals.push('});');
+    // #endregion
+
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codePortals);
 }
 
 /**
@@ -1863,6 +2011,8 @@ DRB.GenerateCode.Disassociate = function () {
     var codeXrmWebApi = [];
     var codejQuery = [];
     var codeXMLHttpRequest = [];
+    var codePortals = [];
+
     if (!DRB.Utilities.HasValue(settings.primaryEntity) || !DRB.Utilities.HasValue(settings.secondaryEntity)) {
         // Don't generate the code if a table is not selected
         var errorMessage = "";
@@ -1872,16 +2022,19 @@ DRB.GenerateCode.Disassociate = function () {
         codeXrmWebApi.push(errorMessage);
         codejQuery.push(errorMessage);
         codeXMLHttpRequest.push(errorMessage);
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest);
+        codePortals.push(errorMessage);
+
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codePortals);
         return;
     }
 
     var mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + settings.primaryId + ")/" + settings.relationship + "(" + settings.secondaryIds[0] + ")/$ref";
+    var portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + "(" + settings.primaryId + ")/" + settings.relationship + "(" + settings.secondaryIds[0] + ")/$ref";
 
     // Request Headers
     var requestHeaders = DRB.GenerateCode.GetRequestHeaders(settings);
 
-    // Xrm.WebApi
+    // #region Xrm.WebApi
     codeXrmWebApi = DRB.GenerateCode.GetXrmWebApiWarnings(settings);
 
     codeXrmWebApi.push('var disassociateRequest = {');
@@ -1900,8 +2053,9 @@ DRB.GenerateCode.Disassociate = function () {
     codeXrmWebApi.push(').catch(function (error) {');
     codeXrmWebApi.push('\tconsole.log(error.message);');
     codeXrmWebApi.push('});');
+    // #endregion
 
-    // jQuery
+    // #region jQuery
     codejQuery.push('$.ajax({');
     codejQuery.push('\ttype: "DELETE",');
     codejQuery.push('\tcontentType: "application/json; charset=utf-8",');
@@ -1922,8 +2076,9 @@ DRB.GenerateCode.Disassociate = function () {
     codejQuery.push('\t\tconsole.log(textStatus);');
     codejQuery.push('\t}');
     codejQuery.push('});');
+    // #endregion
 
-    // XMLHttpRequest
+    // #region XMLHttpRequest
     codeXMLHttpRequest.push('var req = new XMLHttpRequest();');
     codeXMLHttpRequest.push('req.open("DELETE", Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", ' + settings.async + ');');
     codeXMLHttpRequest.push(requestHeaders.join('\n'));
@@ -1938,9 +2093,21 @@ DRB.GenerateCode.Disassociate = function () {
     codeXMLHttpRequest.push('\t}');
     codeXMLHttpRequest.push('};');
     codeXMLHttpRequest.push('req.send();');
+    // #endregion
 
+    // #region Portals
+    codePortals = DRB.GenerateCode.GetPortalsWarnings(settings);
+    codePortals.push('webapi.safeAjax({');
+    codePortals.push('\ttype: "DELETE",');
+    codePortals.push('\turl: "' + portalsUrl + '",');
+    codePortals.push('\tcontentType: "application/json",');
+    codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
+    codePortals.push('\t\tconsole.log("Success");');
+    codePortals.push('\t}');
+    codePortals.push('});');
+    // #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest);
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codePortals);
 }
 
 /**
@@ -2036,7 +2203,7 @@ DRB.GenerateCode.RetrieveNextLink = function () {
     codeXMLHttpRequest.push('req.send();');
     // #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest);
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, null);
 }
 
 /**
@@ -2058,7 +2225,7 @@ DRB.GenerateCode.PredefinedQuery = function () {
         codeXrmWebApi.push(errorMessage);
         codejQuery.push(errorMessage);
         codeXMLHttpRequest.push(errorMessage);
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest);
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, null);
         return;
     }
 
@@ -2165,7 +2332,7 @@ DRB.GenerateCode.PredefinedQuery = function () {
     codeXMLHttpRequest.push('req.send();');
     // #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest);
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, null);
 }
 
 /**
@@ -2191,7 +2358,7 @@ DRB.GenerateCode.DataverseExecute = function (requestType) {
         codeXrmWebApi.push(errorMessage);
         codejQuery.push(errorMessage);
         codeXMLHttpRequest.push(errorMessage);
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest);
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, null);
         return;
     }
 
@@ -2410,7 +2577,7 @@ DRB.GenerateCode.DataverseExecute = function (requestType) {
     }
     // #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest);
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, null);
 }
 
 /**
@@ -2506,7 +2673,7 @@ DRB.GenerateCode.ExecuteWorkflow = function () {
     codeXMLHttpRequest.push('req.send(JSON.stringify(parameters));');
     // #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest);
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, null);
 }
 
 /**
