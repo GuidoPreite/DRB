@@ -115,7 +115,7 @@ DRB.UI.FillDropdownWithGroups = function (id, title, options, disabled) {
  * @param {Function} okCallBack Function to call when OK is pressed
  * @param {boolean} askQuestion If show the dialog as a question
  */
-DRB.UI.DisplayDialog = function (title, message, className, size, okCallBack, askQuestion, confirmLabel, cancelLabel) {
+DRB.UI.DisplayDialog = function (title, message, className, size, okCallBack, askQuestion) {
     bootbox.hideAll();
     var properties = { message: message, centerVertical: true, buttons: { ok: { label: "OK", className: className } } };
     if (DRB.Utilities.HasValue(title)) { properties.title = title; }
@@ -130,9 +130,7 @@ DRB.UI.DisplayDialog = function (title, message, className, size, okCallBack, as
 
     if (DRB.Utilities.HasValue(okCallBack) && askQuestion === true) {
         properties.closeButton = true;
-        if (!DRB.Utilities.HasValue(confirmLabel)) { confirmLabel = "Yes"; }
-        if (!DRB.Utilities.HasValue(cancelLabel)) { confirmLabel = "No"; }
-        properties.buttons = { cancel: { label: cancelLabel }, confirm: { label: confirmLabel, className: className } };
+        properties.buttons = { cancel: { label: "No" }, confirm: { label: "Yes", className: className } };
         properties.callback = function (result) { if (result === true) { okCallBack(); } };
         bootbox.confirm(properties);
     } else {
@@ -191,17 +189,6 @@ DRB.UI.ShowMessage = function (message, size) {
  */
 DRB.UI.ShowQuestion = function (title, message, size, comfirmCallBack) {
     DRB.UI.DisplayDialog("<span class='text-danger'>" + title + "</span>", message, "btn-danger", size, comfirmCallBack, true);
-}
-
-/**
- * Show a question
- * @param {string} title Title
- * @param {string} message Message
- * @param {string} size Size
- * @param {Function} comfirmCallBack Function to call when Yes is pressed
- */
-DRB.UI.ShowExport = function (title, message, size, comfirmCallBack) {
-    DRB.UI.DisplayDialog("<span class='text-primary'>" + title + "</span>", message, "btn-primary", size, comfirmCallBack, true, "Export", "Cancel");
 }
 
 /**
@@ -444,12 +431,6 @@ DRB.UI.CreateInputString = function (id, maxLength, placeholder) {
     if (!DRB.Utilities.HasValue(maxLength)) { maxLength = 100; };
     if (!DRB.Utilities.HasValue(placeholder)) { placeholder = "Text" };
     return $("<input>", { id: id, class: "form-control", style: "width: 340px; height: 28px; margin-left: 10px; display: inline;", type: "text", autocomplete: "off", maxlength: maxLength, title: placeholder, placeholder: placeholder });
-}
-
-DRB.UI.CreateInputLongString = function (id, maxLength, placeholder) {
-    if (!DRB.Utilities.HasValue(maxLength)) { maxLength = 100; };
-    if (!DRB.Utilities.HasValue(placeholder)) { placeholder = "Text" };
-    return $("<input>", { id: id, class: "form-control", style: "width: 600px; height: 28px; margin-left: 10px; display: inline;", type: "text", autocomplete: "off", maxlength: maxLength, title: placeholder, placeholder: placeholder });
 }
 
 DRB.UI.CreateInputDateTime = function (id, behavior, placeholder) {
