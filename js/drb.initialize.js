@@ -84,6 +84,11 @@ DRB.SetDefaultSettings = function () {
     DRB.Settings.OptionsOperatorDateTime = [optOn, optNotOn, optAfter, optOnOrAfter, optBefore, optOnOrBefore, optNeNull, optEqNull];
     // #endregion
 
+    // #region Postman Export Settings
+    DRB.Settings.PostmanGrantType = [new DRB.Models.IdValue("implicit", "Implicit"), new DRB.Models.IdValue("client_credentials", "Client Credentials")];
+    DRB.Settings.PostmanScopeType = [new DRB.Models.IdValue("empty", "Empty"), new DRB.Models.IdValue("default", "Dataverse Default")];
+    // #endregion
+
     DRB.Settings.TimeoutDelay = 500; // used in the setTimout calls
 
     // Default Metadata

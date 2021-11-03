@@ -195,62 +195,157 @@ DRB.Collection.Save = function () {
 }
 
 /**
+ * Collection - Bind Postman Grant Type
+ * @param {string} id Id
+*/
+DRB.Collection.BindPostmanGrantType = function (id) {
+    $("#" + id).on("change", function (e) {
+        var grantType = $(this).val();
+        var postmanDOM = DRB.DOM.Collection.Postman;
+        $("#" + postmanDOM.SettingsDiv.Id).empty();
+        var divTable = DRB.UI.CreateTable(postmanDOM.Table.Id);
+        $("#" + postmanDOM.SettingsDiv.Id).append(divTable);
+
+        switch (grantType) {
+            case "implicit":
+                var implicitSettings = ["ClientId", "AuthUrl", "CallbackUrl"];
+                implicitSettings.forEach(function (setting) {
+                    var tr = DRB.UI.CreateTr(postmanDOM.Tr.Id + postmanDOM[setting + "Span"].Id);
+                    var tdLabel = DRB.UI.CreateTd(postmanDOM.TdLabel.Id + postmanDOM[setting + "Span"].Id);
+                    var tdValue = DRB.UI.CreateTd(postmanDOM.TdValue.Id + postmanDOM[setting + "Span"].Id);
+                    divTable.append(tr);
+                    tr.append(tdLabel);
+                    tr.append(tdValue);
+
+                    tdLabel.append(DRB.UI.CreateSpan(postmanDOM[setting + "Span"].Id, postmanDOM[setting + "Span"].Name));
+                    tdValue.append(DRB.UI.CreateInputLongString(postmanDOM[setting + "Input"].Id, null, postmanDOM[setting + "Span"].Name));
+                });
+
+                $("#" + postmanDOM.ClientIdInput.Id).val("51f81489-12ee-4a9e-aaae-a2591f45987d");
+                $("#" + postmanDOM.AuthUrlInput.Id).val("https://login.microsoftonline.com/common/oauth2/authorize?resource={{url}}");
+                $("#" + postmanDOM.CallbackUrlInput.Id).val("https://callbackurl");
+
+                break;
+
+            case "client_credentials":
+                var clientCredentialSettings = ["ClientId", "ClientSecret", "TenantId", "AccessToken", "Scope"];
+                clientCredentialSettings.forEach(function (setting) {
+                    var tr = DRB.UI.CreateTr(postmanDOM.Tr.Id + postmanDOM[setting + "Span"].Id);
+                    var tdLabel = DRB.UI.CreateTd(postmanDOM.TdLabel.Id + postmanDOM[setting + "Span"].Id);
+                    var tdValue = DRB.UI.CreateTd(postmanDOM.TdValue.Id + postmanDOM[setting + "Span"].Id);
+                    divTable.append(tr);
+                    tr.append(tdLabel);
+                    tr.append(tdValue);
+
+                    tdLabel.append(DRB.UI.CreateSpan(postmanDOM[setting + "Span"].Id, postmanDOM[setting + "Span"].Name));
+                    tdValue.append(DRB.UI.CreateInputLongString(postmanDOM[setting + "Input"].Id, null, postmanDOM[setting + "Span"].Name));
+                });
+                $("#" + postmanDOM.ScopeInput.Id).val(DRB.Xrm.GetClientUrl() + "/.default");
+                $("#" + postmanDOM.AccessTokenInput.Id).val("https://login.microsoftonline.com/{{tenantid}}/oauth2/v2.0/token");
+                break;
+        }
+    });
+}
+
+/**
+ * Collection - Export Postman File
+ */
+DRB.Collection.ExportPostmanFile = function () {
+    // get jsTree data structure
+    var currentNodes = $("#" + DRB.DOM.TreeView.Id).jstree(true).get_json("#");
+    var postmanDOM = DRB.DOM.Collection.Postman;
+    var grantType = $("#" + postmanDOM.GrantTypeDropdown.Id).val();
+    // get current DateTime
+    var now = new Date();
+    // create json collection
+    var collection = { info: {}, auth: {}, event: [], variable: [] };
+
+    // #region info
+    collection.info._postman_id = DRB.Utilities.GenerateGuid();
+    collection.info.name = currentNodes[0].text;
+    collection.info.schema = "https://schema.getpostman.com/json/collection/v2.1.0/collection.json";
+    // #endregion
+
+    // #region auth
+    collection.auth.type = "oauth2";
+    collection.auth.oauth2 = [];
+    collection.auth.oauth2.push({ key: "grant_type", value: grantType, type: "string" });
+    collection.auth.oauth2.push({ key: "addTokenTo", value: "header", type: "string" });
+    collection.auth.oauth2.push({ key: "client_authentication", value: "header", type: "string" });
+    collection.auth.oauth2.push({ key: "challengeAlgorithm", value: "S256", type: "string" });
+    collection.auth.oauth2.push({ key: "tokenName", value: "Dataverse Token", type: "string" });
+
+    switch (grantType) {
+        case "implicit":
+            collection.auth.oauth2.push({ key: "redirect_uri", value: "{{callback}}", type: "string" });
+            collection.auth.oauth2.push({ key: "clientId", value: "{{clientid}}", type: "string" });
+            collection.auth.oauth2.push({ key: "authUrl", value: "{{authurl}}", type: "string" });
+            break;
+        case "client_credentials":
+            collection.auth.oauth2.push({ key: "clientId", value: "{{clientid}}", type: "string" });
+            collection.auth.oauth2.push({ key: "clientSecret", value: "{{clientsecret}}", type: "string" });
+            collection.auth.oauth2.push({ key: "scope", value: $("#" + postmanDOM.ScopeInput.Id).val(), type: "string" });
+            collection.auth.oauth2.push({ key: "accessTokenUrl", value: $("#" + postmanDOM.AccessTokenInput.Id).val(), type: "string" });
+            break;
+    }
+    // #endregion
+
+    // #region event
+    collection.event.push({ listen: "prerequest", script: { type: "text/javascript", exec: [""] } });
+    collection.event.push({ listen: "test", script: { type: "text/javascript", exec: [""] } });
+    // #endregion
+
+    // #region variable
+    collection.variable.push({ key: "url", value: DRB.Xrm.GetClientUrl() });
+    switch (grantType) {
+        case "implicit":
+            collection.variable.push({ key: "clientid", value: $("#" + postmanDOM.ClientIdInput.Id).val() });
+            collection.variable.push({ key: "authurl", value: $("#" + postmanDOM.AuthUrlInput.Id).val() });
+            collection.variable.push({ key: "callback", value: $("#" + postmanDOM.CallbackUrlInput.Id).val() });
+            break;
+        case "client_credentials":
+            collection.variable.push({ key: "clientid", value: $("#" + postmanDOM.ClientIdInput.Id).val() });
+            collection.variable.push({ key: "clientsecret", value: $("#" + postmanDOM.ClientSecretInput.Id).val() });
+            collection.variable.push({ key: "tenantid", value: $("#" + postmanDOM.TenantIdInput.Id).val() });
+            break;
+    }
+    // #endregion
+
+    // export jsTree nodes to the json collection
+    DRB.Collection.ExportNodesPostman(currentNodes[0], collection);
+    // create fileName and fileDate (coming from current DateTime) to be used inside a valid filename
+    var fileName = currentNodes[0].text.replace(/[^a-z0-9]/gi, "_");
+    var fileDate = now.toLocaleString("sv").replace(/ /g, "_").replace(/-/g, "").replace(/:/g, "");
+    // create the blob content holding the json collection
+    var saveFile = new Blob([JSON.stringify(collection, null, "\t")], { type: "application/json" });
+    // download the blob content with the provided filename
+    var customLink = document.createElement("a");
+    customLink.href = URL.createObjectURL(saveFile);
+    customLink.download = fileName + "_" + fileDate + ".postman_collection.json";
+    customLink.click();
+}
+
+/**
  * Collection - Export Postman 
  */
 DRB.Collection.ExportPostman = function () {
     // get jsTree data structure
     var currentNodes = $("#" + DRB.DOM.TreeView.Id).jstree(true).get_json("#");
     // if no nodes then show error
-    if (currentNodes.length === 0) { DRB.UI.ShowError("Save Collection", "Create or Load a Collection before Save"); }
+    if (currentNodes.length === 0) { DRB.UI.ShowError("Export Postman Collection", "Create or Load a Collection before Export"); }
     else {
-        // get current DateTime
-        var now = new Date();
-        // create json collection
-        var collection = { info: {}, auth: {}, event: [], variable: [] };
+        var postmanDOM = DRB.DOM.Collection.Postman;
+        var postmanDiv = DRB.UI.CreateEmptyDiv(postmanDOM.Div.Id);
 
-        // #region info
-        collection.info._postman_id = DRB.Utilities.GenerateGuid();
-        collection.info.name = currentNodes[0].text;
-        collection.info.schema = "https://schema.getpostman.com/json/collection/v2.1.0/collection.json";
-        // #endregion
+        postmanDiv.append(DRB.UI.CreateSpan(postmanDOM.GrantTypeSpan.Id, postmanDOM.GrantTypeSpan.Name));
+        postmanDiv.append(DRB.UI.CreateSimpleDropdown(postmanDOM.GrantTypeDropdown.Id));
+        postmanDiv.append(DRB.UI.CreateSpacer());
+        postmanDiv.append(DRB.UI.CreateEmptyDiv(postmanDOM.SettingsDiv.Id));
+        DRB.UI.ShowExport("Export as Postman Collection", postmanDiv, "large", DRB.Collection.ExportPostmanFile);
+        DRB.UI.FillDropdown(postmanDOM.GrantTypeDropdown.Id, postmanDOM.GrantTypeDropdown.Name, new DRB.Models.Records(DRB.Settings.PostmanGrantType).ToDropdown());
+        DRB.Collection.BindPostmanGrantType(postmanDOM.GrantTypeDropdown.Id);
+        $("#" + postmanDOM.GrantTypeDropdown.Id).val(DRB.Settings.PostmanGrantType[0].Id).change();
 
-        // #region auth
-        collection.auth.type = "oauth2";
-        collection.auth.oauth2 = [];
-        collection.auth.oauth2.push({ key: "grant_type", value: "implicit", type: "string" });
-        collection.auth.oauth2.push({ key: "addTokenTo", value: "header", type: "string" });
-        collection.auth.oauth2.push({ key: "client_authentication", value: "header", type: "string" });
-        collection.auth.oauth2.push({ key: "challengeAlgorithm", value: "S256", type: "string" });
-        collection.auth.oauth2.push({ key: "tokenName", value: "Dataverse Token", type: "string" });
-        collection.auth.oauth2.push({ key: "redirect_uri", value: "{{callback}}", type: "string" });
-        collection.auth.oauth2.push({ key: "clientId", value: "{{clientid}}", type: "string" });
-        collection.auth.oauth2.push({ key: "authUrl", value: "{{authurl}}", type: "string" });
-        // #endregion
-
-        // #region event
-        collection.event.push({ listen: "prerequest", script: { type: "text/javascript", exec: [""] } });
-        collection.event.push({ listen: "test", script: { type: "text/javascript", exec: [""] } });
-        // #endregion
-
-        // #region variable        
-        collection.variable.push({ key: "url", value: DRB.Xrm.GetClientUrl() });
-        collection.variable.push({ key: "authurl", value: "https://login.microsoftonline.com/common/oauth2/authorize?resource={{url}}" });
-        collection.variable.push({ key: "clientid", value: "51f81489-12ee-4a9e-aaae-a2591f45987d" });
-        collection.variable.push({ key: "callback", value: "https://callbackurl" });
-        // #endregion
-
-        // export jsTree nodes to the json collection
-        DRB.Collection.ExportNodesPostman(currentNodes[0], collection);
-        // create fileName and fileDate (coming from current DateTime) to be used inside a valid filename
-        var fileName = currentNodes[0].text.replace(/[^a-z0-9]/gi, "_");
-        var fileDate = now.toLocaleString("sv").replace(/ /g, "_").replace(/-/g, "").replace(/:/g, "");
-        // create the blob content holding the json collection
-        var saveFile = new Blob([JSON.stringify(collection, null, "\t")], { type: "application/json" });
-        // download the blob content with the provided filename
-        var customLink = document.createElement("a");
-        customLink.href = URL.createObjectURL(saveFile);
-        customLink.download = fileName + "_" + fileDate + ".postman_collection.json";
-        customLink.click();
     }
 }
 // #endregion

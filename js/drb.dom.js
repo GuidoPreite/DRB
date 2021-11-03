@@ -22,6 +22,34 @@ DRB.DOM.Collection.LoadButton = { Id: "btn_loadcollection", Name: "Load Collecti
 DRB.DOM.Collection.SaveButton = { Id: "btn_savecollection", Name: "Save Collection", Class: "dropdown-item" };
 DRB.DOM.Collection.ExportPostmanButton = { Id: "btn_exportpostmancollection", Name: "Export as Postman Collection (2.1)", Class: "dropdown-item" };
 
+DRB.DOM.Collection.Postman = {};
+DRB.DOM.Collection.Postman.Div = { Id: "div_export_postman" };
+DRB.DOM.Collection.Postman.GrantTypeSpan = { Id: "span_postman_granttype", Name: "Grant Type" };
+DRB.DOM.Collection.Postman.GrantTypeDropdown = { Id: "cbx_postman_granttype", Name: "Select Grant Type" };
+DRB.DOM.Collection.Postman.SettingsDiv = { Id: "div_export_postman_setting" };
+
+DRB.DOM.Collection.Postman.Table = { Id: "table_postman" };
+DRB.DOM.Collection.Postman.Tr = { Id: "tr_postman_" };
+DRB.DOM.Collection.Postman.TdLabel = { Id: "td_postman_label_" };
+DRB.DOM.Collection.Postman.TdValue = { Id: "td_postman_value_" };
+
+DRB.DOM.Collection.Postman.AuthUrlSpan = { Id: "span_postman_authurl", Name: "Auth URL" };
+DRB.DOM.Collection.Postman.AuthUrlInput = { Id: "txt_postman_authurl" };
+DRB.DOM.Collection.Postman.CallbackUrlSpan = { Id: "span_postman_callbackurl", Name: "Callback URL" };
+DRB.DOM.Collection.Postman.CallbackUrlInput = { Id: "txt_postman_callbackurl" };
+
+DRB.DOM.Collection.Postman.ClientIdSpan = { Id: "span_postman_clientid", Name: "Client ID" };
+DRB.DOM.Collection.Postman.ClientIdInput = { Id: "txt_postman_clientid" };
+DRB.DOM.Collection.Postman.ClientSecretSpan = { Id: "span_postman_clientsecret", Name: "Client Secret" };
+DRB.DOM.Collection.Postman.ClientSecretInput = { Id: "txt_postman_clientsecret" };
+DRB.DOM.Collection.Postman.TenantIdSpan = { Id: "span_postman_tenantid", Name: "Tenant ID" };
+DRB.DOM.Collection.Postman.TenantIdInput = { Id: "txt_postman_tenantid" };
+DRB.DOM.Collection.Postman.AccessTokenSpan = { Id: "span_postman_accesstoken", Name: "Access Token URL" };
+DRB.DOM.Collection.Postman.AccessTokenInput = { Id: "txt_postman_accesstoken" };
+DRB.DOM.Collection.Postman.ScopeSpan = { Id: "span_postman_scope", Name: "Scope" };
+DRB.DOM.Collection.Postman.ScopeInput = { Id: "txt_postman_scope" };
+
+
 // Request Type
 DRB.DOM.RequestType = {};
 DRB.DOM.RequestType.Div = { Id: "request_name", Name: "Request Name" };
