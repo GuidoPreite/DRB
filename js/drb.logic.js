@@ -27,16 +27,22 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
     var preCode = [];
     preCode.push('let Xrm = parent.Xrm;');
     preCode.push('let webapi = {};');
-    //preCode.push('let portalUri = Xrm.Utility.getGlobalContext().getClientUrl();');
     preCode.push('webapi.safeAjax = function(ajaxOptions) {');
     preCode.push('\tlet ajaxUrl = ajaxOptions.url;');
     preCode.push('\tif (ajaxUrl.indexOf("/_api/") === 0) {');
-    preCode.push('\t\tajaxOptions.url = ajaxUrl.replace("/_api/", Xrm.Utility.getGlobalContext().getClientUrl() + "/api/data/v9.0/");');
-
+    if (DRB.Xrm.IsXTBMode()) {
+        preCode.push('\t\tajaxOptions.url = ajaxUrl.replace("/_api/", DRB.Xrm.GetClientUrl() + "/api/data/v9.0/");');
+    } else {
+        preCode.push('\t\tajaxOptions.url = ajaxUrl.replace("/_api/", Xrm.Utility.getGlobalContext().getClientUrl() + "/api/data/v9.0/");');
+    }
     preCode.push('\tajaxOptions.beforeSend = function (req) {');
     preCode.push('\t\treq.setRequestHeader("OData-MaxVersion", "4.0");');
     preCode.push('\t\treq.setRequestHeader("OData-Version", "4.0");');
     preCode.push('\t\treq.setRequestHeader("Accept", "application/json");');
+    if (DRB.Xrm.IsXTBMode()) {
+        preCode.push('\t\treq.setRequestHeader("Authorization", "Bearer " + DRB.Settings.XTBToken);');
+    }
+
     preCode.push('\t};');
     preCode.push('\t}');
     preCode.push('\t$.ajax(ajaxOptions);');
@@ -44,16 +50,24 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
     preCode.push('');
 
     codeValue = preCode.join('\n') + codeValue;
-    
-    // Portals replace for portalUri + "/_api" syntax
+
+    // Portals replace for portalUri + "/_api" syntax (association)
     var replacePortalUri = 'Xrm.Utility.getGlobalContext().getClientUrl() + "/api/data/v9.0/';
+    if (DRB.Xrm.IsXTBMode()) {
+        replacePortalUri = 'DRB.Xrm.GetClientUrl() + "/api/data/v9.0/';
+    }
     codeValue = codeValue.replace(/portalUri \+\ "\/_api\//gi, replacePortalUri);
     codeValue = codeValue.replace(/portalUri\+\ "\/_api\//gi, replacePortalUri);
     codeValue = codeValue.replace(/portalUri \+\"\/_api\//gi, replacePortalUri);
     codeValue = codeValue.replace(/portalUri\+\"\/_api\//gi, replacePortalUri);
 
     codeValue = codeValue.replace(/console.log/gi, "DRB.Logic.ConsoleToResultsEditor");
-    
+
+    if (DRB.Xrm.IsXTBMode()) {
+        codeValue = codeValue.replace(/Xrm.Utility.getGlobalContext\(\).getClientUrl\(\)/gi, "DRB.Xrm.GetClientUrl()");       
+        codeValue = codeValue.replace(/req.setRequestHeader\("OData-MaxVersion", "4.0"\);/gi, 'req.setRequestHeader("OData-MaxVersion", "4.0"); req.setRequestHeader("Authorization", "Bearer " + DRB.Settings.XTBToken);');
+    }
+    console.log(codeValue);
     DRB.UI.ShowLoading("Executing code...");
     setTimeout(function () {
         try {

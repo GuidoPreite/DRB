@@ -1,6 +1,7 @@
 // #region DRB.DOM
 // Main Content
 DRB.DOM.MainContent = { Id: "main_content" }; // defined also inside index.htm
+DRB.DOM.ContextSpan = { Id: "span_context" }; // defined also inside index.htm
 
 // jsTree
 DRB.DOM.TreeView = { Id: "div_collection" }; // defined also inside index.htm

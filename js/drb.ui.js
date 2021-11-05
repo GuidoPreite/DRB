@@ -131,7 +131,7 @@ DRB.UI.DisplayDialog = function (title, message, className, size, okCallBack, as
     if (DRB.Utilities.HasValue(okCallBack) && askQuestion === true) {
         properties.closeButton = true;
         if (!DRB.Utilities.HasValue(confirmLabel)) { confirmLabel = "Yes"; }
-        if (!DRB.Utilities.HasValue(cancelLabel)) { confirmLabel = "No"; }
+        if (!DRB.Utilities.HasValue(cancelLabel)) { cancelLabel = "No"; }
         properties.buttons = { cancel: { label: cancelLabel }, confirm: { label: confirmLabel, className: className } };
         properties.callback = function (result) { if (result === true) { okCallBack(); } };
         bootbox.confirm(properties);
@@ -620,6 +620,13 @@ DRB.UI.OpenLookup = function (settings) {
 
     // if lookupOptions is valid show the selection, otherwise show the error
     if (DRB.Utilities.HasValue(lookupOptions)) {
+        // XTB Mode
+        if (DRB.Xrm.IsXTBMode()) {
+            DRB.UI.Show("XrmToolBox Mode", "Lookup is not available inside XrmToolBox.<br />A random Guid has been generated.");
+            $("#" + settings.textId).val(DRB.Utilities.GenerateGuid()).trigger("input").change();
+            return;
+        }
+
         // Demo Mode
         if (DRB.Xrm.IsDemoMode()) {
             DRB.UI.Show("Demo Mode", "Lookup is not available in Demo Mode.<br />A random Guid has been generated.");

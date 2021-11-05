@@ -281,6 +281,19 @@ DRB.DefineOperations = function () {
 
                 $("#" + tab.id).append(btn_copyCode);
                 $("#" + tab.id).append(btn_moveCode);
+
+                if (DRB.Xrm.IsXTBMode()) {
+                    if (tab.id === "code_xrmwebapi" || tab.id === "code_xrmwebapiexecute") {
+                        var span_warning_xrmwebapi_xtb = DRB.UI.CreateSpan("span_warning_xrmwebapi_xtb", "NOTE: Xrm.WebApi is not available when DRB is executed inside XrmToolBox");
+                        $("#" + tab.id).append(span_warning_xrmwebapi_xtb);
+                    }
+
+                    if (tab.id === "code_jquery" || tab.id === "code_xmlhttprequest") {
+                        var span_warning_jqueryxhr_xtb = DRB.UI.CreateSpan("span_warning_jqueryxhr_xtb", "NOTE: Inside DRB for XrmToolBox, Xrm.Utility.getGlobalContext().getClientUrl() is routed to the Instance URL");
+                        $("#" + tab.id).append(span_warning_jqueryxhr_xtb);
+                    }
+
+                }
                 if (tab.id === "code_portals") {
                     var span_warning_portals = DRB.UI.CreateSpan("span_warning_portals", "NOTE: Inside DRB, Portals endpoint (<i>/_api/</i>) is routed to the default Web API endpoint");
                     $("#" + tab.id).append(span_warning_portals);
@@ -372,8 +385,21 @@ DRB.ShowNotice = function () {
 /**
  * Main function called by the Index
  */
-DRB.Initialize = function () {
-    if (DRB.Xrm.IsDemoMode()) { $("#demo").html("(Demo)"); }
+DRB.Initialize = async function () {
+    DRB.Settings.XTBContext = false;
+    var xtbSettings = null;
+    if (DRB.Utilities.HasValue(chrome) && DRB.Utilities.HasValue(chrome.webview) && DRB.Utilities.HasValue(chrome.webview.hostObjects)) {
+        xtbSettings = chrome.webview.hostObjects.xtbSettings;
+    }
+
+    if (DRB.Utilities.HasValue(xtbSettings)) {
+        DRB.Settings.XTBContext = true;
+        DRB.Settings.XTBToken = await xtbSettings.Token;
+        DRB.Settings.XTBUrl = await xtbSettings.Url;
+        DRB.Settings.XTBVersion = await xtbSettings.Version;
+    }
+
+    $("#" + DRB.DOM.ContextSpan.Id).html(DRB.Xrm.GetContext());
     DRB.HideNotice();
     DRB.SetDefaultSettings();
     DRB.DefineOperations();

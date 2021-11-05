@@ -29,6 +29,7 @@ DRB.Logic.ExecuteWorkflow = {}; // Execute Workflow Functions
 // #region DRB.DOM
 // Main Content
 DRB.DOM.MainContent = { Id: "main_content" }; // defined also inside index.htm
+DRB.DOM.ContextSpan = { Id: "span_context" }; // defined also inside index.htm
 
 // jsTree
 DRB.DOM.TreeView = { Id: "div_collection" }; // defined also inside index.htm
@@ -1465,7 +1466,7 @@ DRB.UI.DisplayDialog = function (title, message, className, size, okCallBack, as
     if (DRB.Utilities.HasValue(okCallBack) && askQuestion === true) {
         properties.closeButton = true;
         if (!DRB.Utilities.HasValue(confirmLabel)) { confirmLabel = "Yes"; }
-        if (!DRB.Utilities.HasValue(cancelLabel)) { confirmLabel = "No"; }
+        if (!DRB.Utilities.HasValue(cancelLabel)) { cancelLabel = "No"; }
         properties.buttons = { cancel: { label: cancelLabel }, confirm: { label: confirmLabel, className: className } };
         properties.callback = function (result) { if (result === true) { okCallBack(); } };
         bootbox.confirm(properties);
@@ -1954,6 +1955,13 @@ DRB.UI.OpenLookup = function (settings) {
 
     // if lookupOptions is valid show the selection, otherwise show the error
     if (DRB.Utilities.HasValue(lookupOptions)) {
+        // XTB Mode
+        if (DRB.Xrm.IsXTBMode()) {
+            DRB.UI.Show("XrmToolBox Mode", "Lookup is not available inside XrmToolBox.<br />A random Guid has been generated.");
+            $("#" + settings.textId).val(DRB.Utilities.GenerateGuid()).trigger("input").change();
+            return;
+        }
+
         // Demo Mode
         if (DRB.Xrm.IsDemoMode()) {
             DRB.UI.Show("Demo Mode", "Lookup is not available in Demo Mode.<br />A random Guid has been generated.");
@@ -1985,50 +1993,70 @@ DRB.UI.OpenLookup = function (settings) {
 DRB.Xrm.GetXrmObject = function () {
     return parent.Xrm;
 }
+/**
+ * Xrm - Get Context
+ */
+DRB.Xrm.GetContext = function () {
+    if (DRB.Xrm.IsXTBMode() === true) { return "(XTB) <small>" + DRB.Settings.XTBUrl + "</small>"; }
+    if (DRB.Xrm.IsInstanceMode() === true) { return ""; }
+    if (DRB.Xrm.IsDemoMode() === true) { return "(Demo)"; }
+}
+
+/**
+ * Xrm - Is XTB Mode
+ */
+DRB.Xrm.IsXTBMode = function () {
+    return DRB.Settings.XTBContext;
+}
 
 /**
  * Xrm - Is Demo Mode
  */
 DRB.Xrm.IsDemoMode = function () {
+    if (DRB.Xrm.IsXTBMode()) { return false; }
     return typeof DRB.Xrm.GetXrmObject() === "undefined";
+}
+
+/**
+ * Xrm - Is Instance Mode
+ */
+DRB.Xrm.IsInstanceMode = function () {
+    if (DRB.Xrm.IsXTBMode()) { return false; }
+    if (DRB.Xrm.IsDemoMode()) { return false; }
+    return typeof DRB.Xrm.GetXrmObject() !== "undefined";
 }
 
 /**
  * Xrm - Get Client Url
  */
 DRB.Xrm.GetClientUrl = function () {
-    if (DRB.Xrm.IsDemoMode()) {
-        return "https://democall";
-    } else {
-        return DRB.Xrm.GetXrmObject().Utility.getGlobalContext().getClientUrl();
-    }
+    if (DRB.Xrm.IsXTBMode()) { return DRB.Settings.XTBUrl; }
+    if (DRB.Xrm.IsInstanceMode()) { return DRB.Xrm.GetXrmObject().Utility.getGlobalContext().getClientUrl(); }
+    if (DRB.Xrm.IsDemoMode()) { return "https://democall"; }
 }
 
 /**
  * Xrm - Get Metadata Url
  */
 DRB.Xrm.GetMetadataUrl = function () {
-    if (DRB.Xrm.IsDemoMode()) {
-        return "https://democall/api/data/v9.0/$metadata";
-    } else {
-        return DRB.Xrm.GetClientUrl() + "/api/data/v9.0/$metadata";
-    }
+    if (DRB.Xrm.IsXTBMode()) { return DRB.Xrm.GetClientUrl() + "/api/data/v9.0/$metadata"; }
+    if (DRB.Xrm.IsInstanceMode()) { return DRB.Xrm.GetClientUrl() + "/api/data/v9.0/$metadata"; }
+    if (DRB.Xrm.IsDemoMode()) { return "https://democall/api/data/v9.0/$metadata"; }
 }
 
 /**
  * Xrm - Get Version
  */
 DRB.Xrm.GetVersion = function () {
-    if (DRB.Xrm.IsDemoMode()) { return "9.1"; }
-    else {
-        try {
-            var currentVersion = DRB.Xrm.GetXrmObject().Utility.getGlobalContext().getVersion();
-            if (!DRB.Utilities.HasValue(currentVersion)) { return ""; }
-            var versionArray = currentVersion.split(".");
-            if (versionArray.length < 2) { return ""; }
-            return versionArray[0] + "." + versionArray[1];
-        } catch (ex) { return ""; }
-    }
+    var currentVersion = "";
+    if (DRB.Xrm.IsXTBMode()) { currentVersion = DRB.Settings.XTBVersion; }
+    if (DRB.Xrm.IsInstanceMode()) { currentVersion = DRB.Xrm.GetXrmObject().Utility.getGlobalContext().getVersion(); }
+    if (DRB.Xrm.IsDemoMode()) { currentVersion = "9.1.0.0"; }
+
+    if (!DRB.Utilities.HasValue(currentVersion)) { return ""; }
+    var versionArray = currentVersion.split(".");
+    if (versionArray.length < 2) { return ""; }
+    return versionArray[0] + "." + versionArray[1];
 }
 
 /**
@@ -2037,10 +2065,26 @@ DRB.Xrm.GetVersion = function () {
  * @param {string} filters Filters
  */
 DRB.Xrm.Retrieve = function (entitySetName, filters) {
-    if (DRB.Xrm.IsDemoMode()) {
-        return $.when(DRB.Xrm.GetDemoData(entitySetName, filters));
-    } else {
-        var retrieveUrl = encodeURI(DRB.Xrm.GetClientUrl() + "/api/data/v9.0/" + entitySetName + "?" + filters);
+    var retrieveUrl = encodeURI(DRB.Xrm.GetClientUrl() + "/api/data/v9.0/" + entitySetName + "?" + filters);
+
+    if (DRB.Xrm.IsXTBMode()) {
+        return $.ajax({
+            type: "GET",
+            contentType: "application/json; charset=utf-8",
+            datatype: "json",
+            async: true,
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader("OData-MaxVersion", "4.0");
+                xhr.setRequestHeader("OData-Version", "4.0");
+                xhr.setRequestHeader("Accept", "application/json");
+                xhr.setRequestHeader("Prefer", "odata.include-annotations=\"*\"");
+                xhr.setRequestHeader("Authorization", "Bearer " + DRB.Settings.XTBToken);
+            },
+            url: retrieveUrl
+        });
+    }
+
+    if (DRB.Xrm.IsInstanceMode()) {
         return $.ajax({
             type: "GET",
             contentType: "application/json; charset=utf-8",
@@ -2055,6 +2099,8 @@ DRB.Xrm.Retrieve = function (entitySetName, filters) {
             url: retrieveUrl
         });
     }
+
+    if (DRB.Xrm.IsDemoMode()) { return $.when(DRB.Xrm.GetDemoData(entitySetName, filters)); }
 }
 
 /**
@@ -2062,27 +2108,41 @@ DRB.Xrm.Retrieve = function (entitySetName, filters) {
  * @param {any[]} queries Queries
  */
 DRB.Xrm.RetrieveBatch = function (queries) {
-    if (DRB.Xrm.IsDemoMode()) {
-        return $.when(DRB.Xrm.GetDemoDataBatch(queries));
-    } else {
-        var batchDescription = "batch_" + DRB.Utilities.GenerateGuid();
-        var data = [];
-        queries.forEach(function (query) {
-            var retrieveUrl = DRB.Xrm.GetClientUrl() + "/api/data/v9.0/" + query.EntitySetName + "?" + query.Filters;
-            data.push("--" + batchDescription);
-            data.push("Content-Type: application/http");
-            data.push("Content-Transfer-Encoding: binary");
-            data.push("");
-            data.push("GET " + retrieveUrl + " HTTP/1.1");
-            data.push("Content-Type: application/json");
-            data.push("OData-Version: 4.0");
-            data.push("OData-MaxVersion: 4.0");
-            data.push("Prefer: odata.include-annotations=\"*\"");
-            data.push("");
-        });
-        data.push("--" + batchDescription + "--");
-        var payload = data.join("\r\n");
+    var batchDescription = "batch_" + DRB.Utilities.GenerateGuid();
+    var data = [];
+    queries.forEach(function (query) {
+        var retrieveUrl = DRB.Xrm.GetClientUrl() + "/api/data/v9.0/" + query.EntitySetName + "?" + query.Filters;
+        data.push("--" + batchDescription);
+        data.push("Content-Type: application/http");
+        data.push("Content-Transfer-Encoding: binary");
+        data.push("");
+        data.push("GET " + retrieveUrl + " HTTP/1.1");
+        data.push("Content-Type: application/json");
+        data.push("OData-Version: 4.0");
+        data.push("OData-MaxVersion: 4.0");
+        data.push("Prefer: odata.include-annotations=\"*\"");
+        data.push("");
+    });
+    data.push("--" + batchDescription + "--");
+    var payload = data.join("\r\n");
 
+    if (DRB.Xrm.IsXTBMode()) {
+        return $.ajax({
+            method: "POST",
+            data: payload,
+            async: true,
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader("Content-Type", "multipart/mixed;boundary=" + batchDescription);
+                xhr.setRequestHeader("OData-MaxVersion", "4.0");
+                xhr.setRequestHeader("OData-Version", "4.0");
+                xhr.setRequestHeader("Accept", "application/json");
+                xhr.setRequestHeader("Authorization", "Bearer " + DRB.Settings.XTBToken);
+            },
+            url: DRB.Xrm.GetClientUrl() + "/api/data/v9.0/$batch"
+        });
+    }
+
+    if (DRB.Xrm.IsInstanceMode()) {
         return $.ajax({
             method: "POST",
             data: payload,
@@ -2096,6 +2156,8 @@ DRB.Xrm.RetrieveBatch = function (queries) {
             url: DRB.Xrm.GetClientUrl() + "/api/data/v9.0/$batch"
         });
     }
+
+    if (DRB.Xrm.IsDemoMode()) { return $.when(DRB.Xrm.GetDemoDataBatch(queries)); }
 }
 
 /**
@@ -2103,17 +2165,26 @@ DRB.Xrm.RetrieveBatch = function (queries) {
  * Get $metadata content (XML)
  */
 DRB.Xrm.RetrieveMetadata = function () {
-    if (DRB.Xrm.IsDemoMode()) {
-        return $.when(DRB.Xrm.GetDemoMetadata());
-    } else {
-        var metadataUrl = DRB.Xrm.GetClientUrl() + "/api/data/v9.0/$metadata";
+    if (DRB.Xrm.IsXTBMode()) {
         return $.ajax({
             type: "GET",
             datatype: "xml",
             async: true,
-            url: metadataUrl
+            beforeSend: function (xhr) { xhr.setRequestHeader("Authorization", "Bearer " + DRB.Settings.XTBToken); },
+            url: DRB.Xrm.GetMetadataUrl()
         });
     }
+
+    if (DRB.Xrm.IsInstanceMode()) {
+        return $.ajax({
+            type: "GET",
+            datatype: "xml",
+            async: true,
+            url: DRB.Xrm.GetMetadataUrl()
+        });
+    }
+
+    if (DRB.Xrm.IsDemoMode()) { return $.when(DRB.Xrm.GetDemoMetadata()); }
 }
 // #endregion  
  
@@ -3174,16 +3245,22 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
     var preCode = [];
     preCode.push('let Xrm = parent.Xrm;');
     preCode.push('let webapi = {};');
-    //preCode.push('let portalUri = Xrm.Utility.getGlobalContext().getClientUrl();');
     preCode.push('webapi.safeAjax = function(ajaxOptions) {');
     preCode.push('\tlet ajaxUrl = ajaxOptions.url;');
     preCode.push('\tif (ajaxUrl.indexOf("/_api/") === 0) {');
-    preCode.push('\t\tajaxOptions.url = ajaxUrl.replace("/_api/", Xrm.Utility.getGlobalContext().getClientUrl() + "/api/data/v9.0/");');
-
+    if (DRB.Xrm.IsXTBMode()) {
+        preCode.push('\t\tajaxOptions.url = ajaxUrl.replace("/_api/", DRB.Xrm.GetClientUrl() + "/api/data/v9.0/");');
+    } else {
+        preCode.push('\t\tajaxOptions.url = ajaxUrl.replace("/_api/", Xrm.Utility.getGlobalContext().getClientUrl() + "/api/data/v9.0/");');
+    }
     preCode.push('\tajaxOptions.beforeSend = function (req) {');
     preCode.push('\t\treq.setRequestHeader("OData-MaxVersion", "4.0");');
     preCode.push('\t\treq.setRequestHeader("OData-Version", "4.0");');
     preCode.push('\t\treq.setRequestHeader("Accept", "application/json");');
+    if (DRB.Xrm.IsXTBMode()) {
+        preCode.push('\t\treq.setRequestHeader("Authorization", "Bearer " + DRB.Settings.XTBToken);');
+    }
+
     preCode.push('\t};');
     preCode.push('\t}');
     preCode.push('\t$.ajax(ajaxOptions);');
@@ -3191,16 +3268,24 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
     preCode.push('');
 
     codeValue = preCode.join('\n') + codeValue;
-    
-    // Portals replace for portalUri + "/_api" syntax
+
+    // Portals replace for portalUri + "/_api" syntax (association)
     var replacePortalUri = 'Xrm.Utility.getGlobalContext().getClientUrl() + "/api/data/v9.0/';
+    if (DRB.Xrm.IsXTBMode()) {
+        replacePortalUri = 'DRB.Xrm.GetClientUrl() + "/api/data/v9.0/';
+    }
     codeValue = codeValue.replace(/portalUri \+\ "\/_api\//gi, replacePortalUri);
     codeValue = codeValue.replace(/portalUri\+\ "\/_api\//gi, replacePortalUri);
     codeValue = codeValue.replace(/portalUri \+\"\/_api\//gi, replacePortalUri);
     codeValue = codeValue.replace(/portalUri\+\"\/_api\//gi, replacePortalUri);
 
     codeValue = codeValue.replace(/console.log/gi, "DRB.Logic.ConsoleToResultsEditor");
-    
+
+    if (DRB.Xrm.IsXTBMode()) {
+        codeValue = codeValue.replace(/Xrm.Utility.getGlobalContext\(\).getClientUrl\(\)/gi, "DRB.Xrm.GetClientUrl()");       
+        codeValue = codeValue.replace(/req.setRequestHeader\("OData-MaxVersion", "4.0"\);/gi, 'req.setRequestHeader("OData-MaxVersion", "4.0"); req.setRequestHeader("Authorization", "Bearer " + DRB.Settings.XTBToken);');
+    }
+    console.log(codeValue);
     DRB.UI.ShowLoading("Executing code...");
     setTimeout(function () {
         try {
@@ -12784,6 +12869,19 @@ DRB.DefineOperations = function () {
 
                 $("#" + tab.id).append(btn_copyCode);
                 $("#" + tab.id).append(btn_moveCode);
+
+                if (DRB.Xrm.IsXTBMode()) {
+                    if (tab.id === "code_xrmwebapi" || tab.id === "code_xrmwebapiexecute") {
+                        var span_warning_xrmwebapi_xtb = DRB.UI.CreateSpan("span_warning_xrmwebapi_xtb", "NOTE: Xrm.WebApi is not available when DRB is executed inside XrmToolBox");
+                        $("#" + tab.id).append(span_warning_xrmwebapi_xtb);
+                    }
+
+                    if (tab.id === "code_jquery" || tab.id === "code_xmlhttprequest") {
+                        var span_warning_jqueryxhr_xtb = DRB.UI.CreateSpan("span_warning_jqueryxhr_xtb", "NOTE: Inside DRB for XrmToolBox, Xrm.Utility.getGlobalContext().getClientUrl() is routed to the Instance URL");
+                        $("#" + tab.id).append(span_warning_jqueryxhr_xtb);
+                    }
+
+                }
                 if (tab.id === "code_portals") {
                     var span_warning_portals = DRB.UI.CreateSpan("span_warning_portals", "NOTE: Inside DRB, Portals endpoint (<i>/_api/</i>) is routed to the default Web API endpoint");
                     $("#" + tab.id).append(span_warning_portals);
@@ -12875,8 +12973,21 @@ DRB.ShowNotice = function () {
 /**
  * Main function called by the Index
  */
-DRB.Initialize = function () {
-    if (DRB.Xrm.IsDemoMode()) { $("#demo").html("(Demo)"); }
+DRB.Initialize = async function () {
+    DRB.Settings.XTBContext = false;
+    var xtbSettings = null;
+    if (DRB.Utilities.HasValue(chrome) && DRB.Utilities.HasValue(chrome.webview) && DRB.Utilities.HasValue(chrome.webview.hostObjects)) {
+        xtbSettings = chrome.webview.hostObjects.xtbSettings;
+    }
+
+    if (DRB.Utilities.HasValue(xtbSettings)) {
+        DRB.Settings.XTBContext = true;
+        DRB.Settings.XTBToken = await xtbSettings.Token;
+        DRB.Settings.XTBUrl = await xtbSettings.Url;
+        DRB.Settings.XTBVersion = await xtbSettings.Version;
+    }
+
+    $("#" + DRB.DOM.ContextSpan.Id).html(DRB.Xrm.GetContext());
     DRB.HideNotice();
     DRB.SetDefaultSettings();
     DRB.DefineOperations();
