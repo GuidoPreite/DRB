@@ -391,7 +391,7 @@ DRB.Models.DataverseProperty = function (name, type, position, binding) {
     this.Name = name;
     this.Type = type;
 	this.Position = position;
-	this.Binding = binding;
+    this.Binding = binding;
 }
 
 /**
@@ -403,6 +403,30 @@ DRB.Models.DataverseComplexType = function (name, properties) {
     this.Id = name;
     this.Name = name;
     this.Properties = properties;
+}
+
+/**
+ * Models - Dataverse Member
+ * @param {string} name Name
+ * @param {string} value Value
+ */
+DRB.Models.DataverseMember = function (name, value) {
+    this.Id = value;
+    this.Name = name;
+    this.Value = value;
+
+    this.ToDropdownOption = function () { return new DRB.Models.DropdownOption(this.Id, this.Name, this.Value); }
+}
+
+/**
+ * Models - Dataverse Enum Type
+ * @param {string} name Name
+ * @param {DRB.Models.DataverseMember[]} members Members
+ */
+DRB.Models.DataverseEnumType = function (name, members) {
+    this.Id = name;
+    this.Name = name;
+    this.Members = members;
 }
 
 /**

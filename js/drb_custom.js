@@ -890,6 +890,15 @@ DRB.Xrm.GetDemoMetadata = function () {
     <Function Name="WhoAmI">
         <ReturnType Type="mscrm.WhoAmIResponse" Nullable="false" />
     </Function>
+    <Function Name="RetrieveCurrentOrganization">
+        <Parameter Name="AccessType" Type="mscrm.EndpointAccessType" Nullable="false"/>
+        <ReturnType Type="mscrm.RetrieveCurrentOrganizationResponse" Nullable="false"/>
+    </Function>
+    <EnumType Name="EndpointAccessType">
+        <Member Name="Default" Value="0"/>
+        <Member Name="Internet" Value="1"/>
+        <Member Name="Intranet" Value="2"/>
+    </EnumType>
     <Function Name="Between">
         <Parameter Name="PropertyName" Type="Edm.String" Nullable="false" Unicode="false" />
         <Parameter Name="PropertyValues" Type="Collection(Edm.String)" Nullable="false" Unicode="false" />
@@ -1292,7 +1301,7 @@ DRB.Models.DataverseProperty = function (name, type, position, binding) {
     this.Name = name;
     this.Type = type;
 	this.Position = position;
-	this.Binding = binding;
+    this.Binding = binding;
 }
 
 /**
@@ -1304,6 +1313,30 @@ DRB.Models.DataverseComplexType = function (name, properties) {
     this.Id = name;
     this.Name = name;
     this.Properties = properties;
+}
+
+/**
+ * Models - Dataverse Member
+ * @param {string} name Name
+ * @param {string} value Value
+ */
+DRB.Models.DataverseMember = function (name, value) {
+    this.Id = value;
+    this.Name = name;
+    this.Value = value;
+
+    this.ToDropdownOption = function () { return new DRB.Models.DropdownOption(this.Id, this.Name, this.Value); }
+}
+
+/**
+ * Models - Dataverse Enum Type
+ * @param {string} name Name
+ * @param {DRB.Models.DataverseMember[]} members Members
+ */
+DRB.Models.DataverseEnumType = function (name, members) {
+    this.Id = name;
+    this.Name = name;
+    this.Members = members;
 }
 
 /**
@@ -4355,16 +4388,17 @@ DRB.Logic.ClickSelectRelationshipColumns = function (relationshipType) {
 /**
  * Generate Code - Set Code Editors
  * @param {string[]} codeXrmWebApi Code Xrm.WebApi
+ * @param {string[]} codeXrmWebApiExecute Code Xrm.WebApi Execute
  * @param {string[]} codejQuery Code jQuery
  * @param {string[]} codeXMLHttpRequest Code XMLHttpRequest
  * @param {string[]} codePortals Code Portals
  */
 DRB.GenerateCode.SetCodeEditors = function (codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codePortals) {
-    if (!DRB.Utilities.HasValue(codeXrmWebApi)) { codeXrmWebApiExecute = []; }
+    if (!DRB.Utilities.HasValue(codeXrmWebApi)) { codeXrmWebApi = []; }
     if (!DRB.Utilities.HasValue(codeXrmWebApiExecute)) { codeXrmWebApiExecute = []; } // Xrm.WebApi execute is available only for Retrieve Single, Create, Update, Delete
-    if (!DRB.Utilities.HasValue(codejQuery)) { codeXrmWebApiExecute = []; }
-    if (!DRB.Utilities.HasValue(codeXMLHttpRequest)) { codeXrmWebApiExecute = []; }
-    if (!DRB.Utilities.HasValue(codePortals)) { codePortals = []; }
+    if (!DRB.Utilities.HasValue(codejQuery)) { codejQuery = []; }
+    if (!DRB.Utilities.HasValue(codeXMLHttpRequest)) { codeXMLHttpRequest = []; }
+    if (!DRB.Utilities.HasValue(codePortals)) { codePortals = []; } // Portals is available only for Retrieve Single, Retrieve Multiple, Create, Update, Delete, Associate, Disassociate
 
     // Insert the code inside the editors
     DRB.Settings.XrmWebApiEditor.session.setValue(codeXrmWebApi.join('\n'));
@@ -4508,8 +4542,10 @@ DRB.GenerateCode.GetFunctionUrl = function (settings) {
                     if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.id) && DRB.Utilities.HasValue(parameter.value.entityType)) {
                         var clearedValue = '{ "@odata.type": "Microsoft.Dynamics.CRM.' + parameter.value.entityType + '", ' + parameter.value.primaryIdField + ' : "' + parameter.value.id + '" }';
                         value = encodeURIComponent(clearedValue);
-                    } else {
-                        // Complex Type Not supported
+                    }
+                    if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.memberName) && DRB.Utilities.HasValue(parameter.value.memberValue)) {
+                        var replacedType = parameter.type.replace("mscrm.", "Microsoft.Dynamics.CRM.");
+                        value = replacedType + "'" + parameter.value.memberName + "'";
                     }
                 }
 
@@ -4980,17 +5016,25 @@ DRB.GenerateCode.GetXrmWebApiDefinitionParameters = function (settings, isBound,
                 } else {
                     // structuralProperty definition: https://docs.microsoft.com/en-us/powerapps/developer/model-driven-apps/clientapi/reference/xrm-webapi/online/execute
                     var structuralProperty = 0; // 0: Unknown
-                    // 3: EnumerationType can't be handled, example here https://docs.microsoft.com/en-us/powerapps/developer/model-driven-apps/clientapi/reference/xrm-webapi/online/execute
 
                     if (parameter.type.indexOf("Edm.") === 0) { structuralProperty = 1; } // 1: PrimitiveType
                     if (parameter.type.indexOf("Collection(") === 0) { structuralProperty = 4; } // 4: Collection
 
                     if (parameter.type.indexOf("mscrm.") === 0) {
-                        // can be ComplexType or EntityType
-                        structuralProperty = 2; // 2: ComplexType
+                        // can be ComplexType, Enum Type or EntityType
+                        structuralProperty = 2; // 2: ComplexType                        
                         structuralProperty = 5; // 5: EntityType
+
+                        if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.memberName) && DRB.Utilities.HasValue(parameter.value.memberValue)) {
+                            structuralProperty = 3; // 3: EnumType
+                        }
                     }
-                    definitionParameters.push('\t\t\t\t' + parameter.name + ': { typeName: "' + parameter.type + '", structuralProperty: ' + structuralProperty + ' },');
+                    if (structuralProperty !== 3) {
+                        definitionParameters.push('\t\t\t\t' + parameter.name + ': { typeName: "' + parameter.type + '", structuralProperty: ' + structuralProperty + ' },');
+                    } else {
+                        var replacedType = parameter.type.replace("mscrm.", "Microsoft.Dynamics.CRM.");
+                        definitionParameters.push('\t\t\t\t' + parameter.name + ': { typeName: "' + replacedType + '", structuralProperty: ' + structuralProperty + ', enumProperties: [{name: "' + parameter.value.memberName + '", value: ' + parameter.value.memberValue + '}] },');
+                    }
                 }
             }
         });
@@ -5108,10 +5152,20 @@ DRB.GenerateCode.GetCodeParameters = function (settings, xrmWebApiStyle) {
 
             if (typeFound === false && parameter.type.indexOf("mscrm.") === 0) {
                 typeFound = true;
+                var exactTypeFound = false;
                 if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.id) && DRB.Utilities.HasValue(parameter.value.entityType)) {
+                    exactTypeFound = true;
                     var clearedValue = '{ "@odata.type": "Microsoft.Dynamics.CRM.' + parameter.value.entityType + '", ' + parameter.value.primaryIdField + ' : "' + parameter.value.id + '" }';
                     codeParameters.push(prefix + parameter.name + setter + ' ' + clearedValue + endSetter + ' // ' + renamedParameterType);
-                } else {
+                }
+
+                if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.memberName) && DRB.Utilities.HasValue(parameter.value.memberValue)) {
+                    exactTypeFound = true;
+                    var clearedValue = parameter.value.memberValue;
+                    codeParameters.push(prefix + parameter.name + setter + ' ' + clearedValue + endSetter + ' // ' + renamedParameterType);
+                }
+
+                if (exactTypeFound === false) {
                     codeParameters.push(prefix + parameter.name + setter + ' null' + endSetter + ' // ' + renamedParameterType);
                 }
             }
@@ -10941,6 +10995,7 @@ DRB.Logic.DataverseExecute.DownloadDataverseCustomAPIs = function (sourceRequest
     // DRB.Metadata arrays
     DRB.Metadata.DataverseCustomAPITables = [];
     DRB.Metadata.DataverseCustomAPIComplexTypes = [];
+    DRB.Metadata.DataverseCustomAPIEnumTypes = [];
 
     DRB.UI.ShowLoading("Retrieving Custom APIs...<br /><b>This is a long-running operation</b>");
     setTimeout(function () {
@@ -10994,6 +11049,7 @@ DRB.Logic.DataverseExecute.DownloadDataverseCustomActions = function (sourceRequ
     // DRB.Metadata arrays
     DRB.Metadata.DataverseCustomActionTables = [];
     DRB.Metadata.DataverseCustomActionComplexTypes = [];
+    DRB.Metadata.DataverseCustomActionEnumTypes = [];
 
     DRB.UI.ShowLoading("Retrieving Custom Actions...<br /><b>This is a long-running operation</b>");
     setTimeout(function () {
@@ -11048,12 +11104,13 @@ DRB.Logic.DataverseExecute.DownloadDataverseMetadata = function (sourceRequestTy
     DRB.Metadata.DataverseActionTables = [];
     DRB.Metadata.DataverseFunctionTables = [];
     DRB.Metadata.DataverseActionFunctionComplexTypes = [];
+    DRB.Metadata.DataverseActionFunctionEnumTypes = [];
 
     DRB.UI.ShowLoading("Retrieving Metadata...<br /><b>This is a long-running operation</b>");
     setTimeout(function () {
         DRB.Common.RetrieveMetadata()
             .done(function (data) {
-                // Metadata format is XML, parse Complex Types, Actions, Functions
+                // Metadata format is XML, parse Complex Types, Enum Types, Actions, Functions
 
                 // #region Complex Types
                 var dvComplexTypes = [];
@@ -11078,6 +11135,24 @@ DRB.Logic.DataverseExecute.DownloadDataverseMetadata = function (sourceRequestTy
                     dvComplexTypes.push(new DRB.Models.DataverseComplexType(name, properties));
                 });
                 DRB.Metadata.DataverseActionFunctionComplexTypes = dvComplexTypes;
+                // #endregion
+
+                // #region Enum Types
+                var dvEnumTypes = [];
+                var xmlEnumTypes = $(data).find("EnumType").toArray();
+                xmlEnumTypes.forEach(function (xmlEnumType) {
+                    var name = "mscrm." + $(xmlEnumType).attr("Name");
+                    var members = [];
+                    var xmlMembers = $(xmlEnumType).find("Member").toArray();
+                    xmlMembers.forEach(function (xmlMember) {
+                        var memberName = $(xmlMember).attr("Name");
+                        var memberValue = $(xmlMember).attr("Value");
+                        members.push(new DRB.Models.DataverseMember(memberName, memberValue));
+                    });
+
+                    dvEnumTypes.push(new DRB.Models.DataverseEnumType(name, members));
+                });
+                DRB.Metadata.DataverseActionFunctionEnumTypes = dvEnumTypes;
                 // #endregion
 
                 // #region Actions
@@ -11282,7 +11357,19 @@ DRB.Logic.DataverseExecute.BindParameterValue = function (id) {
         if (elementIndex === -1) { return; } // if index not found do nothing
 
         var parameterValue = JSON.parse(JSON.stringify(DRB.Metadata.CurrentNode.data.configuration.dataverseParameters[elementIndex].value));
-
+        // Enum Type
+        if (controlName.indexOf("cbx3_") === 0) {
+            if (!DRB.Utilities.HasValue(parameterValue)) { parameterValue = {}; }
+            var memberType = DRB.Metadata.CurrentNode.data.configuration.dataverseParameters[elementIndex].type;
+            var checkEnumType = DRB.Utilities.GetRecordById(DRB.Metadata.DataverseEnumTypes, memberType);
+            if (DRB.Utilities.HasValue(checkEnumType)) {
+                var checkMember = DRB.Utilities.GetRecordById(checkEnumType.Members, controlValue);
+                if (DRB.Utilities.HasValue(checkMember)) {
+                    parameterValue.memberName = checkMember.Name;
+                    parameterValue.memberValue = controlValue;
+                }
+            }
+        }
         // Edm.Boolean
         if (controlName.indexOf("cbx1_") === 0) { parameterValue = false; if (controlValue === "yes") { parameterValue = true; } }
         // Edm.DateTimeOffset
@@ -11879,6 +11966,21 @@ DRB.Logic.DataverseExecute.AfterExecuteLoaded = function (dvExecute) {
                     if (DRB.Utilities.HasValue(checkComplexType)) {
                         exactTypeFound = true;
                         divValue.append(DRB.UI.CreateSpan("", "&nbsp;&nbsp;&nbsp;" + parameterType + " (Complex Type) not supported"));
+                    } else {
+                        // Check if is an Enum Type
+                        var checkEnumType = DRB.Utilities.GetRecordById(DRB.Metadata.DataverseEnumTypes, parameterType);
+                        if (DRB.Utilities.HasValue(checkEnumType)) {
+                            exactTypeFound = true;
+
+                            var currentId = "cbx3_" + DRB.DOM.DataverseParameters.ControlValue.Id + index;
+                            divValue.append(DRB.UI.CreateDropdown(currentId));
+                            DRB.UI.FillDropdown(currentId, "Select Value", new DRB.Models.Records(checkEnumType.Members).ToDropdown());
+                            DRB.Logic.DataverseExecute.BindParameterValue(currentId);
+
+                            if (matchParameters === true && DRB.Utilities.HasValue(parameterValue) && DRB.Utilities.HasValue(parameterValue.memberValue)) {
+                                $("#" + currentId).val(parameterValue.memberValue).change();
+                            }
+                        }
                     }
                 }
 
@@ -12045,6 +12147,7 @@ DRB.Logic.DataverseExecute.Start = function (requestType) {
             // Metadata
             DRB.Metadata.DataverseTables = DRB.Metadata.DataverseCustomAPITables;
             DRB.Metadata.DataverseComplexTypes = DRB.Metadata.DataverseCustomAPIComplexTypes;
+            DRB.Metadata.DataverseEnumTypes = DRB.Metadata.DataverseCustomAPIEnumTypes;
             break;
         case "executecustomaction":
             // DOM
@@ -12053,6 +12156,7 @@ DRB.Logic.DataverseExecute.Start = function (requestType) {
             // Metadata
             DRB.Metadata.DataverseTables = DRB.Metadata.DataverseCustomActionTables;
             DRB.Metadata.DataverseComplexTypes = DRB.Metadata.DataverseCustomActionComplexTypes;
+            DRB.Metadata.DataverseEnumTypes = DRB.Metadata.DataverseCustomActionEnumTypes;
             break;
         case "executeaction":
             // DOM
@@ -12061,6 +12165,7 @@ DRB.Logic.DataverseExecute.Start = function (requestType) {
             // Metadata
             DRB.Metadata.DataverseTables = DRB.Metadata.DataverseActionTables;
             DRB.Metadata.DataverseComplexTypes = DRB.Metadata.DataverseActionFunctionComplexTypes;
+            DRB.Metadata.DataverseEnumTypes = DRB.Metadata.DataverseActionFunctionEnumTypes;
             break;
         case "executefunction":
             // DOM
@@ -12069,6 +12174,7 @@ DRB.Logic.DataverseExecute.Start = function (requestType) {
             // Metadata
             DRB.Metadata.DataverseTables = DRB.Metadata.DataverseFunctionTables;
             DRB.Metadata.DataverseComplexTypes = DRB.Metadata.DataverseActionFunctionComplexTypes;
+            DRB.Metadata.DataverseEnumTypes = DRB.Metadata.DataverseActionFunctionEnumTypes;
             break;
     }
 
@@ -12981,10 +13087,12 @@ DRB.Initialize = async function () {
     }
 
     if (DRB.Utilities.HasValue(xtbSettings)) {
-        DRB.Settings.XTBContext = true;
         DRB.Settings.XTBToken = await xtbSettings.Token;
         DRB.Settings.XTBUrl = await xtbSettings.Url;
         DRB.Settings.XTBVersion = await xtbSettings.Version;
+        if (DRB.Utilities.HasValue(DRB.Settings.XTBToken) && DRB.Utilities.HasValue(DRB.Settings.XTBUrl) && DRB.Utilities.HasValue(DRB.Settings.XTBVersion)) {
+            DRB.Settings.XTBContext = true;
+        }
     }
 
     $("#" + DRB.DOM.ContextSpan.Id).html(DRB.Xrm.GetContext());

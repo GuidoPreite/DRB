@@ -393,10 +393,12 @@ DRB.Initialize = async function () {
     }
 
     if (DRB.Utilities.HasValue(xtbSettings)) {
-        DRB.Settings.XTBContext = true;
         DRB.Settings.XTBToken = await xtbSettings.Token;
         DRB.Settings.XTBUrl = await xtbSettings.Url;
         DRB.Settings.XTBVersion = await xtbSettings.Version;
+        if (DRB.Utilities.HasValue(DRB.Settings.XTBToken) && DRB.Utilities.HasValue(DRB.Settings.XTBUrl) && DRB.Utilities.HasValue(DRB.Settings.XTBVersion)) {
+            DRB.Settings.XTBContext = true;
+        }
     }
 
     $("#" + DRB.DOM.ContextSpan.Id).html(DRB.Xrm.GetContext());

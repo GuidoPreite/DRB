@@ -369,6 +369,15 @@ DRB.Xrm.GetDemoMetadata = function () {
     <Function Name="WhoAmI">
         <ReturnType Type="mscrm.WhoAmIResponse" Nullable="false" />
     </Function>
+    <Function Name="RetrieveCurrentOrganization">
+        <Parameter Name="AccessType" Type="mscrm.EndpointAccessType" Nullable="false"/>
+        <ReturnType Type="mscrm.RetrieveCurrentOrganizationResponse" Nullable="false"/>
+    </Function>
+    <EnumType Name="EndpointAccessType">
+        <Member Name="Default" Value="0"/>
+        <Member Name="Internet" Value="1"/>
+        <Member Name="Intranet" Value="2"/>
+    </EnumType>
     <Function Name="Between">
         <Parameter Name="PropertyName" Type="Edm.String" Nullable="false" Unicode="false" />
         <Parameter Name="PropertyValues" Type="Collection(Edm.String)" Nullable="false" Unicode="false" />

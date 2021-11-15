@@ -7,6 +7,7 @@ DRB.Logic.DataverseExecute.DownloadDataverseCustomAPIs = function (sourceRequest
     // DRB.Metadata arrays
     DRB.Metadata.DataverseCustomAPITables = [];
     DRB.Metadata.DataverseCustomAPIComplexTypes = [];
+    DRB.Metadata.DataverseCustomAPIEnumTypes = [];
 
     DRB.UI.ShowLoading("Retrieving Custom APIs...<br /><b>This is a long-running operation</b>");
     setTimeout(function () {
@@ -60,6 +61,7 @@ DRB.Logic.DataverseExecute.DownloadDataverseCustomActions = function (sourceRequ
     // DRB.Metadata arrays
     DRB.Metadata.DataverseCustomActionTables = [];
     DRB.Metadata.DataverseCustomActionComplexTypes = [];
+    DRB.Metadata.DataverseCustomActionEnumTypes = [];
 
     DRB.UI.ShowLoading("Retrieving Custom Actions...<br /><b>This is a long-running operation</b>");
     setTimeout(function () {
@@ -114,12 +116,13 @@ DRB.Logic.DataverseExecute.DownloadDataverseMetadata = function (sourceRequestTy
     DRB.Metadata.DataverseActionTables = [];
     DRB.Metadata.DataverseFunctionTables = [];
     DRB.Metadata.DataverseActionFunctionComplexTypes = [];
+    DRB.Metadata.DataverseActionFunctionEnumTypes = [];
 
     DRB.UI.ShowLoading("Retrieving Metadata...<br /><b>This is a long-running operation</b>");
     setTimeout(function () {
         DRB.Common.RetrieveMetadata()
             .done(function (data) {
-                // Metadata format is XML, parse Complex Types, Actions, Functions
+                // Metadata format is XML, parse Complex Types, Enum Types, Actions, Functions
 
                 // #region Complex Types
                 var dvComplexTypes = [];
@@ -144,6 +147,24 @@ DRB.Logic.DataverseExecute.DownloadDataverseMetadata = function (sourceRequestTy
                     dvComplexTypes.push(new DRB.Models.DataverseComplexType(name, properties));
                 });
                 DRB.Metadata.DataverseActionFunctionComplexTypes = dvComplexTypes;
+                // #endregion
+
+                // #region Enum Types
+                var dvEnumTypes = [];
+                var xmlEnumTypes = $(data).find("EnumType").toArray();
+                xmlEnumTypes.forEach(function (xmlEnumType) {
+                    var name = "mscrm." + $(xmlEnumType).attr("Name");
+                    var members = [];
+                    var xmlMembers = $(xmlEnumType).find("Member").toArray();
+                    xmlMembers.forEach(function (xmlMember) {
+                        var memberName = $(xmlMember).attr("Name");
+                        var memberValue = $(xmlMember).attr("Value");
+                        members.push(new DRB.Models.DataverseMember(memberName, memberValue));
+                    });
+
+                    dvEnumTypes.push(new DRB.Models.DataverseEnumType(name, members));
+                });
+                DRB.Metadata.DataverseActionFunctionEnumTypes = dvEnumTypes;
                 // #endregion
 
                 // #region Actions
@@ -348,7 +369,19 @@ DRB.Logic.DataverseExecute.BindParameterValue = function (id) {
         if (elementIndex === -1) { return; } // if index not found do nothing
 
         var parameterValue = JSON.parse(JSON.stringify(DRB.Metadata.CurrentNode.data.configuration.dataverseParameters[elementIndex].value));
-
+        // Enum Type
+        if (controlName.indexOf("cbx3_") === 0) {
+            if (!DRB.Utilities.HasValue(parameterValue)) { parameterValue = {}; }
+            var memberType = DRB.Metadata.CurrentNode.data.configuration.dataverseParameters[elementIndex].type;
+            var checkEnumType = DRB.Utilities.GetRecordById(DRB.Metadata.DataverseEnumTypes, memberType);
+            if (DRB.Utilities.HasValue(checkEnumType)) {
+                var checkMember = DRB.Utilities.GetRecordById(checkEnumType.Members, controlValue);
+                if (DRB.Utilities.HasValue(checkMember)) {
+                    parameterValue.memberName = checkMember.Name;
+                    parameterValue.memberValue = controlValue;
+                }
+            }
+        }
         // Edm.Boolean
         if (controlName.indexOf("cbx1_") === 0) { parameterValue = false; if (controlValue === "yes") { parameterValue = true; } }
         // Edm.DateTimeOffset
@@ -945,6 +978,21 @@ DRB.Logic.DataverseExecute.AfterExecuteLoaded = function (dvExecute) {
                     if (DRB.Utilities.HasValue(checkComplexType)) {
                         exactTypeFound = true;
                         divValue.append(DRB.UI.CreateSpan("", "&nbsp;&nbsp;&nbsp;" + parameterType + " (Complex Type) not supported"));
+                    } else {
+                        // Check if is an Enum Type
+                        var checkEnumType = DRB.Utilities.GetRecordById(DRB.Metadata.DataverseEnumTypes, parameterType);
+                        if (DRB.Utilities.HasValue(checkEnumType)) {
+                            exactTypeFound = true;
+
+                            var currentId = "cbx3_" + DRB.DOM.DataverseParameters.ControlValue.Id + index;
+                            divValue.append(DRB.UI.CreateDropdown(currentId));
+                            DRB.UI.FillDropdown(currentId, "Select Value", new DRB.Models.Records(checkEnumType.Members).ToDropdown());
+                            DRB.Logic.DataverseExecute.BindParameterValue(currentId);
+
+                            if (matchParameters === true && DRB.Utilities.HasValue(parameterValue) && DRB.Utilities.HasValue(parameterValue.memberValue)) {
+                                $("#" + currentId).val(parameterValue.memberValue).change();
+                            }
+                        }
                     }
                 }
 
@@ -1111,6 +1159,7 @@ DRB.Logic.DataverseExecute.Start = function (requestType) {
             // Metadata
             DRB.Metadata.DataverseTables = DRB.Metadata.DataverseCustomAPITables;
             DRB.Metadata.DataverseComplexTypes = DRB.Metadata.DataverseCustomAPIComplexTypes;
+            DRB.Metadata.DataverseEnumTypes = DRB.Metadata.DataverseCustomAPIEnumTypes;
             break;
         case "executecustomaction":
             // DOM
@@ -1119,6 +1168,7 @@ DRB.Logic.DataverseExecute.Start = function (requestType) {
             // Metadata
             DRB.Metadata.DataverseTables = DRB.Metadata.DataverseCustomActionTables;
             DRB.Metadata.DataverseComplexTypes = DRB.Metadata.DataverseCustomActionComplexTypes;
+            DRB.Metadata.DataverseEnumTypes = DRB.Metadata.DataverseCustomActionEnumTypes;
             break;
         case "executeaction":
             // DOM
@@ -1127,6 +1177,7 @@ DRB.Logic.DataverseExecute.Start = function (requestType) {
             // Metadata
             DRB.Metadata.DataverseTables = DRB.Metadata.DataverseActionTables;
             DRB.Metadata.DataverseComplexTypes = DRB.Metadata.DataverseActionFunctionComplexTypes;
+            DRB.Metadata.DataverseEnumTypes = DRB.Metadata.DataverseActionFunctionEnumTypes;
             break;
         case "executefunction":
             // DOM
@@ -1135,6 +1186,7 @@ DRB.Logic.DataverseExecute.Start = function (requestType) {
             // Metadata
             DRB.Metadata.DataverseTables = DRB.Metadata.DataverseFunctionTables;
             DRB.Metadata.DataverseComplexTypes = DRB.Metadata.DataverseActionFunctionComplexTypes;
+            DRB.Metadata.DataverseEnumTypes = DRB.Metadata.DataverseActionFunctionEnumTypes;
             break;
     }
 

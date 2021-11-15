@@ -2,16 +2,17 @@
 /**
  * Generate Code - Set Code Editors
  * @param {string[]} codeXrmWebApi Code Xrm.WebApi
+ * @param {string[]} codeXrmWebApiExecute Code Xrm.WebApi Execute
  * @param {string[]} codejQuery Code jQuery
  * @param {string[]} codeXMLHttpRequest Code XMLHttpRequest
  * @param {string[]} codePortals Code Portals
  */
 DRB.GenerateCode.SetCodeEditors = function (codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codePortals) {
-    if (!DRB.Utilities.HasValue(codeXrmWebApi)) { codeXrmWebApiExecute = []; }
+    if (!DRB.Utilities.HasValue(codeXrmWebApi)) { codeXrmWebApi = []; }
     if (!DRB.Utilities.HasValue(codeXrmWebApiExecute)) { codeXrmWebApiExecute = []; } // Xrm.WebApi execute is available only for Retrieve Single, Create, Update, Delete
-    if (!DRB.Utilities.HasValue(codejQuery)) { codeXrmWebApiExecute = []; }
-    if (!DRB.Utilities.HasValue(codeXMLHttpRequest)) { codeXrmWebApiExecute = []; }
-    if (!DRB.Utilities.HasValue(codePortals)) { codePortals = []; }
+    if (!DRB.Utilities.HasValue(codejQuery)) { codejQuery = []; }
+    if (!DRB.Utilities.HasValue(codeXMLHttpRequest)) { codeXMLHttpRequest = []; }
+    if (!DRB.Utilities.HasValue(codePortals)) { codePortals = []; } // Portals is available only for Retrieve Single, Retrieve Multiple, Create, Update, Delete, Associate, Disassociate
 
     // Insert the code inside the editors
     DRB.Settings.XrmWebApiEditor.session.setValue(codeXrmWebApi.join('\n'));
@@ -155,8 +156,10 @@ DRB.GenerateCode.GetFunctionUrl = function (settings) {
                     if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.id) && DRB.Utilities.HasValue(parameter.value.entityType)) {
                         var clearedValue = '{ "@odata.type": "Microsoft.Dynamics.CRM.' + parameter.value.entityType + '", ' + parameter.value.primaryIdField + ' : "' + parameter.value.id + '" }';
                         value = encodeURIComponent(clearedValue);
-                    } else {
-                        // Complex Type Not supported
+                    }
+                    if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.memberName) && DRB.Utilities.HasValue(parameter.value.memberValue)) {
+                        var replacedType = parameter.type.replace("mscrm.", "Microsoft.Dynamics.CRM.");
+                        value = replacedType + "'" + parameter.value.memberName + "'";
                     }
                 }
 
@@ -627,17 +630,25 @@ DRB.GenerateCode.GetXrmWebApiDefinitionParameters = function (settings, isBound,
                 } else {
                     // structuralProperty definition: https://docs.microsoft.com/en-us/powerapps/developer/model-driven-apps/clientapi/reference/xrm-webapi/online/execute
                     var structuralProperty = 0; // 0: Unknown
-                    // 3: EnumerationType can't be handled, example here https://docs.microsoft.com/en-us/powerapps/developer/model-driven-apps/clientapi/reference/xrm-webapi/online/execute
 
                     if (parameter.type.indexOf("Edm.") === 0) { structuralProperty = 1; } // 1: PrimitiveType
                     if (parameter.type.indexOf("Collection(") === 0) { structuralProperty = 4; } // 4: Collection
 
                     if (parameter.type.indexOf("mscrm.") === 0) {
-                        // can be ComplexType or EntityType
-                        structuralProperty = 2; // 2: ComplexType
+                        // can be ComplexType, Enum Type or EntityType
+                        structuralProperty = 2; // 2: ComplexType                        
                         structuralProperty = 5; // 5: EntityType
+
+                        if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.memberName) && DRB.Utilities.HasValue(parameter.value.memberValue)) {
+                            structuralProperty = 3; // 3: EnumType
+                        }
                     }
-                    definitionParameters.push('\t\t\t\t' + parameter.name + ': { typeName: "' + parameter.type + '", structuralProperty: ' + structuralProperty + ' },');
+                    if (structuralProperty !== 3) {
+                        definitionParameters.push('\t\t\t\t' + parameter.name + ': { typeName: "' + parameter.type + '", structuralProperty: ' + structuralProperty + ' },');
+                    } else {
+                        var replacedType = parameter.type.replace("mscrm.", "Microsoft.Dynamics.CRM.");
+                        definitionParameters.push('\t\t\t\t' + parameter.name + ': { typeName: "' + replacedType + '", structuralProperty: ' + structuralProperty + ', enumProperties: [{name: "' + parameter.value.memberName + '", value: ' + parameter.value.memberValue + '}] },');
+                    }
                 }
             }
         });
@@ -755,10 +766,20 @@ DRB.GenerateCode.GetCodeParameters = function (settings, xrmWebApiStyle) {
 
             if (typeFound === false && parameter.type.indexOf("mscrm.") === 0) {
                 typeFound = true;
+                var exactTypeFound = false;
                 if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.id) && DRB.Utilities.HasValue(parameter.value.entityType)) {
+                    exactTypeFound = true;
                     var clearedValue = '{ "@odata.type": "Microsoft.Dynamics.CRM.' + parameter.value.entityType + '", ' + parameter.value.primaryIdField + ' : "' + parameter.value.id + '" }';
                     codeParameters.push(prefix + parameter.name + setter + ' ' + clearedValue + endSetter + ' // ' + renamedParameterType);
-                } else {
+                }
+
+                if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.memberName) && DRB.Utilities.HasValue(parameter.value.memberValue)) {
+                    exactTypeFound = true;
+                    var clearedValue = parameter.value.memberValue;
+                    codeParameters.push(prefix + parameter.name + setter + ' ' + clearedValue + endSetter + ' // ' + renamedParameterType);
+                }
+
+                if (exactTypeFound === false) {
                     codeParameters.push(prefix + parameter.name + setter + ' null' + endSetter + ' // ' + renamedParameterType);
                 }
             }
