@@ -292,8 +292,20 @@ DRB.DefineOperations = function () {
                         var span_warning_jqueryxhr_xtb = DRB.UI.CreateSpan("span_warning_jqueryxhr_xtb", "NOTE: Inside DRB for XrmToolBox, Xrm.Utility.getGlobalContext().getClientUrl() is routed to the Instance URL");
                         $("#" + tab.id).append(span_warning_jqueryxhr_xtb);
                     }
-
                 }
+
+                if (DRB.Xrm.IsJWTMode()) {
+                    if (tab.id === "code_xrmwebapi" || tab.id === "code_xrmwebapiexecute") {
+                        var span_warning_xrmwebapi_jwt = DRB.UI.CreateSpan("span_warning_xrmwebapi_jwt", "NOTE: Xrm.WebApi is not available when DRB is in JWT Mode");
+                        $("#" + tab.id).append(span_warning_xrmwebapi_jwt);
+                    }
+
+                    if (tab.id === "code_jquery" || tab.id === "code_xmlhttprequest") {
+                        var span_warning_jqueryxhr_jwt = DRB.UI.CreateSpan("span_warning_jqueryxhr_jwt", "NOTE: Inside DRB JWT Mode, Xrm.Utility.getGlobalContext().getClientUrl() is routed to the Instance URL");
+                        $("#" + tab.id).append(span_warning_jqueryxhr_jwt);
+                    }
+                }
+
                 if (tab.id === "code_portals") {
                     var span_warning_portals = DRB.UI.CreateSpan("span_warning_portals", "NOTE: Inside DRB, Portals endpoint (<i>/_api/</i>) is routed to the default Web API endpoint");
                     $("#" + tab.id).append(span_warning_portals);
@@ -386,12 +398,12 @@ DRB.ShowNotice = function () {
  * Main function called by the Index
  */
 DRB.Initialize = async function () {
+    // #region XTB
     DRB.Settings.XTBContext = false;
     var xtbSettings = null;
     if (DRB.Utilities.HasValue(chrome) && DRB.Utilities.HasValue(chrome.webview) && DRB.Utilities.HasValue(chrome.webview.hostObjects)) {
         xtbSettings = chrome.webview.hostObjects.xtbSettings;
     }
-
     if (DRB.Utilities.HasValue(xtbSettings)) {
         DRB.Settings.XTBToken = await xtbSettings.Token;
         DRB.Settings.XTBUrl = await xtbSettings.Url;
@@ -400,13 +412,35 @@ DRB.Initialize = async function () {
             DRB.Settings.XTBContext = true;
         }
     }
+    // #endregion
 
-    $("#" + DRB.DOM.ContextSpan.Id).html(DRB.Xrm.GetContext());
+    // #region JWT
+    DRB.Settings.JWTContext = false;
+    if (localStorage.getItem("DRB_JWT") !== null) {
+        var token = localStorage.getItem("DRB_JWT");
+        var parsedToken = DRB.Common.ParseJWT(token);
+        if (DRB.Utilities.HasValue(parsedToken)) {
+            var jwtUrl = parsedToken.aud;
+            if (jwtUrl.length > 0 && jwtUrl.substr(-1) === '/') { jwtUrl = jwtUrl.substr(0, str.length - 1); }
+            if (DRB.Utilities.HasValue(token) && DRB.Utilities.HasValue(jwtUrl)) {
+                DRB.UI.ShowLoading("Checking JWT Settings...");
+                await DRB.Xrm.GetServerVersion(jwtUrl, token).done(function (data) {
+                    DRB.Settings.JWTToken = token;
+                    DRB.Settings.JWTUrl = jwtUrl;
+                    DRB.Settings.JWTVersion = data.Version;
+                    DRB.Settings.JWTContext = true;
+                }).fail(function (xhr) { });
+                DRB.UI.HideLoading();
+            }
+        }
+    }
+    // #endregion
     DRB.HideNotice();
+    Split(['#div_menu', '#div_content'], { sizes: [10, 90], minSize: 200, gutterSize: 5 }); // Split
     DRB.SetDefaultSettings();
     DRB.DefineOperations();
-    // Split
-    Split(['#div_menu', '#div_content'], { sizes: [10, 90], minSize: 200, gutterSize: 5 });
+    $("#" + DRB.DOM.ContextSpan.Id).html(DRB.Xrm.GetContext());
+
     // Tab script
     $(document).ready(function () {
         $("#" + DRB.DOM.TabsRequest.Id + " a").click(function (e) {

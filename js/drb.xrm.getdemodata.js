@@ -319,12 +319,12 @@ DRB.Xrm.GetDemoMetadata = function () {
         <Parameter Name="TemplateSuffix" Type="Edm.String" Unicode="false" />
         <ReturnType Type="mscrm.ImportSolutionAsyncResponse" Nullable="false" />
     </Action>
+    <Action Name="ConvertOwnerTeamToAccessTeam" IsBound="true">
+        <Parameter Name="entity" Type="mscrm.team" Nullable="false" />
+    </Action>
     <Action Name="AddMembersTeam" IsBound="true">
         <Parameter Name="entity" Type="mscrm.team" Nullable="false" />
         <Parameter Name="Members" Type="Collection(mscrm.systemuser)" Nullable="false" />
-    </Action>
-    <Action Name="ConvertOwnerTeamToAccessTeam" IsBound="true">
-        <Parameter Name="entity" Type="mscrm.team" Nullable="false" />
     </Action>
     <Action Name="RemoveMembersTeam" IsBound="true">
         <Parameter Name="entity" Type="mscrm.team" Nullable="false" />
@@ -369,6 +369,9 @@ DRB.Xrm.GetDemoMetadata = function () {
     <Function Name="WhoAmI">
         <ReturnType Type="mscrm.WhoAmIResponse" Nullable="false" />
     </Function>
+    <ComplexType Name="RetrieveCurrentOrganizationResponse">
+        <Property Name="Detail" Type="mscrm.OrganizationDetail"/>
+    </ComplexType>
     <Function Name="RetrieveCurrentOrganization">
         <Parameter Name="AccessType" Type="mscrm.EndpointAccessType" Nullable="false"/>
         <ReturnType Type="mscrm.RetrieveCurrentOrganizationResponse" Nullable="false"/>
@@ -378,6 +381,25 @@ DRB.Xrm.GetDemoMetadata = function () {
         <Member Name="Internet" Value="1"/>
         <Member Name="Intranet" Value="2"/>
     </EnumType>
+    <EnumType Name="EntityFilters" IsFlags="true">
+        <Member Name="Entity" Value="1"/>
+        <Member Name="Attributes" Value="2"/>
+        <Member Name="Privileges" Value="4"/>
+        <Member Name="Relationships" Value="8"/>
+        <Member Name="All" Value="15"/>
+    </EnumType>
+    <ComplexType Name="RetrieveEntityResponse">
+        <Property Name="EntityMetadata" Type="mscrm.ComplexEntityMetadata"/>
+    </ComplexType>
+    <Function Name="RetrieveEntity">
+        <Parameter Name="EntityFilters" Type="mscrm.EntityFilters" Nullable="false"/>
+        <Parameter Name="LogicalName" Type="Edm.String" Unicode="false">
+            <Annotation Term="Org.OData.Core.V1.OptionalParameter"/>
+        </Parameter>
+        <Parameter Name="MetadataId" Type="Edm.Guid" Nullable="false"/>
+        <Parameter Name="RetrieveAsIfPublished" Type="Edm.Boolean" Nullable="false"/>
+        <ReturnType Type="mscrm.RetrieveEntityResponse" Nullable="false"/>
+    </Function>
     <Function Name="Between">
         <Parameter Name="PropertyName" Type="Edm.String" Nullable="false" Unicode="false" />
         <Parameter Name="PropertyValues" Type="Collection(Edm.String)" Nullable="false" Unicode="false" />

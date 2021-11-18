@@ -377,8 +377,8 @@ DRB.Models.DataverseParameter = function (name, type, optional, position, bindin
     this.Name = name;
     this.Type = type;
     this.Optional = optional;
-	this.Position = position;
-	this.Binding = binding;
+    this.Position = position;
+    this.Binding = binding;
 }
 
 /**
@@ -390,7 +390,7 @@ DRB.Models.DataverseProperty = function (name, type, position, binding) {
     this.Id = name;
     this.Name = name;
     this.Type = type;
-	this.Position = position;
+    this.Position = position;
     this.Binding = binding;
 }
 
@@ -423,9 +423,10 @@ DRB.Models.DataverseMember = function (name, value) {
  * @param {string} name Name
  * @param {DRB.Models.DataverseMember[]} members Members
  */
-DRB.Models.DataverseEnumType = function (name, members) {
+DRB.Models.DataverseEnumType = function (name, isFlags, members) {
     this.Id = name;
     this.Name = name;
+    this.IsFlags = isFlags;
     this.Members = members;
 }
 

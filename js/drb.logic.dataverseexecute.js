@@ -24,7 +24,7 @@ DRB.Logic.DataverseExecute.DownloadDataverseCustomAPIs = function (sourceRequest
                         customAPI.ReturnType = returnTypeName;
                     }
                 });
-
+                customAPIs.sort(DRB.Utilities.CustomSort("Name"));
                 var customAPITableLogicalNames = [];
                 customAPIs.forEach(function (customAPI) { customAPITableLogicalNames.push(customAPI.LogicalName); });
                 customAPITableLogicalNames = DRB.Utilities.RemoveDuplicatesFromArray(customAPITableLogicalNames); // remove duplicates
@@ -78,7 +78,7 @@ DRB.Logic.DataverseExecute.DownloadDataverseCustomActions = function (sourceRequ
                         customAction.ReturnType = returnTypeName;
                     }
                 });
-
+                customActions.sort(DRB.Utilities.CustomSort("Name"));
                 var customActionTableLogicalNames = [];
                 customActions.forEach(function (customAction) { customActionTableLogicalNames.push(customAction.LogicalName); });
                 customActionTableLogicalNames = DRB.Utilities.RemoveDuplicatesFromArray(customActionTableLogicalNames); // remove duplicates
@@ -154,6 +154,8 @@ DRB.Logic.DataverseExecute.DownloadDataverseMetadata = function (sourceRequestTy
                 var xmlEnumTypes = $(data).find("EnumType").toArray();
                 xmlEnumTypes.forEach(function (xmlEnumType) {
                     var name = "mscrm." + $(xmlEnumType).attr("Name");
+                    var isFlags = $(xmlEnumType).attr("IsFlags");
+                    if (!DRB.Utilities.HasValue(isFlags)) { isFlags = false; } else { isFlags = true; }
                     var members = [];
                     var xmlMembers = $(xmlEnumType).find("Member").toArray();
                     xmlMembers.forEach(function (xmlMember) {
@@ -162,7 +164,7 @@ DRB.Logic.DataverseExecute.DownloadDataverseMetadata = function (sourceRequestTy
                         members.push(new DRB.Models.DataverseMember(memberName, memberValue));
                     });
 
-                    dvEnumTypes.push(new DRB.Models.DataverseEnumType(name, members));
+                    dvEnumTypes.push(new DRB.Models.DataverseEnumType(name, isFlags, members));
                 });
                 DRB.Metadata.DataverseActionFunctionEnumTypes = dvEnumTypes;
                 // #endregion
@@ -208,7 +210,7 @@ DRB.Logic.DataverseExecute.DownloadDataverseMetadata = function (sourceRequestTy
 
                     dvActions.push(new DRB.Models.DataverseExecute("Action", name, name, isBound, logicalName, isCollectionBound, false, hasReturnType, returnType, parameters));
                 });
-
+                dvActions.sort(DRB.Utilities.CustomSort("Name"));
                 var actionTableLogicalNames = [];
                 dvActions.forEach(function (dvAction) { actionTableLogicalNames.push(dvAction.LogicalName); });
                 actionTableLogicalNames = DRB.Utilities.RemoveDuplicatesFromArray(actionTableLogicalNames); // remove duplicates
@@ -270,7 +272,7 @@ DRB.Logic.DataverseExecute.DownloadDataverseMetadata = function (sourceRequestTy
                         }
                     }
                 });
-
+                dvFunctions.sort(DRB.Utilities.CustomSort("Name"));
                 var functionTableLogicalNames = [];
                 dvFunctions.forEach(function (dataverseFunction) { functionTableLogicalNames.push(dataverseFunction.LogicalName); });
                 functionTableLogicalNames = DRB.Utilities.RemoveDuplicatesFromArray(functionTableLogicalNames); // remove duplicates
@@ -375,10 +377,22 @@ DRB.Logic.DataverseExecute.BindParameterValue = function (id) {
             var memberType = DRB.Metadata.CurrentNode.data.configuration.dataverseParameters[elementIndex].type;
             var checkEnumType = DRB.Utilities.GetRecordById(DRB.Metadata.DataverseEnumTypes, memberType);
             if (DRB.Utilities.HasValue(checkEnumType)) {
-                var checkMember = DRB.Utilities.GetRecordById(checkEnumType.Members, controlValue);
-                if (DRB.Utilities.HasValue(checkMember)) {
-                    parameterValue.memberName = checkMember.Name;
-                    parameterValue.memberValue = controlValue;
+                if (checkEnumType.IsFlags === false) {
+                    var checkMember = DRB.Utilities.GetRecordById(checkEnumType.Members, controlValue);
+                    if (DRB.Utilities.HasValue(checkMember)) {
+                        parameterValue.memberName = checkMember.Name;
+                        parameterValue.memberValue = controlValue;
+                    }
+                } else {
+                    if (Array.isArray(controlValue)) {
+                        parameterValue.members = [];
+                        controlValue.forEach(function (cValue) {
+                            var checkMember = DRB.Utilities.GetRecordById(checkEnumType.Members, cValue);
+                            if (DRB.Utilities.HasValue(checkMember)) {
+                                parameterValue.members.push({ name: checkMember.Name, value: cValue });
+                            }
+                        });
+                    }
                 }
             }
         }
@@ -985,12 +999,20 @@ DRB.Logic.DataverseExecute.AfterExecuteLoaded = function (dvExecute) {
                             exactTypeFound = true;
 
                             var currentId = "cbx3_" + DRB.DOM.DataverseParameters.ControlValue.Id + index;
-                            divValue.append(DRB.UI.CreateDropdown(currentId));
+                            divValue.append(DRB.UI.CreateDropdown(currentId, checkEnumType.IsFlags));
                             DRB.UI.FillDropdown(currentId, "Select Value", new DRB.Models.Records(checkEnumType.Members).ToDropdown());
                             DRB.Logic.DataverseExecute.BindParameterValue(currentId);
 
-                            if (matchParameters === true && DRB.Utilities.HasValue(parameterValue) && DRB.Utilities.HasValue(parameterValue.memberValue)) {
-                                $("#" + currentId).val(parameterValue.memberValue).change();
+                            if (matchParameters === true && DRB.Utilities.HasValue(parameterValue)) {
+                                var foundMemberValue = null;
+                                if (DRB.Utilities.HasValue(parameterValue.memberValue)) { foundMemberValue = parameterValue.memberValue; }
+                                if (DRB.Utilities.HasValue(parameterValue.members)) {
+                                    foundMemberValue = [];
+                                    if (Array.isArray(parameterValue.members)) {
+                                        parameterValue.members.forEach(function (member) { foundMemberValue.push(member.value); });
+                                    }
+                                }
+                                $("#" + currentId).val(foundMemberValue).change();
                             }
                         }
                     }

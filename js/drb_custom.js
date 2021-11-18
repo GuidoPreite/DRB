@@ -840,12 +840,12 @@ DRB.Xrm.GetDemoMetadata = function () {
         <Parameter Name="TemplateSuffix" Type="Edm.String" Unicode="false" />
         <ReturnType Type="mscrm.ImportSolutionAsyncResponse" Nullable="false" />
     </Action>
+    <Action Name="ConvertOwnerTeamToAccessTeam" IsBound="true">
+        <Parameter Name="entity" Type="mscrm.team" Nullable="false" />
+    </Action>
     <Action Name="AddMembersTeam" IsBound="true">
         <Parameter Name="entity" Type="mscrm.team" Nullable="false" />
         <Parameter Name="Members" Type="Collection(mscrm.systemuser)" Nullable="false" />
-    </Action>
-    <Action Name="ConvertOwnerTeamToAccessTeam" IsBound="true">
-        <Parameter Name="entity" Type="mscrm.team" Nullable="false" />
     </Action>
     <Action Name="RemoveMembersTeam" IsBound="true">
         <Parameter Name="entity" Type="mscrm.team" Nullable="false" />
@@ -890,6 +890,9 @@ DRB.Xrm.GetDemoMetadata = function () {
     <Function Name="WhoAmI">
         <ReturnType Type="mscrm.WhoAmIResponse" Nullable="false" />
     </Function>
+    <ComplexType Name="RetrieveCurrentOrganizationResponse">
+        <Property Name="Detail" Type="mscrm.OrganizationDetail"/>
+    </ComplexType>
     <Function Name="RetrieveCurrentOrganization">
         <Parameter Name="AccessType" Type="mscrm.EndpointAccessType" Nullable="false"/>
         <ReturnType Type="mscrm.RetrieveCurrentOrganizationResponse" Nullable="false"/>
@@ -899,6 +902,25 @@ DRB.Xrm.GetDemoMetadata = function () {
         <Member Name="Internet" Value="1"/>
         <Member Name="Intranet" Value="2"/>
     </EnumType>
+    <EnumType Name="EntityFilters" IsFlags="true">
+        <Member Name="Entity" Value="1"/>
+        <Member Name="Attributes" Value="2"/>
+        <Member Name="Privileges" Value="4"/>
+        <Member Name="Relationships" Value="8"/>
+        <Member Name="All" Value="15"/>
+    </EnumType>
+    <ComplexType Name="RetrieveEntityResponse">
+        <Property Name="EntityMetadata" Type="mscrm.ComplexEntityMetadata"/>
+    </ComplexType>
+    <Function Name="RetrieveEntity">
+        <Parameter Name="EntityFilters" Type="mscrm.EntityFilters" Nullable="false"/>
+        <Parameter Name="LogicalName" Type="Edm.String" Unicode="false">
+            <Annotation Term="Org.OData.Core.V1.OptionalParameter"/>
+        </Parameter>
+        <Parameter Name="MetadataId" Type="Edm.Guid" Nullable="false"/>
+        <Parameter Name="RetrieveAsIfPublished" Type="Edm.Boolean" Nullable="false"/>
+        <ReturnType Type="mscrm.RetrieveEntityResponse" Nullable="false"/>
+    </Function>
     <Function Name="Between">
         <Parameter Name="PropertyName" Type="Edm.String" Nullable="false" Unicode="false" />
         <Parameter Name="PropertyValues" Type="Collection(Edm.String)" Nullable="false" Unicode="false" />
@@ -1287,8 +1309,8 @@ DRB.Models.DataverseParameter = function (name, type, optional, position, bindin
     this.Name = name;
     this.Type = type;
     this.Optional = optional;
-	this.Position = position;
-	this.Binding = binding;
+    this.Position = position;
+    this.Binding = binding;
 }
 
 /**
@@ -1300,7 +1322,7 @@ DRB.Models.DataverseProperty = function (name, type, position, binding) {
     this.Id = name;
     this.Name = name;
     this.Type = type;
-	this.Position = position;
+    this.Position = position;
     this.Binding = binding;
 }
 
@@ -1333,9 +1355,10 @@ DRB.Models.DataverseMember = function (name, value) {
  * @param {string} name Name
  * @param {DRB.Models.DataverseMember[]} members Members
  */
-DRB.Models.DataverseEnumType = function (name, members) {
+DRB.Models.DataverseEnumType = function (name, isFlags, members) {
     this.Id = name;
     this.Name = name;
+    this.IsFlags = isFlags;
     this.Members = members;
 }
 
@@ -1995,6 +2018,13 @@ DRB.UI.OpenLookup = function (settings) {
             return;
         }
 
+        // JWT Mode
+        if (DRB.Xrm.IsJWTMode()) {
+            DRB.UI.Show("JWT Mode", "Lookup is not available in JWT Mode.<br />A random Guid has been generated.");
+            $("#" + settings.textId).val(DRB.Utilities.GenerateGuid()).trigger("input").change();
+            return;
+        }
+
         // Demo Mode
         if (DRB.Xrm.IsDemoMode()) {
             DRB.UI.Show("Demo Mode", "Lookup is not available in Demo Mode.<br />A random Guid has been generated.");
@@ -2031,6 +2061,7 @@ DRB.Xrm.GetXrmObject = function () {
  */
 DRB.Xrm.GetContext = function () {
     if (DRB.Xrm.IsXTBMode() === true) { return "(XTB) <small>" + DRB.Settings.XTBUrl + "</small>"; }
+    if (DRB.Xrm.IsJWTMode() === true) { return "(JWT) <small>" + DRB.Settings.JWTUrl + "</small>"; }
     if (DRB.Xrm.IsInstanceMode() === true) { return ""; }
     if (DRB.Xrm.IsDemoMode() === true) { return "(Demo)"; }
 }
@@ -2043,10 +2074,18 @@ DRB.Xrm.IsXTBMode = function () {
 }
 
 /**
+ * Xrm - Is JWT Mode
+ */
+DRB.Xrm.IsJWTMode = function () {
+    return DRB.Settings.JWTContext;
+}
+
+/**
  * Xrm - Is Demo Mode
  */
 DRB.Xrm.IsDemoMode = function () {
     if (DRB.Xrm.IsXTBMode()) { return false; }
+    if (DRB.Xrm.IsJWTMode()) { return false; }
     return typeof DRB.Xrm.GetXrmObject() === "undefined";
 }
 
@@ -2055,6 +2094,7 @@ DRB.Xrm.IsDemoMode = function () {
  */
 DRB.Xrm.IsInstanceMode = function () {
     if (DRB.Xrm.IsXTBMode()) { return false; }
+    if (DRB.Xrm.IsJWTMode()) { return false; }
     if (DRB.Xrm.IsDemoMode()) { return false; }
     return typeof DRB.Xrm.GetXrmObject() !== "undefined";
 }
@@ -2064,6 +2104,7 @@ DRB.Xrm.IsInstanceMode = function () {
  */
 DRB.Xrm.GetClientUrl = function () {
     if (DRB.Xrm.IsXTBMode()) { return DRB.Settings.XTBUrl; }
+    if (DRB.Xrm.IsJWTMode()) { return DRB.Settings.JWTUrl; }
     if (DRB.Xrm.IsInstanceMode()) { return DRB.Xrm.GetXrmObject().Utility.getGlobalContext().getClientUrl(); }
     if (DRB.Xrm.IsDemoMode()) { return "https://democall"; }
 }
@@ -2073,6 +2114,7 @@ DRB.Xrm.GetClientUrl = function () {
  */
 DRB.Xrm.GetMetadataUrl = function () {
     if (DRB.Xrm.IsXTBMode()) { return DRB.Xrm.GetClientUrl() + "/api/data/v9.0/$metadata"; }
+    if (DRB.Xrm.IsJWTMode()) { return DRB.Xrm.GetClientUrl() + "/api/data/v9.0/$metadata"; }
     if (DRB.Xrm.IsInstanceMode()) { return DRB.Xrm.GetClientUrl() + "/api/data/v9.0/$metadata"; }
     if (DRB.Xrm.IsDemoMode()) { return "https://democall/api/data/v9.0/$metadata"; }
 }
@@ -2083,6 +2125,7 @@ DRB.Xrm.GetMetadataUrl = function () {
 DRB.Xrm.GetVersion = function () {
     var currentVersion = "";
     if (DRB.Xrm.IsXTBMode()) { currentVersion = DRB.Settings.XTBVersion; }
+    if (DRB.Xrm.IsJWTMode()) { currentVersion = DRB.Settings.JWTVersion; }
     if (DRB.Xrm.IsInstanceMode()) { currentVersion = DRB.Xrm.GetXrmObject().Utility.getGlobalContext().getVersion(); }
     if (DRB.Xrm.IsDemoMode()) { currentVersion = "9.1.0.0"; }
 
@@ -2100,7 +2143,10 @@ DRB.Xrm.GetVersion = function () {
 DRB.Xrm.Retrieve = function (entitySetName, filters) {
     var retrieveUrl = encodeURI(DRB.Xrm.GetClientUrl() + "/api/data/v9.0/" + entitySetName + "?" + filters);
 
-    if (DRB.Xrm.IsXTBMode()) {
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode()) {
+        var token = "";
+        if (DRB.Xrm.IsXTBMode()) { token = DRB.Settings.XTBToken; }
+        if (DRB.Xrm.IsJWTMode()) { token = DRB.Settings.JWTToken; }
         return $.ajax({
             type: "GET",
             contentType: "application/json; charset=utf-8",
@@ -2111,7 +2157,7 @@ DRB.Xrm.Retrieve = function (entitySetName, filters) {
                 xhr.setRequestHeader("OData-Version", "4.0");
                 xhr.setRequestHeader("Accept", "application/json");
                 xhr.setRequestHeader("Prefer", "odata.include-annotations=\"*\"");
-                xhr.setRequestHeader("Authorization", "Bearer " + DRB.Settings.XTBToken);
+                xhr.setRequestHeader("Authorization", "Bearer " + token);
             },
             url: retrieveUrl
         });
@@ -2159,7 +2205,10 @@ DRB.Xrm.RetrieveBatch = function (queries) {
     data.push("--" + batchDescription + "--");
     var payload = data.join("\r\n");
 
-    if (DRB.Xrm.IsXTBMode()) {
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode()) {
+        var token = "";
+        if (DRB.Xrm.IsXTBMode()) { token = DRB.Settings.XTBToken; }
+        if (DRB.Xrm.IsJWTMode()) { token = DRB.Settings.JWTToken; }
         return $.ajax({
             method: "POST",
             data: payload,
@@ -2169,7 +2218,7 @@ DRB.Xrm.RetrieveBatch = function (queries) {
                 xhr.setRequestHeader("OData-MaxVersion", "4.0");
                 xhr.setRequestHeader("OData-Version", "4.0");
                 xhr.setRequestHeader("Accept", "application/json");
-                xhr.setRequestHeader("Authorization", "Bearer " + DRB.Settings.XTBToken);
+                xhr.setRequestHeader("Authorization", "Bearer " + token);
             },
             url: DRB.Xrm.GetClientUrl() + "/api/data/v9.0/$batch"
         });
@@ -2198,12 +2247,15 @@ DRB.Xrm.RetrieveBatch = function (queries) {
  * Get $metadata content (XML)
  */
 DRB.Xrm.RetrieveMetadata = function () {
-    if (DRB.Xrm.IsXTBMode()) {
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode()) {
+        var token = "";
+        if (DRB.Xrm.IsXTBMode()) { token = DRB.Settings.XTBToken; }
+        if (DRB.Xrm.IsJWTMode()) { token = DRB.Settings.JWTToken; }
         return $.ajax({
             type: "GET",
             datatype: "xml",
             async: true,
-            beforeSend: function (xhr) { xhr.setRequestHeader("Authorization", "Bearer " + DRB.Settings.XTBToken); },
+            beforeSend: function (xhr) { xhr.setRequestHeader("Authorization", "Bearer " + token); },
             url: DRB.Xrm.GetMetadataUrl()
         });
     }
@@ -2218,6 +2270,27 @@ DRB.Xrm.RetrieveMetadata = function () {
     }
 
     if (DRB.Xrm.IsDemoMode()) { return $.when(DRB.Xrm.GetDemoMetadata()); }
+}
+
+/**
+ * Xrm - Retrieve
+ * @param {string} entitySetName Entity Set Name
+ * @param {string} filters Filters
+ */
+DRB.Xrm.GetServerVersion = function (serverUrl, token) {
+        return $.ajax({
+            type: "GET",
+            contentType: "application/json; charset=utf-8",
+            datatype: "json",
+            async: true,
+            beforeSend: function (xhr) {
+                xhr.setRequestHeader("OData-MaxVersion", "4.0");
+                xhr.setRequestHeader("OData-Version", "4.0");
+                xhr.setRequestHeader("Accept", "application/json");
+                xhr.setRequestHeader("Authorization", "Bearer " + token);
+            },
+            url: serverUrl + "/api/data/v9.0/RetrieveVersion()"
+        });       
 }
 // #endregion  
  
@@ -3247,6 +3320,23 @@ DRB.Common.BindNumber = function (id, minValue, maxValue) {
         });
     });
 }
+
+/**
+ * Common - Parse JWT
+ * @param {string} token Token
+ */
+DRB.Common.ParseJWT = function (token) {
+    try {
+        var base64Url = token.split('.')[1];
+        var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        var jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+    } catch (e) {
+        return null;
+    }
+};
 // #endregion  
  
 // #region DRB.Logic
@@ -3281,7 +3371,7 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
     preCode.push('webapi.safeAjax = function(ajaxOptions) {');
     preCode.push('\tlet ajaxUrl = ajaxOptions.url;');
     preCode.push('\tif (ajaxUrl.indexOf("/_api/") === 0) {');
-    if (DRB.Xrm.IsXTBMode()) {
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode()) {
         preCode.push('\t\tajaxOptions.url = ajaxUrl.replace("/_api/", DRB.Xrm.GetClientUrl() + "/api/data/v9.0/");');
     } else {
         preCode.push('\t\tajaxOptions.url = ajaxUrl.replace("/_api/", Xrm.Utility.getGlobalContext().getClientUrl() + "/api/data/v9.0/");');
@@ -3293,6 +3383,10 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
     if (DRB.Xrm.IsXTBMode()) {
         preCode.push('\t\treq.setRequestHeader("Authorization", "Bearer " + DRB.Settings.XTBToken);');
     }
+    if (DRB.Xrm.IsJWTMode()) {
+        preCode.push('\t\treq.setRequestHeader("Authorization", "Bearer " + DRB.Settings.JWTToken);');
+    }
+
 
     preCode.push('\t};');
     preCode.push('\t}');
@@ -3304,7 +3398,7 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
 
     // Portals replace for portalUri + "/_api" syntax (association)
     var replacePortalUri = 'Xrm.Utility.getGlobalContext().getClientUrl() + "/api/data/v9.0/';
-    if (DRB.Xrm.IsXTBMode()) {
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode()) {
         replacePortalUri = 'DRB.Xrm.GetClientUrl() + "/api/data/v9.0/';
     }
     codeValue = codeValue.replace(/portalUri \+\ "\/_api\//gi, replacePortalUri);
@@ -3318,6 +3412,12 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
         codeValue = codeValue.replace(/Xrm.Utility.getGlobalContext\(\).getClientUrl\(\)/gi, "DRB.Xrm.GetClientUrl()");       
         codeValue = codeValue.replace(/req.setRequestHeader\("OData-MaxVersion", "4.0"\);/gi, 'req.setRequestHeader("OData-MaxVersion", "4.0"); req.setRequestHeader("Authorization", "Bearer " + DRB.Settings.XTBToken);');
     }
+
+    if (DRB.Xrm.IsJWTMode()) {
+        codeValue = codeValue.replace(/Xrm.Utility.getGlobalContext\(\).getClientUrl\(\)/gi, "DRB.Xrm.GetClientUrl()");
+        codeValue = codeValue.replace(/req.setRequestHeader\("OData-MaxVersion", "4.0"\);/gi, 'req.setRequestHeader("OData-MaxVersion", "4.0"); req.setRequestHeader("Authorization", "Bearer " + DRB.Settings.JWTToken);');
+    }
+
     console.log(codeValue);
     DRB.UI.ShowLoading("Executing code...");
     setTimeout(function () {
@@ -4547,6 +4647,14 @@ DRB.GenerateCode.GetFunctionUrl = function (settings) {
                         var replacedType = parameter.type.replace("mscrm.", "Microsoft.Dynamics.CRM.");
                         value = replacedType + "'" + parameter.value.memberName + "'";
                     }
+                    if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.members) && Array.isArray(parameter.value.members)) {
+                        var replacedType = parameter.type.replace("mscrm.", "Microsoft.Dynamics.CRM.");
+                        var calculatedMemberName = [];
+                        parameter.value.members.forEach(function (member) {
+                            calculatedMemberName.push(member.name);
+                        });
+                        value = replacedType + "'" + calculatedMemberName.join(",") + "'";
+                    }
                 }
 
                 if (typeFound === false && parameter.type.indexOf("Edm.") === 0) {
@@ -5028,12 +5136,30 @@ DRB.GenerateCode.GetXrmWebApiDefinitionParameters = function (settings, isBound,
                         if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.memberName) && DRB.Utilities.HasValue(parameter.value.memberValue)) {
                             structuralProperty = 3; // 3: EnumType
                         }
+                        if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.members)) {
+                            structuralProperty = 3; // 3: EnumType
+                        }
                     }
                     if (structuralProperty !== 3) {
                         definitionParameters.push('\t\t\t\t' + parameter.name + ': { typeName: "' + parameter.type + '", structuralProperty: ' + structuralProperty + ' },');
                     } else {
                         var replacedType = parameter.type.replace("mscrm.", "Microsoft.Dynamics.CRM.");
-                        definitionParameters.push('\t\t\t\t' + parameter.name + ': { typeName: "' + replacedType + '", structuralProperty: ' + structuralProperty + ', enumProperties: [{name: "' + parameter.value.memberName + '", value: ' + parameter.value.memberValue + '}] },');
+
+                        if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.memberName) && DRB.Utilities.HasValue(parameter.value.memberValue)) {
+                            definitionParameters.push('\t\t\t\t' + parameter.name + ': { typeName: "' + replacedType + '", structuralProperty: ' + structuralProperty + ', enumProperties: [{name: "' + parameter.value.memberName + '", value: ' + parameter.value.memberValue + '}] },');
+                        }
+
+                        if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.members)) {
+                            var calculatedMemberName = [];
+                            var calculatedMemberValue = 0;
+                            if (Array.isArray(parameter.value.members)) {
+                                parameter.value.members.forEach(function (member) {
+                                    calculatedMemberName.push(member.name);
+                                    calculatedMemberValue += parseInt(member.value);
+                                });
+                            }
+                            definitionParameters.push('\t\t\t\t' + parameter.name + ': { typeName: "' + replacedType + '", structuralProperty: ' + structuralProperty + ', enumProperties: [{name: "' + calculatedMemberName.join(",") + '", value: ' + calculatedMemberValue + '}] },');
+                        }
                     }
                 }
             }
@@ -5162,6 +5288,15 @@ DRB.GenerateCode.GetCodeParameters = function (settings, xrmWebApiStyle) {
                 if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.memberName) && DRB.Utilities.HasValue(parameter.value.memberValue)) {
                     exactTypeFound = true;
                     var clearedValue = parameter.value.memberValue;
+                    codeParameters.push(prefix + parameter.name + setter + ' ' + clearedValue + endSetter + ' // ' + renamedParameterType);
+                }
+
+                if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.members) && Array.isArray(parameter.value.members)) {
+                    exactTypeFound = true;
+                    var clearedValue = 0;
+                    parameter.value.members.forEach(function (member) {
+                        clearedValue += parseInt(member.value);
+                    });
                     codeParameters.push(prefix + parameter.name + setter + ' ' + clearedValue + endSetter + ' // ' + renamedParameterType);
                 }
 
@@ -11012,7 +11147,7 @@ DRB.Logic.DataverseExecute.DownloadDataverseCustomAPIs = function (sourceRequest
                         customAPI.ReturnType = returnTypeName;
                     }
                 });
-
+                customAPIs.sort(DRB.Utilities.CustomSort("Name"));
                 var customAPITableLogicalNames = [];
                 customAPIs.forEach(function (customAPI) { customAPITableLogicalNames.push(customAPI.LogicalName); });
                 customAPITableLogicalNames = DRB.Utilities.RemoveDuplicatesFromArray(customAPITableLogicalNames); // remove duplicates
@@ -11066,7 +11201,7 @@ DRB.Logic.DataverseExecute.DownloadDataverseCustomActions = function (sourceRequ
                         customAction.ReturnType = returnTypeName;
                     }
                 });
-
+                customActions.sort(DRB.Utilities.CustomSort("Name"));
                 var customActionTableLogicalNames = [];
                 customActions.forEach(function (customAction) { customActionTableLogicalNames.push(customAction.LogicalName); });
                 customActionTableLogicalNames = DRB.Utilities.RemoveDuplicatesFromArray(customActionTableLogicalNames); // remove duplicates
@@ -11142,6 +11277,8 @@ DRB.Logic.DataverseExecute.DownloadDataverseMetadata = function (sourceRequestTy
                 var xmlEnumTypes = $(data).find("EnumType").toArray();
                 xmlEnumTypes.forEach(function (xmlEnumType) {
                     var name = "mscrm." + $(xmlEnumType).attr("Name");
+                    var isFlags = $(xmlEnumType).attr("IsFlags");
+                    if (!DRB.Utilities.HasValue(isFlags)) { isFlags = false; } else { isFlags = true; }
                     var members = [];
                     var xmlMembers = $(xmlEnumType).find("Member").toArray();
                     xmlMembers.forEach(function (xmlMember) {
@@ -11150,7 +11287,7 @@ DRB.Logic.DataverseExecute.DownloadDataverseMetadata = function (sourceRequestTy
                         members.push(new DRB.Models.DataverseMember(memberName, memberValue));
                     });
 
-                    dvEnumTypes.push(new DRB.Models.DataverseEnumType(name, members));
+                    dvEnumTypes.push(new DRB.Models.DataverseEnumType(name, isFlags, members));
                 });
                 DRB.Metadata.DataverseActionFunctionEnumTypes = dvEnumTypes;
                 // #endregion
@@ -11196,7 +11333,7 @@ DRB.Logic.DataverseExecute.DownloadDataverseMetadata = function (sourceRequestTy
 
                     dvActions.push(new DRB.Models.DataverseExecute("Action", name, name, isBound, logicalName, isCollectionBound, false, hasReturnType, returnType, parameters));
                 });
-
+                dvActions.sort(DRB.Utilities.CustomSort("Name"));
                 var actionTableLogicalNames = [];
                 dvActions.forEach(function (dvAction) { actionTableLogicalNames.push(dvAction.LogicalName); });
                 actionTableLogicalNames = DRB.Utilities.RemoveDuplicatesFromArray(actionTableLogicalNames); // remove duplicates
@@ -11258,7 +11395,7 @@ DRB.Logic.DataverseExecute.DownloadDataverseMetadata = function (sourceRequestTy
                         }
                     }
                 });
-
+                dvFunctions.sort(DRB.Utilities.CustomSort("Name"));
                 var functionTableLogicalNames = [];
                 dvFunctions.forEach(function (dataverseFunction) { functionTableLogicalNames.push(dataverseFunction.LogicalName); });
                 functionTableLogicalNames = DRB.Utilities.RemoveDuplicatesFromArray(functionTableLogicalNames); // remove duplicates
@@ -11363,10 +11500,22 @@ DRB.Logic.DataverseExecute.BindParameterValue = function (id) {
             var memberType = DRB.Metadata.CurrentNode.data.configuration.dataverseParameters[elementIndex].type;
             var checkEnumType = DRB.Utilities.GetRecordById(DRB.Metadata.DataverseEnumTypes, memberType);
             if (DRB.Utilities.HasValue(checkEnumType)) {
-                var checkMember = DRB.Utilities.GetRecordById(checkEnumType.Members, controlValue);
-                if (DRB.Utilities.HasValue(checkMember)) {
-                    parameterValue.memberName = checkMember.Name;
-                    parameterValue.memberValue = controlValue;
+                if (checkEnumType.IsFlags === false) {
+                    var checkMember = DRB.Utilities.GetRecordById(checkEnumType.Members, controlValue);
+                    if (DRB.Utilities.HasValue(checkMember)) {
+                        parameterValue.memberName = checkMember.Name;
+                        parameterValue.memberValue = controlValue;
+                    }
+                } else {
+                    if (Array.isArray(controlValue)) {
+                        parameterValue.members = [];
+                        controlValue.forEach(function (cValue) {
+                            var checkMember = DRB.Utilities.GetRecordById(checkEnumType.Members, cValue);
+                            if (DRB.Utilities.HasValue(checkMember)) {
+                                parameterValue.members.push({ name: checkMember.Name, value: cValue });
+                            }
+                        });
+                    }
                 }
             }
         }
@@ -11973,12 +12122,20 @@ DRB.Logic.DataverseExecute.AfterExecuteLoaded = function (dvExecute) {
                             exactTypeFound = true;
 
                             var currentId = "cbx3_" + DRB.DOM.DataverseParameters.ControlValue.Id + index;
-                            divValue.append(DRB.UI.CreateDropdown(currentId));
+                            divValue.append(DRB.UI.CreateDropdown(currentId, checkEnumType.IsFlags));
                             DRB.UI.FillDropdown(currentId, "Select Value", new DRB.Models.Records(checkEnumType.Members).ToDropdown());
                             DRB.Logic.DataverseExecute.BindParameterValue(currentId);
 
-                            if (matchParameters === true && DRB.Utilities.HasValue(parameterValue) && DRB.Utilities.HasValue(parameterValue.memberValue)) {
-                                $("#" + currentId).val(parameterValue.memberValue).change();
+                            if (matchParameters === true && DRB.Utilities.HasValue(parameterValue)) {
+                                var foundMemberValue = null;
+                                if (DRB.Utilities.HasValue(parameterValue.memberValue)) { foundMemberValue = parameterValue.memberValue; }
+                                if (DRB.Utilities.HasValue(parameterValue.members)) {
+                                    foundMemberValue = [];
+                                    if (Array.isArray(parameterValue.members)) {
+                                        parameterValue.members.forEach(function (member) { foundMemberValue.push(member.value); });
+                                    }
+                                }
+                                $("#" + currentId).val(foundMemberValue).change();
                             }
                         }
                     }
@@ -12986,8 +13143,20 @@ DRB.DefineOperations = function () {
                         var span_warning_jqueryxhr_xtb = DRB.UI.CreateSpan("span_warning_jqueryxhr_xtb", "NOTE: Inside DRB for XrmToolBox, Xrm.Utility.getGlobalContext().getClientUrl() is routed to the Instance URL");
                         $("#" + tab.id).append(span_warning_jqueryxhr_xtb);
                     }
-
                 }
+
+                if (DRB.Xrm.IsJWTMode()) {
+                    if (tab.id === "code_xrmwebapi" || tab.id === "code_xrmwebapiexecute") {
+                        var span_warning_xrmwebapi_jwt = DRB.UI.CreateSpan("span_warning_xrmwebapi_jwt", "NOTE: Xrm.WebApi is not available when DRB is in JWT Mode");
+                        $("#" + tab.id).append(span_warning_xrmwebapi_jwt);
+                    }
+
+                    if (tab.id === "code_jquery" || tab.id === "code_xmlhttprequest") {
+                        var span_warning_jqueryxhr_jwt = DRB.UI.CreateSpan("span_warning_jqueryxhr_jwt", "NOTE: Inside DRB JWT Mode, Xrm.Utility.getGlobalContext().getClientUrl() is routed to the Instance URL");
+                        $("#" + tab.id).append(span_warning_jqueryxhr_jwt);
+                    }
+                }
+
                 if (tab.id === "code_portals") {
                     var span_warning_portals = DRB.UI.CreateSpan("span_warning_portals", "NOTE: Inside DRB, Portals endpoint (<i>/_api/</i>) is routed to the default Web API endpoint");
                     $("#" + tab.id).append(span_warning_portals);
@@ -13080,12 +13249,12 @@ DRB.ShowNotice = function () {
  * Main function called by the Index
  */
 DRB.Initialize = async function () {
+    // #region XTB
     DRB.Settings.XTBContext = false;
     var xtbSettings = null;
     if (DRB.Utilities.HasValue(chrome) && DRB.Utilities.HasValue(chrome.webview) && DRB.Utilities.HasValue(chrome.webview.hostObjects)) {
         xtbSettings = chrome.webview.hostObjects.xtbSettings;
     }
-
     if (DRB.Utilities.HasValue(xtbSettings)) {
         DRB.Settings.XTBToken = await xtbSettings.Token;
         DRB.Settings.XTBUrl = await xtbSettings.Url;
@@ -13094,13 +13263,35 @@ DRB.Initialize = async function () {
             DRB.Settings.XTBContext = true;
         }
     }
+    // #endregion
 
-    $("#" + DRB.DOM.ContextSpan.Id).html(DRB.Xrm.GetContext());
+    // #region JWT
+    DRB.Settings.JWTContext = false;
+    if (localStorage.getItem("DRB_JWT") !== null) {
+        var token = localStorage.getItem("DRB_JWT");
+        var parsedToken = DRB.Common.ParseJWT(token);
+        if (DRB.Utilities.HasValue(parsedToken)) {
+            var jwtUrl = parsedToken.aud;
+            if (jwtUrl.length > 0 && jwtUrl.substr(-1) === '/') { jwtUrl = jwtUrl.substr(0, str.length - 1); }
+            if (DRB.Utilities.HasValue(token) && DRB.Utilities.HasValue(jwtUrl)) {
+                DRB.UI.ShowLoading("Checking JWT Settings...");
+                await DRB.Xrm.GetServerVersion(jwtUrl, token).done(function (data) {
+                    DRB.Settings.JWTToken = token;
+                    DRB.Settings.JWTUrl = jwtUrl;
+                    DRB.Settings.JWTVersion = data.Version;
+                    DRB.Settings.JWTContext = true;
+                }).fail(function (xhr) { });
+                DRB.UI.HideLoading();
+            }
+        }
+    }
+    // #endregion
     DRB.HideNotice();
+    Split(['#div_menu', '#div_content'], { sizes: [10, 90], minSize: 200, gutterSize: 5 }); // Split
     DRB.SetDefaultSettings();
     DRB.DefineOperations();
-    // Split
-    Split(['#div_menu', '#div_content'], { sizes: [10, 90], minSize: 200, gutterSize: 5 });
+    $("#" + DRB.DOM.ContextSpan.Id).html(DRB.Xrm.GetContext());
+
     // Tab script
     $(document).ready(function () {
         $("#" + DRB.DOM.TabsRequest.Id + " a").click(function (e) {

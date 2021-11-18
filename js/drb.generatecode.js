@@ -161,6 +161,14 @@ DRB.GenerateCode.GetFunctionUrl = function (settings) {
                         var replacedType = parameter.type.replace("mscrm.", "Microsoft.Dynamics.CRM.");
                         value = replacedType + "'" + parameter.value.memberName + "'";
                     }
+                    if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.members) && Array.isArray(parameter.value.members)) {
+                        var replacedType = parameter.type.replace("mscrm.", "Microsoft.Dynamics.CRM.");
+                        var calculatedMemberName = [];
+                        parameter.value.members.forEach(function (member) {
+                            calculatedMemberName.push(member.name);
+                        });
+                        value = replacedType + "'" + calculatedMemberName.join(",") + "'";
+                    }
                 }
 
                 if (typeFound === false && parameter.type.indexOf("Edm.") === 0) {
@@ -642,12 +650,30 @@ DRB.GenerateCode.GetXrmWebApiDefinitionParameters = function (settings, isBound,
                         if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.memberName) && DRB.Utilities.HasValue(parameter.value.memberValue)) {
                             structuralProperty = 3; // 3: EnumType
                         }
+                        if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.members)) {
+                            structuralProperty = 3; // 3: EnumType
+                        }
                     }
                     if (structuralProperty !== 3) {
                         definitionParameters.push('\t\t\t\t' + parameter.name + ': { typeName: "' + parameter.type + '", structuralProperty: ' + structuralProperty + ' },');
                     } else {
                         var replacedType = parameter.type.replace("mscrm.", "Microsoft.Dynamics.CRM.");
-                        definitionParameters.push('\t\t\t\t' + parameter.name + ': { typeName: "' + replacedType + '", structuralProperty: ' + structuralProperty + ', enumProperties: [{name: "' + parameter.value.memberName + '", value: ' + parameter.value.memberValue + '}] },');
+
+                        if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.memberName) && DRB.Utilities.HasValue(parameter.value.memberValue)) {
+                            definitionParameters.push('\t\t\t\t' + parameter.name + ': { typeName: "' + replacedType + '", structuralProperty: ' + structuralProperty + ', enumProperties: [{name: "' + parameter.value.memberName + '", value: ' + parameter.value.memberValue + '}] },');
+                        }
+
+                        if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.members)) {
+                            var calculatedMemberName = [];
+                            var calculatedMemberValue = 0;
+                            if (Array.isArray(parameter.value.members)) {
+                                parameter.value.members.forEach(function (member) {
+                                    calculatedMemberName.push(member.name);
+                                    calculatedMemberValue += parseInt(member.value);
+                                });
+                            }
+                            definitionParameters.push('\t\t\t\t' + parameter.name + ': { typeName: "' + replacedType + '", structuralProperty: ' + structuralProperty + ', enumProperties: [{name: "' + calculatedMemberName.join(",") + '", value: ' + calculatedMemberValue + '}] },');
+                        }
                     }
                 }
             }
@@ -776,6 +802,15 @@ DRB.GenerateCode.GetCodeParameters = function (settings, xrmWebApiStyle) {
                 if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.memberName) && DRB.Utilities.HasValue(parameter.value.memberValue)) {
                     exactTypeFound = true;
                     var clearedValue = parameter.value.memberValue;
+                    codeParameters.push(prefix + parameter.name + setter + ' ' + clearedValue + endSetter + ' // ' + renamedParameterType);
+                }
+
+                if (DRB.Utilities.HasValue(parameter.value) && DRB.Utilities.HasValue(parameter.value.members) && Array.isArray(parameter.value.members)) {
+                    exactTypeFound = true;
+                    var clearedValue = 0;
+                    parameter.value.members.forEach(function (member) {
+                        clearedValue += parseInt(member.value);
+                    });
                     codeParameters.push(prefix + parameter.name + setter + ' ' + clearedValue + endSetter + ' // ' + renamedParameterType);
                 }
 

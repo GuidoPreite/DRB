@@ -30,7 +30,7 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
     preCode.push('webapi.safeAjax = function(ajaxOptions) {');
     preCode.push('\tlet ajaxUrl = ajaxOptions.url;');
     preCode.push('\tif (ajaxUrl.indexOf("/_api/") === 0) {');
-    if (DRB.Xrm.IsXTBMode()) {
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode()) {
         preCode.push('\t\tajaxOptions.url = ajaxUrl.replace("/_api/", DRB.Xrm.GetClientUrl() + "/api/data/v9.0/");');
     } else {
         preCode.push('\t\tajaxOptions.url = ajaxUrl.replace("/_api/", Xrm.Utility.getGlobalContext().getClientUrl() + "/api/data/v9.0/");');
@@ -42,6 +42,10 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
     if (DRB.Xrm.IsXTBMode()) {
         preCode.push('\t\treq.setRequestHeader("Authorization", "Bearer " + DRB.Settings.XTBToken);');
     }
+    if (DRB.Xrm.IsJWTMode()) {
+        preCode.push('\t\treq.setRequestHeader("Authorization", "Bearer " + DRB.Settings.JWTToken);');
+    }
+
 
     preCode.push('\t};');
     preCode.push('\t}');
@@ -53,7 +57,7 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
 
     // Portals replace for portalUri + "/_api" syntax (association)
     var replacePortalUri = 'Xrm.Utility.getGlobalContext().getClientUrl() + "/api/data/v9.0/';
-    if (DRB.Xrm.IsXTBMode()) {
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode()) {
         replacePortalUri = 'DRB.Xrm.GetClientUrl() + "/api/data/v9.0/';
     }
     codeValue = codeValue.replace(/portalUri \+\ "\/_api\//gi, replacePortalUri);
@@ -67,6 +71,12 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
         codeValue = codeValue.replace(/Xrm.Utility.getGlobalContext\(\).getClientUrl\(\)/gi, "DRB.Xrm.GetClientUrl()");       
         codeValue = codeValue.replace(/req.setRequestHeader\("OData-MaxVersion", "4.0"\);/gi, 'req.setRequestHeader("OData-MaxVersion", "4.0"); req.setRequestHeader("Authorization", "Bearer " + DRB.Settings.XTBToken);');
     }
+
+    if (DRB.Xrm.IsJWTMode()) {
+        codeValue = codeValue.replace(/Xrm.Utility.getGlobalContext\(\).getClientUrl\(\)/gi, "DRB.Xrm.GetClientUrl()");
+        codeValue = codeValue.replace(/req.setRequestHeader\("OData-MaxVersion", "4.0"\);/gi, 'req.setRequestHeader("OData-MaxVersion", "4.0"); req.setRequestHeader("Authorization", "Bearer " + DRB.Settings.JWTToken);');
+    }
+
     console.log(codeValue);
     DRB.UI.ShowLoading("Executing code...");
     setTimeout(function () {

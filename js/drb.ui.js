@@ -627,6 +627,13 @@ DRB.UI.OpenLookup = function (settings) {
             return;
         }
 
+        // JWT Mode
+        if (DRB.Xrm.IsJWTMode()) {
+            DRB.UI.Show("JWT Mode", "Lookup is not available in JWT Mode.<br />A random Guid has been generated.");
+            $("#" + settings.textId).val(DRB.Utilities.GenerateGuid()).trigger("input").change();
+            return;
+        }
+
         // Demo Mode
         if (DRB.Xrm.IsDemoMode()) {
             DRB.UI.Show("Demo Mode", "Lookup is not available in Demo Mode.<br />A random Guid has been generated.");
