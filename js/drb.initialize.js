@@ -401,9 +401,12 @@ DRB.Initialize = async function () {
     // #region XTB
     DRB.Settings.XTBContext = false;
     var xtbSettings = null;
-    if (DRB.Utilities.HasValue(chrome) && DRB.Utilities.HasValue(chrome.webview) && DRB.Utilities.HasValue(chrome.webview.hostObjects)) {
-        xtbSettings = chrome.webview.hostObjects.xtbSettings;
-    }
+    try {
+        if (DRB.Utilities.HasValue(chrome) && DRB.Utilities.HasValue(chrome.webview) && DRB.Utilities.HasValue(chrome.webview.hostObjects)) {
+            xtbSettings = chrome.webview.hostObjects.xtbSettings;
+        }
+    } catch { }
+
     if (DRB.Utilities.HasValue(xtbSettings)) {
         DRB.Settings.XTBToken = await xtbSettings.Token;
         DRB.Settings.XTBUrl = await xtbSettings.Url;
@@ -416,25 +419,40 @@ DRB.Initialize = async function () {
 
     // #region JWT
     DRB.Settings.JWTContext = false;
-    if (localStorage.getItem("DRB_JWT") !== null) {
-        var token = localStorage.getItem("DRB_JWT");
-        var parsedToken = DRB.Common.ParseJWT(token);
-        if (DRB.Utilities.HasValue(parsedToken)) {
-            var jwtUrl = parsedToken.aud;
-            if (jwtUrl.length > 0 && jwtUrl.substr(-1) === '/') { jwtUrl = jwtUrl.substr(0, str.length - 1); }
-            if (DRB.Utilities.HasValue(token) && DRB.Utilities.HasValue(jwtUrl)) {
-                DRB.UI.ShowLoading("Checking JWT Settings...");
-                await DRB.Xrm.GetServerVersion(jwtUrl, token).done(function (data) {
-                    DRB.Settings.JWTToken = token;
-                    DRB.Settings.JWTUrl = jwtUrl;
-                    DRB.Settings.JWTVersion = data.Version;
-                    DRB.Settings.JWTContext = true;
-                }).fail(function (xhr) { });
-                DRB.UI.HideLoading();
+    try {
+        if (localStorage.getItem("DRB_JWT") !== null) {
+            var removeToken = true;
+            var token = localStorage.getItem("DRB_JWT");
+            var parsedToken = DRB.Common.ParseJWT(token);
+            if (DRB.Utilities.HasValue(parsedToken)) {
+                var jwtUrl = parsedToken.aud;
+                if (jwtUrl.length > 0 && jwtUrl.substr(-1) === '/') { jwtUrl = jwtUrl.substr(0, str.length - 1); }
+                var jwtExpireDate = parsedToken.exp * 1000;
+                var now = new Date().getTime();
+                if (jwtExpireDate > now) {
+                    if (DRB.Utilities.HasValue(jwtUrl)) {
+                        DRB.UI.ShowLoading("Checking JWT Settings...");
+                        try {
+                            await DRB.Xrm.GetServerVersion(jwtUrl, token).done(function (data) {
+                                DRB.Settings.JWTToken = token;
+                                DRB.Settings.JWTUrl = jwtUrl;
+                                DRB.Settings.JWTVersion = data.Version;
+                                DRB.Settings.JWTContext = true;
+                                removeToken = false;
+                            });
+                        } catch { }
+                        DRB.UI.HideLoading();
+                    }
+                }
             }
+            if (removeToken === true) { localStorage.removeItem("DRB_JWT"); }
         }
+    } catch {
+        // something went wrong, remove the token
+        localStorage.removeItem("DRB_JWT");
     }
     // #endregion
+
     DRB.HideNotice();
     Split(['#div_menu', '#div_content'], { sizes: [10, 90], minSize: 200, gutterSize: 5 }); // Split
     DRB.SetDefaultSettings();

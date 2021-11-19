@@ -222,9 +222,9 @@ DRB.Xrm.RetrieveMetadata = function () {
 }
 
 /**
- * Xrm - Retrieve
- * @param {string} entitySetName Entity Set Name
- * @param {string} filters Filters
+ * Xrm - Get Server Version
+ * @param {string} serverUrl Server Url
+ * @param {string} token Token
  */
 DRB.Xrm.GetServerVersion = function (serverUrl, token) {
         return $.ajax({
