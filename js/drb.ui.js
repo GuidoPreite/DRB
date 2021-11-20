@@ -458,6 +458,10 @@ DRB.UI.CreateInputLongString = function (id, maxLength, placeholder) {
     return $("<input>", { id: id, class: "form-control", style: "width: 540px; height: 28px; margin-left: 10px; display: inline;", type: "text", autocomplete: "off", maxlength: maxLength, title: placeholder, placeholder: placeholder });
 }
 
+DRB.UI.CreateInputStringPowerAutomate = function (id, placeholder) {
+    return $("<input>", { id: id, readonly: "readonly", class: "form-control", style: "width: 600px; height: 28px; margin-left: 10px; display: inline;", type: "text", autocomplete: "off" });
+}
+
 DRB.UI.CreateInputDateTime = function (id, behavior, placeholder) {
     if (!DRB.Utilities.HasValue(placeholder)) { placeholder = "Date Time" };
     return $("<input>", { id: id, readonly: "readonly", "data-datetimebehavior": behavior, class: "form-control", style: "width: 340px; height: 28px; margin-left: 10px; display: inline;", type: "text", autocomplete: "off", title: placeholder, placeholder: placeholder });

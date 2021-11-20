@@ -264,6 +264,7 @@ DRB.DefineOperations = function () {
     DRB.Settings.Tabs.push({ id: "code_portals", name: "Portals" });
     DRB.Settings.Tabs.push({ id: "code_editor", name: "Editor" });
     DRB.Settings.Tabs.push({ id: "code_results", name: "Results" });
+    DRB.Settings.Tabs.push({ id: "code_powerautomate", name: "Power Automate" });
 
     var tabs_Request = DRB.UI.CreateTabs(DRB.DOM.TabsRequest.Id, DRB.Settings.Tabs);
     var tabs_Content = DRB.UI.CreateTabContents(DRB.DOM.TabsContent.Id, DRB.Settings.Tabs, "code_editor");
@@ -330,9 +331,14 @@ DRB.DefineOperations = function () {
                 $("#" + tab.id).append(span_warning_result);
                 $("#" + tab.id).append(DRB.UI.CreateSpacer());
             }
-
-            var divEditor = DRB.UI.CreateEmptyDiv(tab.id + "_editor", "code_editor");
-            $("#" + tab.id).append(divEditor);
+            if (tabIndex < 8) {
+                var divEditor = DRB.UI.CreateEmptyDiv(tab.id + "_editor", "code_editor");
+                $("#" + tab.id).append(divEditor);
+            }
+            if (tabIndex === 8) {
+                var divEditor = DRB.UI.CreateEmptyDiv(tab.id + "_editor");
+                $("#" + tab.id).append(divEditor);
+            }
         } else {
             var divEditor = DRB.UI.CreateEmptyDiv(tab.id + "_settings");
             $("#" + tab.id).append(divEditor);
@@ -468,7 +474,8 @@ DRB.Initialize = async function () {
                 case "a_code_xrmwebapiexecute":
                 case "a_code_jquery":
                 case "a_code_xmlhttprequest":
-                case "a_code_portals": DRB.GenerateCode.Start(); break;
+                case "a_code_portals":
+                case "a_code_powerautomate":DRB.GenerateCode.Start(); break;
             }
             $(this).tab('show');
         });

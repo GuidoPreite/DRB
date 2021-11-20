@@ -68,7 +68,7 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
     codeValue = codeValue.replace(/console.log/gi, "DRB.Logic.ConsoleToResultsEditor");
 
     if (DRB.Xrm.IsXTBMode()) {
-        codeValue = codeValue.replace(/Xrm.Utility.getGlobalContext\(\).getClientUrl\(\)/gi, "DRB.Xrm.GetClientUrl()");       
+        codeValue = codeValue.replace(/Xrm.Utility.getGlobalContext\(\).getClientUrl\(\)/gi, "DRB.Xrm.GetClientUrl()");
         codeValue = codeValue.replace(/req.setRequestHeader\("OData-MaxVersion", "4.0"\);/gi, 'req.setRequestHeader("OData-MaxVersion", "4.0"); req.setRequestHeader("Authorization", "Bearer " + DRB.Settings.XTBToken);');
     }
 
@@ -141,6 +141,26 @@ DRB.Logic.CopyCodeFromEditor = function (sectionName) {
     setTimeout(function () { DRB.UI.HideLoading(); }, DRB.Settings.TimeoutDelay * 1.5);
 }
 
+DRB.Logic.CopyCodeForPowerautomate = function (id, name) {
+    var codeValue = $("#" + DRB.DOM.PowerAutomate[id + "Input"].Id).val();
+    // copy to clipboard
+    if (DRB.Utilities.HasValue(navigator.clipboard)) {
+        // modern browser code
+        navigator.clipboard.writeText(codeValue);
+    } else {
+        // old code for IE
+        var $temp = $("<textarea>");
+        $("body").append($temp);
+        $temp.val(codeValue).select();
+        document.execCommand("copy");
+        $temp.remove();
+    }
+
+    // show message to the user
+    DRB.UI.ShowMessage(name + " copied to Clipboard");
+    setTimeout(function () { DRB.UI.HideLoading(); }, DRB.Settings.TimeoutDelay * 1.5);
+}
+
 /**
  * Logic - Refresh Tables
  */
@@ -201,23 +221,36 @@ DRB.Logic.BindRequestType = function (id) {
         $("#a_" + DRB.Settings.Tabs[0].id).click();
 
         // hide or show Tab "Xrm.WebApi execute" (Tab number 2) based on the request type
+        // hide or show Tab "Portals" (Tab number 5) based on the request type
+        // hide or show Tab "Power Automate" (Tab number 8) based on the request type
         switch (requestTypeValue) {
             case "retrievesingle":
+                $("#a_" + DRB.Settings.Tabs[2].id).show();
+                $("#a_" + DRB.Settings.Tabs[5].id).show();
+                $("#a_" + DRB.Settings.Tabs[8].id).show();
+                break;
+            case "retrievemultiple":
+                $("#a_" + DRB.Settings.Tabs[2].id).hide();
+                $("#a_" + DRB.Settings.Tabs[5].id).show();
+                $("#a_" + DRB.Settings.Tabs[8].id).show();
+                break;
             case "create":
             case "update":
             case "delete":
                 $("#a_" + DRB.Settings.Tabs[2].id).show();
                 $("#a_" + DRB.Settings.Tabs[5].id).show();
+                $("#a_" + DRB.Settings.Tabs[8].id).hide();
                 break;
-            case "retrievemultiple":
             case "associate":
             case "disassociate":
                 $("#a_" + DRB.Settings.Tabs[2].id).hide();
                 $("#a_" + DRB.Settings.Tabs[5].id).show();
+                $("#a_" + DRB.Settings.Tabs[8].id).hide();
                 break;
             default:
                 $("#a_" + DRB.Settings.Tabs[2].id).hide();
                 $("#a_" + DRB.Settings.Tabs[5].id).hide();
+                $("#a_" + DRB.Settings.Tabs[8].id).hide();
                 break;
         }
 

@@ -2733,10 +2733,111 @@ DRB.GenerateCode.ExecuteWorkflow = function () {
 }
 
 /**
+ * Generate Code - Power Automate
+ */
+DRB.GenerateCode.PowerAutomate = function (requestType) {
+    if (requestType !== "retrievesingle" && requestType !== "retrievemultiple") { return; }
+    var pa_editor = "code_powerautomate_editor";
+    $("#" + pa_editor).empty();
+    switch (requestType) {
+        case "retrievesingle":
+            $("#" + pa_editor).append(DRB.UI.CreateSpan(DRB.DOM.PowerAutomate.SpanTitleRetrieveSingle.Id, DRB.DOM.PowerAutomate.SpanTitleRetrieveSingle.Name, null, DRB.DOM.PowerAutomate.SpanTitleRetrieveSingle.Class));
+            break;
+        case "retrievemultiple":
+            $("#" + pa_editor).append(DRB.UI.CreateSpan(DRB.DOM.PowerAutomate.SpanTitleRetrieveMultiple.Id, DRB.DOM.PowerAutomate.SpanTitleRetrieveMultiple.Name, null, DRB.DOM.PowerAutomate.SpanTitleRetrieveMultiple.Class));
+            break;
+    }
+    $("#" + pa_editor).append(DRB.UI.CreateSpacer());
+    var divTable = DRB.UI.CreateTable(DRB.DOM.PowerAutomate.Table.Id);
+    $("#" + pa_editor).append(divTable);
+
+    var paSettings = [];
+
+    switch (requestType) {
+        case "retrievesingle": paSettings = ["TableName", "RowID", "SelectColumns", "ExpandQuery"]; break;
+        case "retrievemultiple": paSettings = ["TableName", "SelectColumns", "FilterRows", "SortBy", "ExpandQuery", "RowCount"]; break;
+    }
+
+    paSettings.forEach(function (setting, settingIndex) {
+        var tr = DRB.UI.CreateTr(DRB.DOM.PowerAutomate.Tr.Id + DRB.DOM.PowerAutomate[setting + "Span"].Id);
+        var tdLabel = DRB.UI.CreateTd(DRB.DOM.PowerAutomate.TdLabel.Id + DRB.DOM.PowerAutomate[setting + "Span"].Id);
+        var tdValue = DRB.UI.CreateTd(DRB.DOM.PowerAutomate.TdValue.Id + DRB.DOM.PowerAutomate[setting + "Span"].Id);
+        var tdCopy = DRB.UI.CreateTd(DRB.DOM.PowerAutomate.TdCopy.Id + DRB.DOM.PowerAutomate[setting + "Span"].Id);
+        divTable.append(tr);
+        tr.append(tdLabel);
+        tr.append(tdValue);
+        tr.append(tdCopy);
+
+        tdLabel.append(DRB.UI.CreateSpan(DRB.DOM.PowerAutomate[setting + "Span"].Id, DRB.DOM.PowerAutomate[setting + "Span"].Name));
+        tdValue.append(DRB.UI.CreateInputStringPowerAutomate(DRB.DOM.PowerAutomate[setting + "Input"].Id));
+        if (settingIndex > 0) {
+            tdCopy.append(DRB.UI.CreateButton(DRB.DOM.PowerAutomate.ButtonCopy.Id + DRB.DOM.PowerAutomate[setting + "Span"].Id, DRB.DOM.PowerAutomate.ButtonCopy.Name, DRB.DOM.PowerAutomate.ButtonCopy.Class, DRB.Logic.CopyCodeForPowerautomate, setting, DRB.DOM.PowerAutomate[setting + "Span"].Name));
+        }
+    });
+
+    var settings = DRB.Metadata.CurrentNode.data.configuration;
+    if (!DRB.Utilities.HasValue(settings.primaryEntity)) { return; }
+
+    var tableName = settings.primaryEntity.label + " (" + settings.primaryEntity.logicalName + ")";
+    var selectColumns = "";
+    var fieldLogicalNames = settings.fields.map(function (field) { return field.oDataName; });
+    if (settings.fields.length > 0) { selectColumns = fieldLogicalNames.join(); }
+
+    var expandQuery = "";
+    // #region Expand Query
+    if (settings.oneToMany.length > 0 || settings.manyToOne.length > 0 || settings.manyToMany.length > 0) {
+        settings.oneToMany.forEach(function (oneToMany) {
+            var relFieldLogicalNames = oneToMany.fields.map(function (field) { return field.oDataName; });
+            expandQuery += oneToMany.schemaName + '($select=' + relFieldLogicalNames.join() + '),';
+        });
+
+        settings.manyToOne.forEach(function (ManyToOne) {
+            var relFieldLogicalNames = ManyToOne.fields.map(function (field) { return field.oDataName; });
+            expandQuery += ManyToOne.navigationProperty + '($select=' + relFieldLogicalNames.join() + '),';
+        });
+
+        settings.manyToMany.forEach(function (ManyToMany) {
+            var relFieldLogicalNames = ManyToMany.fields.map(function (field) { return field.oDataName; });
+            expandQuery += ManyToMany.schemaName + '($select=' + relFieldLogicalNames.join() + '),';
+        });
+
+        if (expandQuery.slice(-1) === ',') { expandQuery = expandQuery.slice(0, -1); }
+    }
+    // #endregion
+
+    switch (requestType) {
+        case "retrievesingle":
+            var rowId = settings.primaryId;
+            if (settings.useAlternateKey === true) { rowId = ""; }
+
+            $("#" + DRB.DOM.PowerAutomate.TableNameInput.Id).val(tableName);
+            $("#" + DRB.DOM.PowerAutomate.RowIDInput.Id).val(rowId);
+            $("#" + DRB.DOM.PowerAutomate.SelectColumnsInput.Id).val(selectColumns);
+            $("#" + DRB.DOM.PowerAutomate.ExpandQueryInput.Id).val(expandQuery);
+            break;
+        case "retrievemultiple":
+            var rowCount = "";
+            if (DRB.Utilities.HasValue(settings.topCount)) { rowCount = settings.topCount; }
+            var filterRows = DRB.GenerateCode.GetFilterFields(settings);
+            if (DRB.Utilities.HasValue(filterRows)) { filterRows = filterRows.replace("$filter=", ""); }
+            var sortBy = DRB.GenerateCode.GetOrderFields(settings);
+            if (DRB.Utilities.HasValue(sortBy)) { sortBy = sortBy.replace("$orderby=", ""); }
+            $("#" + DRB.DOM.PowerAutomate.TableNameInput.Id).val(tableName);
+            $("#" + DRB.DOM.PowerAutomate.SelectColumnsInput.Id).val(selectColumns);
+            $("#" + DRB.DOM.PowerAutomate.FilterRowsInput.Id).val(filterRows);
+            $("#" + DRB.DOM.PowerAutomate.SortByInput.Id).val(sortBy);
+            $("#" + DRB.DOM.PowerAutomate.ExpandQueryInput.Id).val(expandQuery);
+            $("#" + DRB.DOM.PowerAutomate.RowCountInput.Id).val(rowCount);
+            break;
+    }
+}
+
+/**
  * Generate Code - Start
  */
 DRB.GenerateCode.Start = function () {
     var requestType = $("#" + DRB.DOM.RequestType.Dropdown.Id).val();
+    DRB.GenerateCode.PowerAutomate(requestType);
     switch (requestType) {
         case "retrievesingle": DRB.GenerateCode.RetrieveSingle(); break;
         case "retrievemultiple": DRB.GenerateCode.RetrieveMultiple(); break;

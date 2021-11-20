@@ -408,10 +408,39 @@ DRB.DOM.DataverseReturnType.TdType = { Id: "td_dvrt_type_", Name: "<b>Type</b>" 
 // #endregion
 
 // #region Execute Workflow
-// Workflow Id
 DRB.DOM.WorkflowId = {};
 DRB.DOM.WorkflowId.Span = { Id: "span_workflowid", Name: "Workflow Id" };
 DRB.DOM.WorkflowId.Input = { Id: "txt_workflowid" };
 DRB.DOM.WorkflowId.Lookup = { Id: "lkp_workflowid" };
+// #endregion
+
+// #region Power Automate
+DRB.DOM.PowerAutomate = {};
+
+DRB.DOM.PowerAutomate.Table = { Id: "table_powerautomate" };
+DRB.DOM.PowerAutomate.Tr = { Id: "tr_pa_" };
+DRB.DOM.PowerAutomate.TdLabel = { Id: "td_pa_label_" };
+DRB.DOM.PowerAutomate.TdValue = { Id: "td_pa_value_" };
+DRB.DOM.PowerAutomate.TdCopy = { Id: "td_pa_copy_" };
+
+DRB.DOM.PowerAutomate.ButtonCopy = { Id: "btn_pa_copy_", Name: "Copy", Class: "btn-secondary" };
+
+DRB.DOM.PowerAutomate.SpanTitleRetrieveSingle = { Id: "span_title", Name: "Get a row by ID", Class: "font-weight-bold" };
+DRB.DOM.PowerAutomate.SpanTitleRetrieveMultiple = { Id: "span_title", Name: "List rows", Class: "font-weight-bold" };
+
+DRB.DOM.PowerAutomate.TableNameSpan = { Id: "span_tablename", Name: "Table name" };
+DRB.DOM.PowerAutomate.TableNameInput = { Id: "txt_tablename" };
+DRB.DOM.PowerAutomate.RowIDSpan = { Id: "span_rowid", Name: "Row ID" };
+DRB.DOM.PowerAutomate.RowIDInput = { Id: "txt_rowid" };
+DRB.DOM.PowerAutomate.SelectColumnsSpan = { Id: "span_selectcolumns", Name: "Select columns" };
+DRB.DOM.PowerAutomate.SelectColumnsInput = { Id: "txt_selectcolumns" };
+DRB.DOM.PowerAutomate.ExpandQuerySpan = { Id: "span_expandquery", Name: "Expand Query" };
+DRB.DOM.PowerAutomate.ExpandQueryInput = { Id: "txt_expandquery" };
+DRB.DOM.PowerAutomate.FilterRowsSpan = { Id: "span_filterrows", Name: "Filter rows" };
+DRB.DOM.PowerAutomate.FilterRowsInput = { Id: "txt_filterrows" };
+DRB.DOM.PowerAutomate.SortBySpan = { Id: "span_sortby", Name: "Sort By" };
+DRB.DOM.PowerAutomate.SortByInput = { Id: "txt_sortby" };
+DRB.DOM.PowerAutomate.RowCountSpan = { Id: "span_rowcount", Name: "Row count" };
+DRB.DOM.PowerAutomate.RowCountInput = { Id: "txt_rowcount" };
 // #endregion
 // #endregion

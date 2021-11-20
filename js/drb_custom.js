@@ -436,11 +436,40 @@ DRB.DOM.DataverseReturnType.TdType = { Id: "td_dvrt_type_", Name: "<b>Type</b>" 
 // #endregion
 
 // #region Execute Workflow
-// Workflow Id
 DRB.DOM.WorkflowId = {};
 DRB.DOM.WorkflowId.Span = { Id: "span_workflowid", Name: "Workflow Id" };
 DRB.DOM.WorkflowId.Input = { Id: "txt_workflowid" };
 DRB.DOM.WorkflowId.Lookup = { Id: "lkp_workflowid" };
+// #endregion
+
+// #region Power Automate
+DRB.DOM.PowerAutomate = {};
+
+DRB.DOM.PowerAutomate.Table = { Id: "table_powerautomate" };
+DRB.DOM.PowerAutomate.Tr = { Id: "tr_pa_" };
+DRB.DOM.PowerAutomate.TdLabel = { Id: "td_pa_label_" };
+DRB.DOM.PowerAutomate.TdValue = { Id: "td_pa_value_" };
+DRB.DOM.PowerAutomate.TdCopy = { Id: "td_pa_copy_" };
+
+DRB.DOM.PowerAutomate.ButtonCopy = { Id: "btn_pa_copy_", Name: "Copy", Class: "btn-secondary" };
+
+DRB.DOM.PowerAutomate.SpanTitleRetrieveSingle = { Id: "span_title", Name: "Get a row by ID", Class: "font-weight-bold" };
+DRB.DOM.PowerAutomate.SpanTitleRetrieveMultiple = { Id: "span_title", Name: "List rows", Class: "font-weight-bold" };
+
+DRB.DOM.PowerAutomate.TableNameSpan = { Id: "span_tablename", Name: "Table name" };
+DRB.DOM.PowerAutomate.TableNameInput = { Id: "txt_tablename" };
+DRB.DOM.PowerAutomate.RowIDSpan = { Id: "span_rowid", Name: "Row ID" };
+DRB.DOM.PowerAutomate.RowIDInput = { Id: "txt_rowid" };
+DRB.DOM.PowerAutomate.SelectColumnsSpan = { Id: "span_selectcolumns", Name: "Select columns" };
+DRB.DOM.PowerAutomate.SelectColumnsInput = { Id: "txt_selectcolumns" };
+DRB.DOM.PowerAutomate.ExpandQuerySpan = { Id: "span_expandquery", Name: "Expand Query" };
+DRB.DOM.PowerAutomate.ExpandQueryInput = { Id: "txt_expandquery" };
+DRB.DOM.PowerAutomate.FilterRowsSpan = { Id: "span_filterrows", Name: "Filter rows" };
+DRB.DOM.PowerAutomate.FilterRowsInput = { Id: "txt_filterrows" };
+DRB.DOM.PowerAutomate.SortBySpan = { Id: "span_sortby", Name: "Sort By" };
+DRB.DOM.PowerAutomate.SortByInput = { Id: "txt_sortby" };
+DRB.DOM.PowerAutomate.RowCountSpan = { Id: "span_rowcount", Name: "Row count" };
+DRB.DOM.PowerAutomate.RowCountInput = { Id: "txt_rowcount" };
 // #endregion
 // #endregion  
  
@@ -1847,6 +1876,10 @@ DRB.UI.CreateInputLongString = function (id, maxLength, placeholder) {
     if (!DRB.Utilities.HasValue(maxLength)) { maxLength = 100; };
     if (!DRB.Utilities.HasValue(placeholder)) { placeholder = "Text" };
     return $("<input>", { id: id, class: "form-control", style: "width: 540px; height: 28px; margin-left: 10px; display: inline;", type: "text", autocomplete: "off", maxlength: maxLength, title: placeholder, placeholder: placeholder });
+}
+
+DRB.UI.CreateInputStringPowerAutomate = function (id, placeholder) {
+    return $("<input>", { id: id, readonly: "readonly", class: "form-control", style: "width: 600px; height: 28px; margin-left: 10px; display: inline;", type: "text", autocomplete: "off" });
 }
 
 DRB.UI.CreateInputDateTime = function (id, behavior, placeholder) {
@@ -3409,7 +3442,7 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
     codeValue = codeValue.replace(/console.log/gi, "DRB.Logic.ConsoleToResultsEditor");
 
     if (DRB.Xrm.IsXTBMode()) {
-        codeValue = codeValue.replace(/Xrm.Utility.getGlobalContext\(\).getClientUrl\(\)/gi, "DRB.Xrm.GetClientUrl()");       
+        codeValue = codeValue.replace(/Xrm.Utility.getGlobalContext\(\).getClientUrl\(\)/gi, "DRB.Xrm.GetClientUrl()");
         codeValue = codeValue.replace(/req.setRequestHeader\("OData-MaxVersion", "4.0"\);/gi, 'req.setRequestHeader("OData-MaxVersion", "4.0"); req.setRequestHeader("Authorization", "Bearer " + DRB.Settings.XTBToken);');
     }
 
@@ -3482,6 +3515,26 @@ DRB.Logic.CopyCodeFromEditor = function (sectionName) {
     setTimeout(function () { DRB.UI.HideLoading(); }, DRB.Settings.TimeoutDelay * 1.5);
 }
 
+DRB.Logic.CopyCodeForPowerautomate = function (id, name) {
+    var codeValue = $("#" + DRB.DOM.PowerAutomate[id + "Input"].Id).val();
+    // copy to clipboard
+    if (DRB.Utilities.HasValue(navigator.clipboard)) {
+        // modern browser code
+        navigator.clipboard.writeText(codeValue);
+    } else {
+        // old code for IE
+        var $temp = $("<textarea>");
+        $("body").append($temp);
+        $temp.val(codeValue).select();
+        document.execCommand("copy");
+        $temp.remove();
+    }
+
+    // show message to the user
+    DRB.UI.ShowMessage(name + " copied to Clipboard");
+    setTimeout(function () { DRB.UI.HideLoading(); }, DRB.Settings.TimeoutDelay * 1.5);
+}
+
 /**
  * Logic - Refresh Tables
  */
@@ -3542,23 +3595,36 @@ DRB.Logic.BindRequestType = function (id) {
         $("#a_" + DRB.Settings.Tabs[0].id).click();
 
         // hide or show Tab "Xrm.WebApi execute" (Tab number 2) based on the request type
+        // hide or show Tab "Portals" (Tab number 5) based on the request type
+        // hide or show Tab "Power Automate" (Tab number 8) based on the request type
         switch (requestTypeValue) {
             case "retrievesingle":
+                $("#a_" + DRB.Settings.Tabs[2].id).show();
+                $("#a_" + DRB.Settings.Tabs[5].id).show();
+                $("#a_" + DRB.Settings.Tabs[8].id).show();
+                break;
+            case "retrievemultiple":
+                $("#a_" + DRB.Settings.Tabs[2].id).hide();
+                $("#a_" + DRB.Settings.Tabs[5].id).show();
+                $("#a_" + DRB.Settings.Tabs[8].id).show();
+                break;
             case "create":
             case "update":
             case "delete":
                 $("#a_" + DRB.Settings.Tabs[2].id).show();
                 $("#a_" + DRB.Settings.Tabs[5].id).show();
+                $("#a_" + DRB.Settings.Tabs[8].id).hide();
                 break;
-            case "retrievemultiple":
             case "associate":
             case "disassociate":
                 $("#a_" + DRB.Settings.Tabs[2].id).hide();
                 $("#a_" + DRB.Settings.Tabs[5].id).show();
+                $("#a_" + DRB.Settings.Tabs[8].id).hide();
                 break;
             default:
                 $("#a_" + DRB.Settings.Tabs[2].id).hide();
                 $("#a_" + DRB.Settings.Tabs[5].id).hide();
+                $("#a_" + DRB.Settings.Tabs[8].id).hide();
                 break;
         }
 
@@ -7219,10 +7285,111 @@ DRB.GenerateCode.ExecuteWorkflow = function () {
 }
 
 /**
+ * Generate Code - Power Automate
+ */
+DRB.GenerateCode.PowerAutomate = function (requestType) {
+    if (requestType !== "retrievesingle" && requestType !== "retrievemultiple") { return; }
+    var pa_editor = "code_powerautomate_editor";
+    $("#" + pa_editor).empty();
+    switch (requestType) {
+        case "retrievesingle":
+            $("#" + pa_editor).append(DRB.UI.CreateSpan(DRB.DOM.PowerAutomate.SpanTitleRetrieveSingle.Id, DRB.DOM.PowerAutomate.SpanTitleRetrieveSingle.Name, null, DRB.DOM.PowerAutomate.SpanTitleRetrieveSingle.Class));
+            break;
+        case "retrievemultiple":
+            $("#" + pa_editor).append(DRB.UI.CreateSpan(DRB.DOM.PowerAutomate.SpanTitleRetrieveMultiple.Id, DRB.DOM.PowerAutomate.SpanTitleRetrieveMultiple.Name, null, DRB.DOM.PowerAutomate.SpanTitleRetrieveMultiple.Class));
+            break;
+    }
+    $("#" + pa_editor).append(DRB.UI.CreateSpacer());
+    var divTable = DRB.UI.CreateTable(DRB.DOM.PowerAutomate.Table.Id);
+    $("#" + pa_editor).append(divTable);
+
+    var paSettings = [];
+
+    switch (requestType) {
+        case "retrievesingle": paSettings = ["TableName", "RowID", "SelectColumns", "ExpandQuery"]; break;
+        case "retrievemultiple": paSettings = ["TableName", "SelectColumns", "FilterRows", "SortBy", "ExpandQuery", "RowCount"]; break;
+    }
+
+    paSettings.forEach(function (setting, settingIndex) {
+        var tr = DRB.UI.CreateTr(DRB.DOM.PowerAutomate.Tr.Id + DRB.DOM.PowerAutomate[setting + "Span"].Id);
+        var tdLabel = DRB.UI.CreateTd(DRB.DOM.PowerAutomate.TdLabel.Id + DRB.DOM.PowerAutomate[setting + "Span"].Id);
+        var tdValue = DRB.UI.CreateTd(DRB.DOM.PowerAutomate.TdValue.Id + DRB.DOM.PowerAutomate[setting + "Span"].Id);
+        var tdCopy = DRB.UI.CreateTd(DRB.DOM.PowerAutomate.TdCopy.Id + DRB.DOM.PowerAutomate[setting + "Span"].Id);
+        divTable.append(tr);
+        tr.append(tdLabel);
+        tr.append(tdValue);
+        tr.append(tdCopy);
+
+        tdLabel.append(DRB.UI.CreateSpan(DRB.DOM.PowerAutomate[setting + "Span"].Id, DRB.DOM.PowerAutomate[setting + "Span"].Name));
+        tdValue.append(DRB.UI.CreateInputStringPowerAutomate(DRB.DOM.PowerAutomate[setting + "Input"].Id));
+        if (settingIndex > 0) {
+            tdCopy.append(DRB.UI.CreateButton(DRB.DOM.PowerAutomate.ButtonCopy.Id + DRB.DOM.PowerAutomate[setting + "Span"].Id, DRB.DOM.PowerAutomate.ButtonCopy.Name, DRB.DOM.PowerAutomate.ButtonCopy.Class, DRB.Logic.CopyCodeForPowerautomate, setting, DRB.DOM.PowerAutomate[setting + "Span"].Name));
+        }
+    });
+
+    var settings = DRB.Metadata.CurrentNode.data.configuration;
+    if (!DRB.Utilities.HasValue(settings.primaryEntity)) { return; }
+
+    var tableName = settings.primaryEntity.label + " (" + settings.primaryEntity.logicalName + ")";
+    var selectColumns = "";
+    var fieldLogicalNames = settings.fields.map(function (field) { return field.oDataName; });
+    if (settings.fields.length > 0) { selectColumns = fieldLogicalNames.join(); }
+
+    var expandQuery = "";
+    // #region Expand Query
+    if (settings.oneToMany.length > 0 || settings.manyToOne.length > 0 || settings.manyToMany.length > 0) {
+        settings.oneToMany.forEach(function (oneToMany) {
+            var relFieldLogicalNames = oneToMany.fields.map(function (field) { return field.oDataName; });
+            expandQuery += oneToMany.schemaName + '($select=' + relFieldLogicalNames.join() + '),';
+        });
+
+        settings.manyToOne.forEach(function (ManyToOne) {
+            var relFieldLogicalNames = ManyToOne.fields.map(function (field) { return field.oDataName; });
+            expandQuery += ManyToOne.navigationProperty + '($select=' + relFieldLogicalNames.join() + '),';
+        });
+
+        settings.manyToMany.forEach(function (ManyToMany) {
+            var relFieldLogicalNames = ManyToMany.fields.map(function (field) { return field.oDataName; });
+            expandQuery += ManyToMany.schemaName + '($select=' + relFieldLogicalNames.join() + '),';
+        });
+
+        if (expandQuery.slice(-1) === ',') { expandQuery = expandQuery.slice(0, -1); }
+    }
+    // #endregion
+
+    switch (requestType) {
+        case "retrievesingle":
+            var rowId = settings.primaryId;
+            if (settings.useAlternateKey === true) { rowId = ""; }
+
+            $("#" + DRB.DOM.PowerAutomate.TableNameInput.Id).val(tableName);
+            $("#" + DRB.DOM.PowerAutomate.RowIDInput.Id).val(rowId);
+            $("#" + DRB.DOM.PowerAutomate.SelectColumnsInput.Id).val(selectColumns);
+            $("#" + DRB.DOM.PowerAutomate.ExpandQueryInput.Id).val(expandQuery);
+            break;
+        case "retrievemultiple":
+            var rowCount = "";
+            if (DRB.Utilities.HasValue(settings.topCount)) { rowCount = settings.topCount; }
+            var filterRows = DRB.GenerateCode.GetFilterFields(settings);
+            if (DRB.Utilities.HasValue(filterRows)) { filterRows = filterRows.replace("$filter=", ""); }
+            var sortBy = DRB.GenerateCode.GetOrderFields(settings);
+            if (DRB.Utilities.HasValue(sortBy)) { sortBy = sortBy.replace("$orderby=", ""); }
+            $("#" + DRB.DOM.PowerAutomate.TableNameInput.Id).val(tableName);
+            $("#" + DRB.DOM.PowerAutomate.SelectColumnsInput.Id).val(selectColumns);
+            $("#" + DRB.DOM.PowerAutomate.FilterRowsInput.Id).val(filterRows);
+            $("#" + DRB.DOM.PowerAutomate.SortByInput.Id).val(sortBy);
+            $("#" + DRB.DOM.PowerAutomate.ExpandQueryInput.Id).val(expandQuery);
+            $("#" + DRB.DOM.PowerAutomate.RowCountInput.Id).val(rowCount);
+            break;
+    }
+}
+
+/**
  * Generate Code - Start
  */
 DRB.GenerateCode.Start = function () {
     var requestType = $("#" + DRB.DOM.RequestType.Dropdown.Id).val();
+    DRB.GenerateCode.PowerAutomate(requestType);
     switch (requestType) {
         case "retrievesingle": DRB.GenerateCode.RetrieveSingle(); break;
         case "retrievemultiple": DRB.GenerateCode.RetrieveMultiple(); break;
@@ -13115,6 +13282,7 @@ DRB.DefineOperations = function () {
     DRB.Settings.Tabs.push({ id: "code_portals", name: "Portals" });
     DRB.Settings.Tabs.push({ id: "code_editor", name: "Editor" });
     DRB.Settings.Tabs.push({ id: "code_results", name: "Results" });
+    DRB.Settings.Tabs.push({ id: "code_powerautomate", name: "Power Automate" });
 
     var tabs_Request = DRB.UI.CreateTabs(DRB.DOM.TabsRequest.Id, DRB.Settings.Tabs);
     var tabs_Content = DRB.UI.CreateTabContents(DRB.DOM.TabsContent.Id, DRB.Settings.Tabs, "code_editor");
@@ -13181,9 +13349,14 @@ DRB.DefineOperations = function () {
                 $("#" + tab.id).append(span_warning_result);
                 $("#" + tab.id).append(DRB.UI.CreateSpacer());
             }
-
-            var divEditor = DRB.UI.CreateEmptyDiv(tab.id + "_editor", "code_editor");
-            $("#" + tab.id).append(divEditor);
+            if (tabIndex < 8) {
+                var divEditor = DRB.UI.CreateEmptyDiv(tab.id + "_editor", "code_editor");
+                $("#" + tab.id).append(divEditor);
+            }
+            if (tabIndex === 8) {
+                var divEditor = DRB.UI.CreateEmptyDiv(tab.id + "_editor");
+                $("#" + tab.id).append(divEditor);
+            }
         } else {
             var divEditor = DRB.UI.CreateEmptyDiv(tab.id + "_settings");
             $("#" + tab.id).append(divEditor);
@@ -13319,7 +13492,8 @@ DRB.Initialize = async function () {
                 case "a_code_xrmwebapiexecute":
                 case "a_code_jquery":
                 case "a_code_xmlhttprequest":
-                case "a_code_portals": DRB.GenerateCode.Start(); break;
+                case "a_code_portals":
+                case "a_code_powerautomate":DRB.GenerateCode.Start(); break;
             }
             $(this).tab('show');
         });
