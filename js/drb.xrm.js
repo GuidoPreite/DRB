@@ -192,6 +192,20 @@ DRB.Xrm.RetrieveBatch = function (queries) {
 }
 
 /**
+ * Xrm - Retrieve Batches
+ * @param {any[]} batchedQueries Batched Queries
+ */
+DRB.Xrm.RetrieveBatches = function (batchedQueries) {
+    var xrmCalls = [];
+    batchedQueries.forEach(function (batchedQuery) {
+        var queries = [];
+        batchedQuery.forEach(function (query) { queries.push(query); });
+        xrmCalls.push(DRB.Xrm.RetrieveBatch(queries));
+    });
+    return $.when.apply($, xrmCalls);
+}
+
+/**
  * Xrm - Retrieve Metadata
  * Get $metadata content (XML)
  */
@@ -227,18 +241,18 @@ DRB.Xrm.RetrieveMetadata = function () {
  * @param {string} token Token
  */
 DRB.Xrm.GetServerVersion = function (serverUrl, token) {
-        return $.ajax({
-            type: "GET",
-            contentType: "application/json; charset=utf-8",
-            datatype: "json",
-            async: true,
-            beforeSend: function (xhr) {
-                xhr.setRequestHeader("OData-MaxVersion", "4.0");
-                xhr.setRequestHeader("OData-Version", "4.0");
-                xhr.setRequestHeader("Accept", "application/json");
-                xhr.setRequestHeader("Authorization", "Bearer " + token);
-            },
-            url: serverUrl + "/api/data/v9.0/RetrieveVersion()"
-        });       
+    return $.ajax({
+        type: "GET",
+        contentType: "application/json; charset=utf-8",
+        datatype: "json",
+        async: true,
+        beforeSend: function (xhr) {
+            xhr.setRequestHeader("OData-MaxVersion", "4.0");
+            xhr.setRequestHeader("OData-Version", "4.0");
+            xhr.setRequestHeader("Accept", "application/json");
+            xhr.setRequestHeader("Authorization", "Bearer " + token);
+        },
+        url: serverUrl + "/api/data/v9.0/RetrieveVersion()"
+    });
 }
 // #endregion

@@ -53,7 +53,7 @@ DRB.Logic.Association.AddChildId = function (idValue) {
  * Association - After Table Loaded
  * @param {DRB.Models.Table} table Table
  */
-DRB.Logic.Association.AfterTableLoaded = function (table) {    
+DRB.Logic.Association.AfterTableLoaded = function (table) {
     DRB.Logic.FillCurrentMetadata(table); // Fill Current Metadata    
     DRB.Logic.FillRelationshipsColumns(); // Fill Relationships Columns
 
@@ -94,8 +94,8 @@ DRB.Logic.Association.BindParentTable = function (id) {
                 setTimeout(function () {
                     // retrieve the Entity Fields
                     DRB.Common.RetrieveTablesDetails([tableLogicalName], true)
-                        .done(function (data) {
-                            DRB.Common.SetTables(data, DRB.Metadata.Tables, true);
+                        .done(function () {
+                            DRB.Common.SetTables(arguments, DRB.Metadata.Tables, true);
                             var tableLogicalNames = [];
                             table.OneToManyRelationships.forEach(function (relationship) { tableLogicalNames.push(relationship.TargetTable); });
                             table.ManyToManyRelationships.forEach(function (relationship) { tableLogicalNames.push(relationship.TargetTable); });
@@ -108,8 +108,8 @@ DRB.Logic.Association.BindParentTable = function (id) {
                             });
                             if (tablesToRetrieve.length > 0) {
                                 DRB.Common.RetrieveTablesDetails(tablesToRetrieve)
-                                    .done(function (data2) {
-                                        DRB.Common.SetTables(data2, DRB.Metadata.Tables);
+                                    .done(function () {
+                                        DRB.Common.SetTables(arguments, DRB.Metadata.Tables);
                                         DRB.Logic.Association.AfterTableLoaded(table);
                                         DRB.UI.HideLoading();
                                     })

@@ -306,7 +306,6 @@ DRB.Models.Table = function (logicalName, name, schemaName, entitySetName, prima
     this.ColumnsLoaded = false;
     this.RelationshipsLoaded = false;
     this.AlternateKeysLoaded = false;
-    this.OptionValuesLoaded = false;
     this.PersonalViewsLoaded = false;
 
     this.ToDropdownOption = function () { return new DRB.Models.DropdownOption(this.Id, this.Name, this.LogicalName); }

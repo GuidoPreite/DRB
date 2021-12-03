@@ -393,6 +393,7 @@ DRB.GenerateCode.GetAlternateKeys = function (settings) {
             criteria += field.logicalName + "=null,";
         } else {
             switch (field.type) {
+                case "Uniqueidentifier":
                 case "Picklist":
                 case "Integer":
                 case "Decimal":

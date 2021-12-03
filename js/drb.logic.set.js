@@ -406,12 +406,12 @@ DRB.Logic.BindSetTable = function (id, columnType, domObject, metadataPath) {
         var tableLogicalName = $(this).val();
         var table = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, tableLogicalName);
         if (DRB.Utilities.HasValue(table)) {
-            if (table.ColumnsLoaded === false || table.RelationshipsLoaded === false || table.AlternateKeysLoaded === false || table.OptionValuesLoaded === false) {
+            if (table.ColumnsLoaded === false || table.RelationshipsLoaded === false || table.AlternateKeysLoaded === false) {
                 DRB.UI.ShowLoading("Retrieving Table information...<br /><b>This is a long-running operation</b>");
                 setTimeout(function () {
-                    DRB.Common.RetrieveTablesDetails([tableLogicalName], true, true, true)
-                        .done(function (data) {
-                            DRB.Common.SetTables(data, DRB.Metadata.Tables, true, true, true);
+                    DRB.Common.RetrieveTablesDetails([tableLogicalName], true, true)
+                        .done(function () {
+                            DRB.Common.SetTables(arguments, DRB.Metadata.Tables, true, true);
                             var tableLogicalNames = [];
                             table.OneToManyRelationships.forEach(function (relationship) { tableLogicalNames.push(relationship.SourceTable); tableLogicalNames.push(relationship.TargetTable); });
                             table.ManyToOneRelationships.forEach(function (relationship) { tableLogicalNames.push(relationship.SourceTable); tableLogicalNames.push(relationship.TargetTable); });
@@ -422,15 +422,15 @@ DRB.Logic.BindSetTable = function (id, columnType, domObject, metadataPath) {
                             tableLogicalNames.forEach(function (checkTableLogicalName) {
                                 var checkTable = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, checkTableLogicalName);
                                 if (DRB.Utilities.HasValue(checkTable)) {
-                                    if (checkTable.ColumnsLoaded === false || checkTable.RelationshipsLoaded === false || checkTable.AlternateKeysLoaded === false || checkTable.OptionValuesLoaded === false) {
+                                    if (checkTable.ColumnsLoaded === false || checkTable.RelationshipsLoaded === false || checkTable.AlternateKeysLoaded === false) {
                                         tablesToRetrieve.push(checkTableLogicalName);
                                     }
                                 }
                             });
                             if (tablesToRetrieve.length > 0) {
-                                DRB.Common.RetrieveTablesDetails(tablesToRetrieve, true, true, true)
-                                    .done(function (data2) {
-                                        DRB.Common.SetTables(data2, DRB.Metadata.Tables, true, true, true);
+                                DRB.Common.RetrieveTablesDetails(tablesToRetrieve, true, true)
+                                    .done(function () {
+                                        DRB.Common.SetTables(arguments, DRB.Metadata.Tables, true, true);
                                         DRB.Logic.AfterSetTableLoaded(table, columnType, domObject, metadataPath);
                                         DRB.UI.HideLoading();
                                     })

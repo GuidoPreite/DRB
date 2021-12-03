@@ -1267,7 +1267,6 @@ DRB.Models.Table = function (logicalName, name, schemaName, entitySetName, prima
     this.ColumnsLoaded = false;
     this.RelationshipsLoaded = false;
     this.AlternateKeysLoaded = false;
-    this.OptionValuesLoaded = false;
     this.PersonalViewsLoaded = false;
 
     this.ToDropdownOption = function () { return new DRB.Models.DropdownOption(this.Id, this.Name, this.LogicalName); }
@@ -2276,6 +2275,20 @@ DRB.Xrm.RetrieveBatch = function (queries) {
 }
 
 /**
+ * Xrm - Retrieve Batches
+ * @param {any[]} batchedQueries Batched Queries
+ */
+DRB.Xrm.RetrieveBatches = function (batchedQueries) {
+    var xrmCalls = [];
+    batchedQueries.forEach(function (batchedQuery) {
+        var queries = [];
+        batchedQuery.forEach(function (query) { queries.push(query); });
+        xrmCalls.push(DRB.Xrm.RetrieveBatch(queries));
+    });
+    return $.when.apply($, xrmCalls);
+}
+
+/**
  * Xrm - Retrieve Metadata
  * Get $metadata content (XML)
  */
@@ -2311,19 +2324,19 @@ DRB.Xrm.RetrieveMetadata = function () {
  * @param {string} token Token
  */
 DRB.Xrm.GetServerVersion = function (serverUrl, token) {
-        return $.ajax({
-            type: "GET",
-            contentType: "application/json; charset=utf-8",
-            datatype: "json",
-            async: true,
-            beforeSend: function (xhr) {
-                xhr.setRequestHeader("OData-MaxVersion", "4.0");
-                xhr.setRequestHeader("OData-Version", "4.0");
-                xhr.setRequestHeader("Accept", "application/json");
-                xhr.setRequestHeader("Authorization", "Bearer " + token);
-            },
-            url: serverUrl + "/api/data/v9.0/RetrieveVersion()"
-        });       
+    return $.ajax({
+        type: "GET",
+        contentType: "application/json; charset=utf-8",
+        datatype: "json",
+        async: true,
+        beforeSend: function (xhr) {
+            xhr.setRequestHeader("OData-MaxVersion", "4.0");
+            xhr.setRequestHeader("OData-Version", "4.0");
+            xhr.setRequestHeader("Accept", "application/json");
+            xhr.setRequestHeader("Authorization", "Bearer " + token);
+        },
+        url: serverUrl + "/api/data/v9.0/RetrieveVersion()"
+    });
 }
 // #endregion  
  
@@ -2460,42 +2473,54 @@ DRB.Common.RetrieveMetadata = function () {
 
 /**
  * Retrieve Tables Details
- * @param {string[]} tableLogicalNames TablevLogical Names
+ * @param {string[]} tableLogicalNames Table Logical Names
  * @param {boolean} includeRelationships Include Relationships
  * @param {boolean} includeAlternateKeys Include Alternate Keys
- * @param {boolean} includeOptionValues Include Option Values
  */
-DRB.Common.RetrieveTablesDetails = function (tableLogicalNames, includeRelationships, includeAlternateKeys, includeOptionValues) {
-    var queries = [];
-    tableLogicalNames.forEach(function (tableLogicalName) {
-        var queryTable = {};
-        queryTable.EntitySetName = "EntityDefinitions(LogicalName='" + tableLogicalName + "')";
-        queryTable.Filters = "$select=LogicalName&$expand=Attributes"; // retrieve all Attributes due to "Additional Properties" mapping
-        if (includeRelationships === true) {
-            queryTable.Filters +=
-                ",OneToManyRelationships($select=SchemaName,ReferencingEntity,ReferencedEntity,ReferencingAttribute,ReferencedAttribute,ReferencingEntityNavigationPropertyName,ReferencedEntityNavigationPropertyName)" +
-                ",ManyToOneRelationships($select=SchemaName,ReferencingEntity,ReferencedEntity,ReferencingAttribute,ReferencedAttribute,ReferencingEntityNavigationPropertyName,ReferencedEntityNavigationPropertyName)" +
-                ",ManyToManyRelationships($select=Entity1LogicalName,Entity2LogicalName,Entity1NavigationPropertyName,Entity2NavigationPropertyName,SchemaName)";
-        }
-        if (includeAlternateKeys === true) {
-            includeOptionValues = true; // Alternate Key supports Picklist, retrieving Column Values is required
-            queryTable.Filters += ",Keys($select=LogicalName,SchemaName,KeyAttributes,EntityKeyIndexStatus,DisplayName)";
-        }
-        queries.push(queryTable);
+DRB.Common.RetrieveTablesDetails = function (tableLogicalNames, includeRelationships, includeAlternateKeys) {
+    var includeOptionValues = false;
+    if (includeAlternateKeys === true) { includeOptionValues = true; } // Alternate Key supports Picklist, retrieving Option Values is required
+
+    var batchedQueries = [];
+    var tableBatchSize = 150; // 150 tables each batch request, because there are a max of 6 requests for each table (150 x 6 = 900 < 1000)    
+
+    batchedTableLogicalNames = [];
+    for (var count = 0; count < tableLogicalNames.length; count++) {
+        if (count % tableBatchSize === 0) { batchedTableLogicalNames.push([]); }
+        batchedTableLogicalNames[batchedTableLogicalNames.length - 1].push(tableLogicalNames[count]);
+    }
+
+    batchedTableLogicalNames.forEach(function (batchedTableLogicalName) {
+        batchedQueries.push([]);
+        batchedTableLogicalName.forEach(function (tableLogicalName) {
+            var queryTable = {};
+            queryTable.EntitySetName = "EntityDefinitions(LogicalName='" + tableLogicalName + "')";
+            queryTable.Filters = "$select=LogicalName&$expand=Attributes"; // retrieve all Attributes due to "Additional Properties" mapping
+            if (includeRelationships === true) {
+                queryTable.Filters +=
+                    ",OneToManyRelationships($select=SchemaName,ReferencingEntity,ReferencedEntity,ReferencingAttribute,ReferencedAttribute,ReferencingEntityNavigationPropertyName,ReferencedEntityNavigationPropertyName)" +
+                    ",ManyToOneRelationships($select=SchemaName,ReferencingEntity,ReferencedEntity,ReferencingAttribute,ReferencedAttribute,ReferencingEntityNavigationPropertyName,ReferencedEntityNavigationPropertyName)" +
+                    ",ManyToManyRelationships($select=Entity1LogicalName,Entity2LogicalName,Entity1NavigationPropertyName,Entity2NavigationPropertyName,SchemaName)";
+            }
+
+            if (includeAlternateKeys === true) {
+                queryTable.Filters += ",Keys($select=LogicalName,SchemaName,KeyAttributes,EntityKeyIndexStatus,DisplayName)";
+            }
+            batchedQueries[batchedQueries.length - 1].push(queryTable);
+
+            if (includeOptionValues === true) {
+                var metadataAttributes = ["PicklistAttributeMetadata", "MultiSelectPicklistAttributeMetadata", "BooleanAttributeMetadata", "StateAttributeMetadata", "StatusAttributeMetadata"];
+                metadataAttributes.forEach(function (metadataAttribute) {
+                    var retrieveMetadataAttribute = {};
+                    retrieveMetadataAttribute.EntitySetName = "EntityDefinitions(LogicalName='" + tableLogicalName + "')/Attributes/Microsoft.Dynamics.CRM." + metadataAttribute;
+                    retrieveMetadataAttribute.Filters = "$select=EntityLogicalName,LogicalName,AttributeType&$expand=OptionSet";
+                    batchedQueries[batchedQueries.length - 1].push(retrieveMetadataAttribute);
+                });
+            }
+        });
     });
 
-    if (includeOptionValues === true) {
-        var metadataAttributes = ["PicklistAttributeMetadata", "MultiSelectPicklistAttributeMetadata", "BooleanAttributeMetadata", "StateAttributeMetadata", "StatusAttributeMetadata"];
-        tableLogicalNames.forEach(function (tableLogicalName) {
-            metadataAttributes.forEach(function (metadataAttribute) {
-                var retrieveMetadataAttribute = {};
-                retrieveMetadataAttribute.EntitySetName = "EntityDefinitions(LogicalName='" + tableLogicalName + "')/Attributes/Microsoft.Dynamics.CRM." + metadataAttribute;
-                retrieveMetadataAttribute.Filters = "$select=EntityLogicalName,LogicalName,AttributeType&$expand=OptionSet";
-                queries.push(retrieveMetadataAttribute);
-            });
-        });
-    }
-    return DRB.Xrm.RetrieveBatch(queries);
+    return DRB.Xrm.RetrieveBatches(batchedQueries);
 }
 
 /**
@@ -2550,56 +2575,65 @@ DRB.Common.SetCustomActionTables = function (data) {
 
 /**
  * Common - Set Tables
- * @param {any} data Data to process
+ * @param {any} args Data to process
  * @param {DRB.Models.Table[]} tables Tables
  * @param {boolean} mapRelationships Map Relationships
  * @param {boolean} mapAlternateKeys Map Alternate Keys
- * @param {boolean} mapOptionValues Map Option Values
  */
-DRB.Common.SetTables = function (data, tables, mapRelationships, mapAlternateKeys, mapOptionValues) {
-    var dataResponses = [];
-    // clear the response
-    var firstRowData = data.split('\r\n', 1)[0];
-    var splittedData = data.split(firstRowData);
-    splittedData.forEach(function (segment) { if (segment.indexOf("{") > -1) { dataResponses.push(segment); } });
-    // end clear the response
-    var contexts = [];
-    dataResponses.forEach(function (dataResponse) {
-        var contextRegion = dataResponse.substring(dataResponse.indexOf('{'), dataResponse.lastIndexOf('}') + 1);
-        contexts.push(JSON.parse(contextRegion));
-    });
-    var contextsToCheckOptionValues = [];
-    contexts.forEach(function (context) {
-        var tableLogicalName = context.LogicalName;
-        // if LogicalName is present assume it's a query of columns, relationships, keys
-        if (DRB.Utilities.HasValue(tableLogicalName)) {
-            var currentTable = DRB.Utilities.GetRecordById(tables, tableLogicalName);
-            if (DRB.Utilities.HasValue(currentTable)) {
-                currentTable.Columns = DRB.Common.MapColumns(context.Attributes, currentTable.PrimaryIdAttribute, currentTable.PrimaryNameAttribute, "Name");
-                currentTable.ColumnsLoaded = true;
-                if (mapRelationships === true) {
-                    currentTable.OneToManyRelationships = DRB.Common.MapRelationships(context.OneToManyRelationships, "OneToMany", "Name", tableLogicalName);
-                    currentTable.ManyToOneRelationships = DRB.Common.MapRelationships(context.ManyToOneRelationships, "ManyToOne", "Name", tableLogicalName);
-                    currentTable.ManyToManyRelationships = DRB.Common.MapRelationships(context.ManyToManyRelationships, "ManyToMany", "Name", tableLogicalName);
-                    currentTable.RelationshipsLoaded = true;
-                }
-                if (mapAlternateKeys === true) {
-                    mapOptionValues = true; // Alternate Key supports Picklist, retrieving Column Values is required
-                    currentTable.AlternateKeys = DRB.Common.MapAlternateKeys(context.Keys, "Name");
-                    currentTable.AlternateKeysLoaded = true;
-                }
-                if (mapOptionValues === true) {
-                    currentTable.OptionValuesLoaded = true; // the actual mapping is called later
-                }
-            }
-        } else { contextsToCheckOptionValues.push(context); }
-    });
+DRB.Common.SetTables = function (args, tables, mapRelationships, mapAlternateKeys) {
+    var mapOptionValues = false;
+    if (mapAlternateKeys === true) { mapOptionValues = true; } // if map Alternate Keys map also Option Values (Alternate Key supports Picklist)
 
-    if (mapOptionValues === true) {
-        contextsToCheckOptionValues.forEach(function (context) {
-            if (DRB.Utilities.HasValue(context.value)) { DRB.Common.MapOptionValues(context.value); }
-        });
+    var datas = [];
+    if (Array.isArray(args[0])) {
+        // multiple batches
+        for (var count = 0; count < args.length; count++) { datas.push(args[count][0]); }
+    } else {
+        // single batch
+        datas.push(args[0]);
     }
+
+    datas.forEach(function (data) {
+        var dataResponses = [];
+        // clear the response
+        var firstRowData = data.split('\r\n', 1)[0];
+        var splittedData = data.split(firstRowData);
+        splittedData.forEach(function (segment) { if (segment.indexOf("{") > -1) { dataResponses.push(segment); } });
+        // end clear the response
+        var contexts = [];
+        dataResponses.forEach(function (dataResponse) {
+            var contextRegion = dataResponse.substring(dataResponse.indexOf('{'), dataResponse.lastIndexOf('}') + 1);
+            contexts.push(JSON.parse(contextRegion));
+        });
+        var contextsToCheckOptionValues = [];
+        contexts.forEach(function (context) {
+            var tableLogicalName = context.LogicalName;
+            // if LogicalName is present assume it's a query of columns, relationships, keys
+            if (DRB.Utilities.HasValue(tableLogicalName)) {
+                var currentTable = DRB.Utilities.GetRecordById(tables, tableLogicalName);
+                if (DRB.Utilities.HasValue(currentTable)) {
+                    currentTable.Columns = DRB.Common.MapColumns(context.Attributes, currentTable.PrimaryIdAttribute, currentTable.PrimaryNameAttribute, "Name");
+                    currentTable.ColumnsLoaded = true;
+                    if (mapRelationships === true) {
+                        currentTable.OneToManyRelationships = DRB.Common.MapRelationships(context.OneToManyRelationships, "OneToMany", "Name", tableLogicalName);
+                        currentTable.ManyToOneRelationships = DRB.Common.MapRelationships(context.ManyToOneRelationships, "ManyToOne", "Name", tableLogicalName);
+                        currentTable.ManyToManyRelationships = DRB.Common.MapRelationships(context.ManyToManyRelationships, "ManyToMany", "Name", tableLogicalName);
+                        currentTable.RelationshipsLoaded = true;
+                    }
+                    if (mapAlternateKeys === true) {
+                        currentTable.AlternateKeys = DRB.Common.MapAlternateKeys(context.Keys, "Name");
+                        currentTable.AlternateKeysLoaded = true;
+                    }
+                }
+            } else { contextsToCheckOptionValues.push(context); }
+        });
+
+        if (mapOptionValues === true) {
+            contextsToCheckOptionValues.forEach(function (context) {
+                if (DRB.Utilities.HasValue(context.value)) { DRB.Common.MapOptionValues(context.value); }
+            });
+        }
+    });
 }
 // #endregion  
  
@@ -4239,7 +4273,7 @@ DRB.Logic.BindAlternateKey = function (id) {
         var key = DRB.Utilities.GetRecordById(DRB.Metadata.CurrentAlternateKeys, alternateKeyLogicalName);
         if (DRB.Utilities.HasValue(key)) {
             var keyFields = [];
-            var allowedKeyTypes = ["String", "Integer", "Decimal", "Picklist", "Lookup", "DateTime"];
+            var allowedKeyTypes = ["Uniqueidentifier", "String", "Integer", "Decimal", "Picklist", "Lookup", "DateTime"];
             key.KeyAttributes.forEach(function (keyAttribute) {
                 var keyColumn = DRB.Utilities.GetRecordById(DRB.Metadata.CurrentColumns, keyAttribute);
                 if (DRB.Utilities.HasValue(keyColumn)) {
@@ -4299,6 +4333,12 @@ DRB.Logic.BindAlternateKey = function (id) {
                     tdColumn.append(DRB.UI.CreateSpan("span_" + DRB.DOM.AlternateKey.TdColumn.Id + fieldIndex, field.label, field.logicalName));
 
                     switch (field.type) {
+                        case "Uniqueidentifier":
+                            divValue.append(DRB.UI.CreateInputGuid("txt_" + DRB.DOM.AlternateKey.ControlValue.Id + fieldIndex));
+                            DRB.Common.BindGuid("txt_" + DRB.DOM.AlternateKey.ControlValue.Id + fieldIndex);
+                            DRB.Logic.BindAlternateKeyValue("txt_" + DRB.DOM.AlternateKey.ControlValue.Id + fieldIndex);
+                            $("#txt_" + DRB.DOM.AlternateKey.ControlValue.Id + fieldIndex).val(field.value).change();
+                            break;
                         case "String":
                             divValue.append(DRB.UI.CreateInputString("txt_" + DRB.DOM.AlternateKey.ControlValue.Id + fieldIndex, column.AdditionalProperties.MaxLength, "Max Length: " + column.AdditionalProperties.MaxLength));
                             DRB.Logic.BindAlternateKeyValue("txt_" + DRB.DOM.AlternateKey.ControlValue.Id + fieldIndex);
@@ -4945,6 +4985,7 @@ DRB.GenerateCode.GetAlternateKeys = function (settings) {
             criteria += field.logicalName + "=null,";
         } else {
             switch (field.type) {
+                case "Uniqueidentifier":
                 case "Picklist":
                 case "Integer":
                 case "Decimal":
@@ -8305,9 +8346,9 @@ DRB.Logic.RetrieveSingle.BindTable = function (id) {
                 DRB.UI.ShowLoading("Retrieving Table information...<br /><b>This is a long-running operation</b>");
                 setTimeout(function () {
                     // retrieve the Entity Fields
-                    DRB.Common.RetrieveTablesDetails([tableLogicalName], true, true, true)
-                        .done(function (data) {
-                            DRB.Common.SetTables(data, DRB.Metadata.Tables, true, true, true);
+                    DRB.Common.RetrieveTablesDetails([tableLogicalName], true, true)
+                        .done(function () {
+                            DRB.Common.SetTables(arguments, DRB.Metadata.Tables, true, true);
                             var tableLogicalNames = [];
                             table.OneToManyRelationships.forEach(function (relationship) { tableLogicalNames.push(relationship.SourceTable); tableLogicalNames.push(relationship.TargetTable); });
                             table.ManyToOneRelationships.forEach(function (relationship) { tableLogicalNames.push(relationship.SourceTable); tableLogicalNames.push(relationship.TargetTable); });
@@ -8321,8 +8362,8 @@ DRB.Logic.RetrieveSingle.BindTable = function (id) {
                             });
                             if (tablesToRetrieve.length > 0) {
                                 DRB.Common.RetrieveTablesDetails(tablesToRetrieve, false, true)
-                                    .done(function (data2) {
-                                        DRB.Common.SetTables(data2, DRB.Metadata.Tables, false, true);
+                                    .done(function () {
+                                        DRB.Common.SetTables(arguments, DRB.Metadata.Tables, false, true);
                                         DRB.Logic.RetrieveSingle.AfterTableLoaded(table);
                                         DRB.UI.HideLoading();
                                     })
@@ -9937,12 +9978,12 @@ DRB.Logic.RetrieveMultiple.BindTable = function (id) {
         var tableLogicalName = $(this).val();
         var table = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, tableLogicalName);
         if (DRB.Utilities.HasValue(table)) {
-            if (table.ColumnsLoaded === false || table.RelationshipsLoaded === false || table.AlternateKeysLoaded === false || table.OptionValuesLoaded === false) {
+            if (table.ColumnsLoaded === false || table.RelationshipsLoaded === false || table.AlternateKeysLoaded === false) {
                 DRB.UI.ShowLoading("Retrieving Table information...<br /><b>This is a long-running operation</b>");
                 setTimeout(function () {
-                    DRB.Common.RetrieveTablesDetails([tableLogicalName], true, true, true)
-                        .done(function (data) {
-                            DRB.Common.SetTables(data, DRB.Metadata.Tables, true, true, true);
+                    DRB.Common.RetrieveTablesDetails([tableLogicalName], true, true)
+                        .done(function () {
+                            DRB.Common.SetTables(arguments, DRB.Metadata.Tables, true, true);
                             var tableLogicalNames = [];
                             table.OneToManyRelationships.forEach(function (relationship) { tableLogicalNames.push(relationship.SourceTable); tableLogicalNames.push(relationship.TargetTable); });
                             table.ManyToOneRelationships.forEach(function (relationship) { tableLogicalNames.push(relationship.SourceTable); tableLogicalNames.push(relationship.TargetTable); });
@@ -9956,8 +9997,8 @@ DRB.Logic.RetrieveMultiple.BindTable = function (id) {
                             });
                             if (tablesToRetrieve.length > 0) {
                                 DRB.Common.RetrieveTablesDetails(tablesToRetrieve, false, true)
-                                    .done(function (data2) {
-                                        DRB.Common.SetTables(data2, DRB.Metadata.Tables, false, true);
+                                    .done(function () {
+                                        DRB.Common.SetTables(arguments, DRB.Metadata.Tables, false, true);
                                         DRB.Logic.RetrieveMultiple.AfterTableLoaded(table);
                                         DRB.UI.HideLoading();
                                     })
@@ -10450,12 +10491,12 @@ DRB.Logic.BindSetTable = function (id, columnType, domObject, metadataPath) {
         var tableLogicalName = $(this).val();
         var table = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, tableLogicalName);
         if (DRB.Utilities.HasValue(table)) {
-            if (table.ColumnsLoaded === false || table.RelationshipsLoaded === false || table.AlternateKeysLoaded === false || table.OptionValuesLoaded === false) {
+            if (table.ColumnsLoaded === false || table.RelationshipsLoaded === false || table.AlternateKeysLoaded === false) {
                 DRB.UI.ShowLoading("Retrieving Table information...<br /><b>This is a long-running operation</b>");
                 setTimeout(function () {
-                    DRB.Common.RetrieveTablesDetails([tableLogicalName], true, true, true)
-                        .done(function (data) {
-                            DRB.Common.SetTables(data, DRB.Metadata.Tables, true, true, true);
+                    DRB.Common.RetrieveTablesDetails([tableLogicalName], true, true)
+                        .done(function () {
+                            DRB.Common.SetTables(arguments, DRB.Metadata.Tables, true, true);
                             var tableLogicalNames = [];
                             table.OneToManyRelationships.forEach(function (relationship) { tableLogicalNames.push(relationship.SourceTable); tableLogicalNames.push(relationship.TargetTable); });
                             table.ManyToOneRelationships.forEach(function (relationship) { tableLogicalNames.push(relationship.SourceTable); tableLogicalNames.push(relationship.TargetTable); });
@@ -10466,15 +10507,15 @@ DRB.Logic.BindSetTable = function (id, columnType, domObject, metadataPath) {
                             tableLogicalNames.forEach(function (checkTableLogicalName) {
                                 var checkTable = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, checkTableLogicalName);
                                 if (DRB.Utilities.HasValue(checkTable)) {
-                                    if (checkTable.ColumnsLoaded === false || checkTable.RelationshipsLoaded === false || checkTable.AlternateKeysLoaded === false || checkTable.OptionValuesLoaded === false) {
+                                    if (checkTable.ColumnsLoaded === false || checkTable.RelationshipsLoaded === false || checkTable.AlternateKeysLoaded === false) {
                                         tablesToRetrieve.push(checkTableLogicalName);
                                     }
                                 }
                             });
                             if (tablesToRetrieve.length > 0) {
-                                DRB.Common.RetrieveTablesDetails(tablesToRetrieve, true, true, true)
-                                    .done(function (data2) {
-                                        DRB.Common.SetTables(data2, DRB.Metadata.Tables, true, true, true);
+                                DRB.Common.RetrieveTablesDetails(tablesToRetrieve, true, true)
+                                    .done(function () {
+                                        DRB.Common.SetTables(arguments, DRB.Metadata.Tables, true, true);
                                         DRB.Logic.AfterSetTableLoaded(table, columnType, domObject, metadataPath);
                                         DRB.UI.HideLoading();
                                     })
@@ -10678,8 +10719,8 @@ DRB.Logic.Delete.BindTable = function (id) {
                 DRB.UI.ShowLoading("Retrieving Table information...<br /><b>This is a long-running operation</b>");
                 setTimeout(function () {
                     DRB.Common.RetrieveTablesDetails([tableLogicalName], false, true)
-                        .done(function (data) {
-                            DRB.Common.SetTables(data, DRB.Metadata.Tables, false, true);
+                        .done(function () {
+                            DRB.Common.SetTables(arguments, DRB.Metadata.Tables, false, true);
                             DRB.Logic.Delete.AfterTableLoaded(table);
                             DRB.UI.HideLoading();
                         })
@@ -10792,7 +10833,7 @@ DRB.Logic.Association.AddChildId = function (idValue) {
  * Association - After Table Loaded
  * @param {DRB.Models.Table} table Table
  */
-DRB.Logic.Association.AfterTableLoaded = function (table) {    
+DRB.Logic.Association.AfterTableLoaded = function (table) {
     DRB.Logic.FillCurrentMetadata(table); // Fill Current Metadata    
     DRB.Logic.FillRelationshipsColumns(); // Fill Relationships Columns
 
@@ -10833,8 +10874,8 @@ DRB.Logic.Association.BindParentTable = function (id) {
                 setTimeout(function () {
                     // retrieve the Entity Fields
                     DRB.Common.RetrieveTablesDetails([tableLogicalName], true)
-                        .done(function (data) {
-                            DRB.Common.SetTables(data, DRB.Metadata.Tables, true);
+                        .done(function () {
+                            DRB.Common.SetTables(arguments, DRB.Metadata.Tables, true);
                             var tableLogicalNames = [];
                             table.OneToManyRelationships.forEach(function (relationship) { tableLogicalNames.push(relationship.TargetTable); });
                             table.ManyToManyRelationships.forEach(function (relationship) { tableLogicalNames.push(relationship.TargetTable); });
@@ -10847,8 +10888,8 @@ DRB.Logic.Association.BindParentTable = function (id) {
                             });
                             if (tablesToRetrieve.length > 0) {
                                 DRB.Common.RetrieveTablesDetails(tablesToRetrieve)
-                                    .done(function (data2) {
-                                        DRB.Common.SetTables(data2, DRB.Metadata.Tables);
+                                    .done(function () {
+                                        DRB.Common.SetTables(arguments, DRB.Metadata.Tables);
                                         DRB.Logic.Association.AfterTableLoaded(table);
                                         DRB.UI.HideLoading();
                                     })

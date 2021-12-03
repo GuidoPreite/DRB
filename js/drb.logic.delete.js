@@ -25,8 +25,8 @@ DRB.Logic.Delete.BindTable = function (id) {
                 DRB.UI.ShowLoading("Retrieving Table information...<br /><b>This is a long-running operation</b>");
                 setTimeout(function () {
                     DRB.Common.RetrieveTablesDetails([tableLogicalName], false, true)
-                        .done(function (data) {
-                            DRB.Common.SetTables(data, DRB.Metadata.Tables, false, true);
+                        .done(function () {
+                            DRB.Common.SetTables(arguments, DRB.Metadata.Tables, false, true);
                             DRB.Logic.Delete.AfterTableLoaded(table);
                             DRB.UI.HideLoading();
                         })

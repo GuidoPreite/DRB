@@ -708,12 +708,12 @@ DRB.Logic.RetrieveMultiple.BindTable = function (id) {
         var tableLogicalName = $(this).val();
         var table = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, tableLogicalName);
         if (DRB.Utilities.HasValue(table)) {
-            if (table.ColumnsLoaded === false || table.RelationshipsLoaded === false || table.AlternateKeysLoaded === false || table.OptionValuesLoaded === false) {
+            if (table.ColumnsLoaded === false || table.RelationshipsLoaded === false || table.AlternateKeysLoaded === false) {
                 DRB.UI.ShowLoading("Retrieving Table information...<br /><b>This is a long-running operation</b>");
                 setTimeout(function () {
-                    DRB.Common.RetrieveTablesDetails([tableLogicalName], true, true, true)
-                        .done(function (data) {
-                            DRB.Common.SetTables(data, DRB.Metadata.Tables, true, true, true);
+                    DRB.Common.RetrieveTablesDetails([tableLogicalName], true, true)
+                        .done(function () {
+                            DRB.Common.SetTables(arguments, DRB.Metadata.Tables, true, true);
                             var tableLogicalNames = [];
                             table.OneToManyRelationships.forEach(function (relationship) { tableLogicalNames.push(relationship.SourceTable); tableLogicalNames.push(relationship.TargetTable); });
                             table.ManyToOneRelationships.forEach(function (relationship) { tableLogicalNames.push(relationship.SourceTable); tableLogicalNames.push(relationship.TargetTable); });
@@ -727,8 +727,8 @@ DRB.Logic.RetrieveMultiple.BindTable = function (id) {
                             });
                             if (tablesToRetrieve.length > 0) {
                                 DRB.Common.RetrieveTablesDetails(tablesToRetrieve, false, true)
-                                    .done(function (data2) {
-                                        DRB.Common.SetTables(data2, DRB.Metadata.Tables, false, true);
+                                    .done(function () {
+                                        DRB.Common.SetTables(arguments, DRB.Metadata.Tables, false, true);
                                         DRB.Logic.RetrieveMultiple.AfterTableLoaded(table);
                                         DRB.UI.HideLoading();
                                     })

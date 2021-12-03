@@ -145,7 +145,7 @@ DRB.Logic.BindAlternateKey = function (id) {
         var key = DRB.Utilities.GetRecordById(DRB.Metadata.CurrentAlternateKeys, alternateKeyLogicalName);
         if (DRB.Utilities.HasValue(key)) {
             var keyFields = [];
-            var allowedKeyTypes = ["String", "Integer", "Decimal", "Picklist", "Lookup", "DateTime"];
+            var allowedKeyTypes = ["Uniqueidentifier", "String", "Integer", "Decimal", "Picklist", "Lookup", "DateTime"];
             key.KeyAttributes.forEach(function (keyAttribute) {
                 var keyColumn = DRB.Utilities.GetRecordById(DRB.Metadata.CurrentColumns, keyAttribute);
                 if (DRB.Utilities.HasValue(keyColumn)) {
@@ -205,6 +205,12 @@ DRB.Logic.BindAlternateKey = function (id) {
                     tdColumn.append(DRB.UI.CreateSpan("span_" + DRB.DOM.AlternateKey.TdColumn.Id + fieldIndex, field.label, field.logicalName));
 
                     switch (field.type) {
+                        case "Uniqueidentifier":
+                            divValue.append(DRB.UI.CreateInputGuid("txt_" + DRB.DOM.AlternateKey.ControlValue.Id + fieldIndex));
+                            DRB.Common.BindGuid("txt_" + DRB.DOM.AlternateKey.ControlValue.Id + fieldIndex);
+                            DRB.Logic.BindAlternateKeyValue("txt_" + DRB.DOM.AlternateKey.ControlValue.Id + fieldIndex);
+                            $("#txt_" + DRB.DOM.AlternateKey.ControlValue.Id + fieldIndex).val(field.value).change();
+                            break;
                         case "String":
                             divValue.append(DRB.UI.CreateInputString("txt_" + DRB.DOM.AlternateKey.ControlValue.Id + fieldIndex, column.AdditionalProperties.MaxLength, "Max Length: " + column.AdditionalProperties.MaxLength));
                             DRB.Logic.BindAlternateKeyValue("txt_" + DRB.DOM.AlternateKey.ControlValue.Id + fieldIndex);
