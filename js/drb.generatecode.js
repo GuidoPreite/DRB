@@ -224,7 +224,25 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                 if (JSON.stringify(filterField) !== JSON.stringify({})) {
                     partialQuery += " " + filterFieldsLogic + " ";
                     if (filterField.requiredValue === false) {
-                        partialQuery += filterField.oDataName + " " + filterField.operator;
+                        var operatorFound = false;
+                        // check for specific operators with the following syntax
+                        switch (filterField.operator) {
+                            case "EqualUserId": // Microsoft.Dynamics.CRM.EqualUserId(PropertyName='ownerid')
+                            case "NotEqualUserId": // Microsoft.Dynamics.CRM.NotEqualUserId(PropertyName='ownerid')
+                            case "EqualUserOrUserHierarchy": // Microsoft.Dynamics.CRM.EqualUserOrUserHierarchy(PropertyName='ownerid')
+                            case "EqualUserOrUserHierarchyAndTeams": // Microsoft.Dynamics.CRM.EqualUserOrUserHierarchyAndTeams(PropertyName='ownerid')
+                            case "EqualUserTeams": // Microsoft.Dynamics.CRM.EqualUserTeams(PropertyName='ownerid')
+                            case "EqualUserOrUserTeams": // Microsoft.Dynamics.CRM.EqualUserOrUserTeams(PropertyName='ownerid')
+                            case "EqualBusinessId": // Microsoft.Dynamics.CRM.EqualBusinessId(PropertyName='owningbusinessunit')
+                            case "NotEqualBusinessId": // Microsoft.Dynamics.CRM.NotEqualBusinessId(PropertyName='owningbusinessunit')
+                                operatorFound = true;
+                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + filterField.logicalName + "')";
+                                break;
+                        }
+                        if (operatorFound === false) {
+                            // default syntax
+                            partialQuery += filterField.oDataName + " " + filterField.operator;
+                        }
                     }
 
                     if (filterField.requiredValue === true) {

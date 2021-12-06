@@ -319,6 +319,7 @@ DRB.Common.MapCustomAPIRequestParameters = function (data, customAPIs) {
                 var parameterOptional = record.isoptional;
                 var parameterPosition = record.position;
                 var parameterType = record.type;
+                var parameterBinding = record.logicalentityname;
 
                 switch (parameterType) {
                     case 0: parameterType = "Edm.Boolean"; break;
@@ -337,9 +338,29 @@ DRB.Common.MapCustomAPIRequestParameters = function (data, customAPIs) {
 
                 }
 
-                customAPI.Parameters.push(new DRB.Models.DataverseParameter(parameterName, parameterType, parameterOptional, parameterPosition, null));
+                customAPI.Parameters.push(new DRB.Models.DataverseParameter(parameterName, parameterType, parameterOptional, parameterPosition, parameterBinding));
             }
         });
+
+        // check for Parameters (duplicate position)
+        customAPIs.forEach(function (customAPI) {
+            var parameters = JSON.parse(JSON.stringify(customAPI.Parameters));
+            var newParameters = [];
+            // parse Binding
+            parameters.forEach(function (parameter) {
+                if (DRB.Utilities.HasValue(parameter.Binding)) {
+                    var checkTable = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, parameter.Binding);
+                    if (DRB.Utilities.HasValue(checkTable)) {
+                        parameter.Type = "mscrm." + checkTable.LogicalName;
+                    }
+                    newParameters.push(parameter);
+                } else {
+                    newParameters.push(parameter);
+                }
+            });
+            customAPI.Parameters = newParameters;
+        });
+
     }
     // add entity as first Parameter if the custom action is bound
     customAPIs.forEach(function (customAPI) {
@@ -368,6 +389,7 @@ DRB.Common.MapCustomAPIResponseProperties = function (data, customAPIs) {
                 var propertyName = record.uniquename; // record.name;
                 var propertyPosition = record.position;
                 var propertyType = record.type;
+                var propertyBinding = record.logicalentityname;
 
                 switch (propertyType) {
                     case 0: propertyType = "Edm.Boolean"; break;
@@ -385,8 +407,28 @@ DRB.Common.MapCustomAPIResponseProperties = function (data, customAPIs) {
                     case 12: propertyType = "Edm.Guid"; break;
                 }
 
-                customAPI.Properties.push(new DRB.Models.DataverseProperty(propertyName, propertyType, propertyPosition, null));
+                customAPI.Properties.push(new DRB.Models.DataverseProperty(propertyName, propertyType, propertyPosition, propertyBinding));
             }
+        });
+
+        // check for Properties
+        customAPIs.forEach(function (customAPI) {
+            var properties = JSON.parse(JSON.stringify(customAPI.Properties));
+            var newProperties = [];
+            // parse Binding
+            properties.forEach(function (property) {
+                if (DRB.Utilities.HasValue(property.Binding)) {
+                    // parse entity logical name
+                    var checkTable = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, property.Binding);
+                    if (DRB.Utilities.HasValue(checkTable)) {
+                        property.Type = "mscrm." + checkTable.LogicalName;
+                    }
+                    newProperties.push(property);
+                } else {
+                    newProperties.push(property);
+                }
+            });
+            customAPI.Properties = newProperties;
         });
     }
 }

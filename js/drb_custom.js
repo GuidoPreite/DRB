@@ -2086,7 +2086,7 @@ DRB.UI.OpenLookup = function (settings) {
  * Xrm - Get Xrm Object
  */
 DRB.Xrm.GetXrmObject = function () {
-    return parent.Xrm;
+    if (typeof parent !== "undefined") { return parent.Xrm; } else { return undefined; }
 }
 /**
  * Xrm - Get Context
@@ -2369,13 +2369,13 @@ DRB.Common.RetrieveCustomAPIs = function () {
     // Custom API Request Parameters
     var queryRequestParameters = {};
     queryRequestParameters.EntitySetName = "customapirequestparameters";
-    queryRequestParameters.Filters = "$select=isoptional,name,type,uniquename&$expand=CustomAPIId($select=uniquename)&$filter=statuscode eq 1";
+    queryRequestParameters.Filters = "$select=isoptional,name,type,uniquename,logicalentityname&$expand=CustomAPIId($select=uniquename)&$filter=statuscode eq 1";
     queries.push(queryRequestParameters);
 
     // Custom API Response Properties
     var queryResponseProperties = {};
     queryResponseProperties.EntitySetName = "customapiresponseproperties";
-    queryResponseProperties.Filters = "$select=name,type,uniquename&$expand=CustomAPIId($select=uniquename)&$filter=statuscode eq 1";
+    queryResponseProperties.Filters = "$select=name,type,uniquename,logicalentityname&$expand=CustomAPIId($select=uniquename)&$filter=statuscode eq 1";
     queries.push(queryResponseProperties);
 
     return DRB.Xrm.RetrieveBatch(queries);
@@ -2958,6 +2958,7 @@ DRB.Common.MapCustomAPIRequestParameters = function (data, customAPIs) {
                 var parameterOptional = record.isoptional;
                 var parameterPosition = record.position;
                 var parameterType = record.type;
+                var parameterBinding = record.logicalentityname;
 
                 switch (parameterType) {
                     case 0: parameterType = "Edm.Boolean"; break;
@@ -2976,9 +2977,29 @@ DRB.Common.MapCustomAPIRequestParameters = function (data, customAPIs) {
 
                 }
 
-                customAPI.Parameters.push(new DRB.Models.DataverseParameter(parameterName, parameterType, parameterOptional, parameterPosition, null));
+                customAPI.Parameters.push(new DRB.Models.DataverseParameter(parameterName, parameterType, parameterOptional, parameterPosition, parameterBinding));
             }
         });
+
+        // check for Parameters (duplicate position)
+        customAPIs.forEach(function (customAPI) {
+            var parameters = JSON.parse(JSON.stringify(customAPI.Parameters));
+            var newParameters = [];
+            // parse Binding
+            parameters.forEach(function (parameter) {
+                if (DRB.Utilities.HasValue(parameter.Binding)) {
+                    var checkTable = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, parameter.Binding);
+                    if (DRB.Utilities.HasValue(checkTable)) {
+                        parameter.Type = "mscrm." + checkTable.LogicalName;
+                    }
+                    newParameters.push(parameter);
+                } else {
+                    newParameters.push(parameter);
+                }
+            });
+            customAPI.Parameters = newParameters;
+        });
+
     }
     // add entity as first Parameter if the custom action is bound
     customAPIs.forEach(function (customAPI) {
@@ -3007,6 +3028,7 @@ DRB.Common.MapCustomAPIResponseProperties = function (data, customAPIs) {
                 var propertyName = record.uniquename; // record.name;
                 var propertyPosition = record.position;
                 var propertyType = record.type;
+                var propertyBinding = record.logicalentityname;
 
                 switch (propertyType) {
                     case 0: propertyType = "Edm.Boolean"; break;
@@ -3024,8 +3046,28 @@ DRB.Common.MapCustomAPIResponseProperties = function (data, customAPIs) {
                     case 12: propertyType = "Edm.Guid"; break;
                 }
 
-                customAPI.Properties.push(new DRB.Models.DataverseProperty(propertyName, propertyType, propertyPosition, null));
+                customAPI.Properties.push(new DRB.Models.DataverseProperty(propertyName, propertyType, propertyPosition, propertyBinding));
             }
+        });
+
+        // check for Properties
+        customAPIs.forEach(function (customAPI) {
+            var properties = JSON.parse(JSON.stringify(customAPI.Properties));
+            var newProperties = [];
+            // parse Binding
+            properties.forEach(function (property) {
+                if (DRB.Utilities.HasValue(property.Binding)) {
+                    // parse entity logical name
+                    var checkTable = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, property.Binding);
+                    if (DRB.Utilities.HasValue(checkTable)) {
+                        property.Type = "mscrm." + checkTable.LogicalName;
+                    }
+                    newProperties.push(property);
+                } else {
+                    newProperties.push(property);
+                }
+            });
+            customAPI.Properties = newProperties;
         });
     }
 }
@@ -4816,7 +4858,25 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                 if (JSON.stringify(filterField) !== JSON.stringify({})) {
                     partialQuery += " " + filterFieldsLogic + " ";
                     if (filterField.requiredValue === false) {
-                        partialQuery += filterField.oDataName + " " + filterField.operator;
+                        var operatorFound = false;
+                        // check for specific operators with the following syntax
+                        switch (filterField.operator) {
+                            case "EqualUserId": // Microsoft.Dynamics.CRM.EqualUserId(PropertyName='ownerid')
+                            case "NotEqualUserId": // Microsoft.Dynamics.CRM.NotEqualUserId(PropertyName='ownerid')
+                            case "EqualUserOrUserHierarchy": // Microsoft.Dynamics.CRM.EqualUserOrUserHierarchy(PropertyName='ownerid')
+                            case "EqualUserOrUserHierarchyAndTeams": // Microsoft.Dynamics.CRM.EqualUserOrUserHierarchyAndTeams(PropertyName='ownerid')
+                            case "EqualUserTeams": // Microsoft.Dynamics.CRM.EqualUserTeams(PropertyName='ownerid')
+                            case "EqualUserOrUserTeams": // Microsoft.Dynamics.CRM.EqualUserOrUserTeams(PropertyName='ownerid')
+                            case "EqualBusinessId": // Microsoft.Dynamics.CRM.EqualBusinessId(PropertyName='owningbusinessunit')
+                            case "NotEqualBusinessId": // Microsoft.Dynamics.CRM.NotEqualBusinessId(PropertyName='owningbusinessunit')
+                                operatorFound = true;
+                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + filterField.logicalName + "')";
+                                break;
+                        }
+                        if (operatorFound === false) {
+                            // default syntax
+                            partialQuery += filterField.oDataName + " " + filterField.operator;
+                        }
                     }
 
                     if (filterField.requiredValue === true) {
@@ -8914,13 +8974,11 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
             }
         });
 
-        var operatorsToStop = ["ne null", "eq null"];
-
         var columnLogicalName = "";
+        var requiredValue = true;
         refMetadata.forEach(function (setColumn, columnIndex) {
             if (setColumn.Id === elementIndex) {
-                var requiredValue = true;
-                if (operatorsToStop.indexOf(operator) > -1) { requiredValue = false; }
+                DRB.Settings.OperatorsToStop.forEach(function (operatorToStop) { if (operator === operatorToStop.Id) { requiredValue = false; } });
                 columnLogicalName = setColumn.Value.logicalName;
                 setColumn.Value.operator = operator;
                 setColumn.Value.requiredValue = requiredValue;
@@ -8938,7 +8996,7 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
         if (DRB.Utilities.HasValue(column)) {
             $("#" + DRB.DOM[domObject].TdValue.Id + metadataPath).html(""); // empty the cell
 
-            if (operatorsToStop.indexOf(operator) === -1) {
+            if (requiredValue === true) {
                 var divValue = DRB.UI.CreateEmptyDiv(DRB.DOM[domObject].DivValue.Id + metadataPath);
                 $("#" + DRB.DOM[domObject].TdValue.Id + metadataPath).append(divValue);
                 switch (column.AttributeType) {
@@ -9122,8 +9180,11 @@ DRB.Logic.BindFilterColumn = function (id, columnType, domObject, metadataPath) 
             var optionsOperator = DRB.Settings.OptionsOperatorBasic;
 
             switch (field.type) {
+                case "Owner": optionsOperator = DRB.Settings.OptionsOperatorOwner; break;
                 case "String": optionsOperator = DRB.Settings.OptionsOperatorString; break;
                 case "Memo": optionsOperator = DRB.Settings.OptionsOperatorMemo; break;
+                case "DateTime": optionsOperator = DRB.Settings.OptionsOperatorDateTime; break;
+                case "MultiPicklist": optionsOperator = DRB.Settings.OptionsOperatorMultiPicklist; break;
                 case "BigInt":
                 case "Integer":
                 case "Decimal":
@@ -9131,17 +9192,23 @@ DRB.Logic.BindFilterColumn = function (id, columnType, domObject, metadataPath) 
                 case "Money":
                     optionsOperator = DRB.Settings.OptionsOperatorNumber;
                     break;
-                case "DateTime":
-                    optionsOperator = DRB.Settings.OptionsOperatorDateTime;
-                    break;
-                case "MultiPicklist":
-                    optionsOperator = DRB.Settings.OptionsOperatorMultiPicklist;
-                    break;
+            }
+
+            if (field.type === "Lookup") {
+                if (column.AdditionalProperties.Targets.length === 1) {
+                    var target = column.AdditionalProperties.Targets[0];
+                    var targetTable = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, target);
+                    if (DRB.Utilities.HasValue(targetTable)) {
+                        switch (target) {
+                            case "systemuser": optionsOperator = DRB.Settings.OptionsOperatorLookupUser; break;
+                            case "businessunit": optionsOperator = DRB.Settings.OptionsOperatorLookupBusinessUnit; break;
+                        }
+                    }
+                }
             }
 
             DRB.UI.FillDropdown(currentId, "Select Operator", new DRB.Models.Records(optionsOperator).ToDropdown());
             DRB.Logic.BindFilterColumnOperator(currentId, domObject);
-
         }
         DRB.Logic.RefreshColumns(columnType, domObject, metadataPath);
     });
@@ -13134,13 +13201,28 @@ DRB.SetDefaultSettings = function () {
     var optContainValues = new DRB.Models.IdValue("ContainValues", "Contain Values");
     var optNotContainValues = new DRB.Models.IdValue("DoesNotContainValues", "Does Not Contain Values");
 
+    var optEqCurrentUser = new DRB.Models.IdValue("EqualUserId", "Equals Current User");
+    var optNeCurrentUser = new DRB.Models.IdValue("NotEqualUserId", "Does Not Equal Current User");
+    var optEqCurrentUserHierarchy = new DRB.Models.IdValue("EqualUserOrUserHierarchy", "Equals Current User Or Their Reporting Hierarchy");
+    var optEqCurrentUserHierarchyAndTeams = new DRB.Models.IdValue("EqualUserOrUserHierarchyAndTeams", "Equals Current User And Their Teams Or Their Reporting Hierarchy And Their Teams");
+    var optEqCurrentUserTeams = new DRB.Models.IdValue("EqualUserTeams", "Equals Current User's Teams");
+    var optEqCurrentUserOrTeams = new DRB.Models.IdValue("EqualUserOrUserTeams", "Equals Current User Or User's Teams");
+    var optEqCurrentBusinessUnit = new DRB.Models.IdValue("EqualBusinessId", "Equals Current Business Unit");
+    var optNeCurrentBusinessUnit = new DRB.Models.IdValue("NotEqualBusinessId", "Does Not Equal Business Unit");
+
     DRB.Settings.OptionsOperatorBasic = [optEq, optNe, optNeNull, optEqNull];
+    DRB.Settings.OptionsOperatorLookupBusinessUnit = [optEq, optNe, optNeNull, optEqNull, optEqCurrentBusinessUnit, optNeCurrentBusinessUnit];
+    DRB.Settings.OptionsOperatorLookupUser = [optEq, optNe, optNeNull, optEqNull, optEqCurrentUser, optNeCurrentUser];
+    DRB.Settings.OptionsOperatorOwner = [optEq, optNe, optNeNull, optEqNull, optEqCurrentUser, optNeCurrentUser, optEqCurrentUserHierarchy, optEqCurrentUserHierarchyAndTeams, optEqCurrentUserTeams, optEqCurrentUserOrTeams];
     DRB.Settings.OptionsOperatorString = [optEq, optNe, optContain, optNotContain, optBegin, optNotBegin, optEnd, optNotEnd, optNeNull, optEqNull];
     DRB.Settings.OptionsOperatorMemo = [optContain, optNotContain, optBegin, optNotBegin, optEnd, optNotEnd, optNeNull, optEqNull];
     DRB.Settings.OptionsOperatorPicklist = [optEq, optNe, optNeNull, optEqNull];
     DRB.Settings.OptionsOperatorMultiPicklist = [optIn, optNotIn, optContainValues, optNotContainValues, optNeNull, optEqNull];
     DRB.Settings.OptionsOperatorNumber = [optEq, optNe, optGreater, optGreaterEqual, optLess, optLessEqual, optNeNull, optEqNull];
     DRB.Settings.OptionsOperatorDateTime = [optOn, optNotOn, optAfter, optOnOrAfter, optBefore, optOnOrBefore, optNeNull, optEqNull];
+
+    DRB.Settings.OperatorsToStop = [optNeNull, optEqNull, optEqCurrentUser, optNeCurrentUser, optEqCurrentUserHierarchy, optEqCurrentUserHierarchyAndTeams, optEqCurrentUserTeams, optEqCurrentUserOrTeams, optEqCurrentBusinessUnit, optNeCurrentBusinessUnit];
+
     // #endregion
 
     // #region Postman Export Settings
@@ -13534,7 +13616,7 @@ DRB.Initialize = async function () {
                 case "a_code_jquery":
                 case "a_code_xmlhttprequest":
                 case "a_code_portals":
-                case "a_code_powerautomate":DRB.GenerateCode.Start(); break;
+                case "a_code_powerautomate": DRB.GenerateCode.Start(); break;
             }
             $(this).tab('show');
         });

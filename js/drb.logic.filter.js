@@ -118,13 +118,11 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
             }
         });
 
-        var operatorsToStop = ["ne null", "eq null"];
-
         var columnLogicalName = "";
+        var requiredValue = true;
         refMetadata.forEach(function (setColumn, columnIndex) {
             if (setColumn.Id === elementIndex) {
-                var requiredValue = true;
-                if (operatorsToStop.indexOf(operator) > -1) { requiredValue = false; }
+                DRB.Settings.OperatorsToStop.forEach(function (operatorToStop) { if (operator === operatorToStop.Id) { requiredValue = false; } });
                 columnLogicalName = setColumn.Value.logicalName;
                 setColumn.Value.operator = operator;
                 setColumn.Value.requiredValue = requiredValue;
@@ -142,7 +140,7 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
         if (DRB.Utilities.HasValue(column)) {
             $("#" + DRB.DOM[domObject].TdValue.Id + metadataPath).html(""); // empty the cell
 
-            if (operatorsToStop.indexOf(operator) === -1) {
+            if (requiredValue === true) {
                 var divValue = DRB.UI.CreateEmptyDiv(DRB.DOM[domObject].DivValue.Id + metadataPath);
                 $("#" + DRB.DOM[domObject].TdValue.Id + metadataPath).append(divValue);
                 switch (column.AttributeType) {
@@ -326,8 +324,11 @@ DRB.Logic.BindFilterColumn = function (id, columnType, domObject, metadataPath) 
             var optionsOperator = DRB.Settings.OptionsOperatorBasic;
 
             switch (field.type) {
+                case "Owner": optionsOperator = DRB.Settings.OptionsOperatorOwner; break;
                 case "String": optionsOperator = DRB.Settings.OptionsOperatorString; break;
                 case "Memo": optionsOperator = DRB.Settings.OptionsOperatorMemo; break;
+                case "DateTime": optionsOperator = DRB.Settings.OptionsOperatorDateTime; break;
+                case "MultiPicklist": optionsOperator = DRB.Settings.OptionsOperatorMultiPicklist; break;
                 case "BigInt":
                 case "Integer":
                 case "Decimal":
@@ -335,17 +336,23 @@ DRB.Logic.BindFilterColumn = function (id, columnType, domObject, metadataPath) 
                 case "Money":
                     optionsOperator = DRB.Settings.OptionsOperatorNumber;
                     break;
-                case "DateTime":
-                    optionsOperator = DRB.Settings.OptionsOperatorDateTime;
-                    break;
-                case "MultiPicklist":
-                    optionsOperator = DRB.Settings.OptionsOperatorMultiPicklist;
-                    break;
+            }
+
+            if (field.type === "Lookup") {
+                if (column.AdditionalProperties.Targets.length === 1) {
+                    var target = column.AdditionalProperties.Targets[0];
+                    var targetTable = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, target);
+                    if (DRB.Utilities.HasValue(targetTable)) {
+                        switch (target) {
+                            case "systemuser": optionsOperator = DRB.Settings.OptionsOperatorLookupUser; break;
+                            case "businessunit": optionsOperator = DRB.Settings.OptionsOperatorLookupBusinessUnit; break;
+                        }
+                    }
+                }
             }
 
             DRB.UI.FillDropdown(currentId, "Select Operator", new DRB.Models.Records(optionsOperator).ToDropdown());
             DRB.Logic.BindFilterColumnOperator(currentId, domObject);
-
         }
         DRB.Logic.RefreshColumns(columnType, domObject, metadataPath);
     });

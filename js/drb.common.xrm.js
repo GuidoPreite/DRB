@@ -27,13 +27,13 @@ DRB.Common.RetrieveCustomAPIs = function () {
     // Custom API Request Parameters
     var queryRequestParameters = {};
     queryRequestParameters.EntitySetName = "customapirequestparameters";
-    queryRequestParameters.Filters = "$select=isoptional,name,type,uniquename&$expand=CustomAPIId($select=uniquename)&$filter=statuscode eq 1";
+    queryRequestParameters.Filters = "$select=isoptional,name,type,uniquename,logicalentityname&$expand=CustomAPIId($select=uniquename)&$filter=statuscode eq 1";
     queries.push(queryRequestParameters);
 
     // Custom API Response Properties
     var queryResponseProperties = {};
     queryResponseProperties.EntitySetName = "customapiresponseproperties";
-    queryResponseProperties.Filters = "$select=name,type,uniquename&$expand=CustomAPIId($select=uniquename)&$filter=statuscode eq 1";
+    queryResponseProperties.Filters = "$select=name,type,uniquename,logicalentityname&$expand=CustomAPIId($select=uniquename)&$filter=statuscode eq 1";
     queries.push(queryResponseProperties);
 
     return DRB.Xrm.RetrieveBatch(queries);

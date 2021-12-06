@@ -3,7 +3,7 @@
  * Xrm - Get Xrm Object
  */
 DRB.Xrm.GetXrmObject = function () {
-    return parent.Xrm;
+    if (typeof parent !== "undefined") { return parent.Xrm; } else { return undefined; }
 }
 /**
  * Xrm - Get Context
