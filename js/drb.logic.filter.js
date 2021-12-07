@@ -386,9 +386,7 @@ DRB.Logic.BindFilterColumn = function (id, columnType, domObject, metadataPath) 
             DRB.UI.FillDropdown(currentId, "Select Operator", new DRB.Models.Records(optionsOperator).ToDropdown());
             DRB.Logic.BindFilterColumnOperator(currentId, domObject);
         }
-        var a = true;
         DRB.Logic.RefreshColumns(columnType, domObject, metadataPath);
-        var b = true;
     });
 }
 // #endregion
