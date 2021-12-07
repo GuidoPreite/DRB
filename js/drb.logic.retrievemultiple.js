@@ -423,7 +423,7 @@ DRB.Logic.RetrieveMultiple.AddFilterColumns = function (domObject, metadataPath)
                 break;
 
             case "DateTime":
-                controlPrefix = "cbxm_";
+                controlPrefix = "txtd_";
                 break;
         }
 

@@ -236,24 +236,56 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
                         }
                         break;
                     case "DateTime":
-                        var clearedDateTimeFormat = "";
-                        var pickerFormat = "YYYY-MM-DD HH:mm";
-                        if (DRB.Utilities.HasValue(column.AdditionalProperties.DateTimeFormat)) {
-                            if (column.AdditionalProperties.DateTimeFormat === "DateOnly") { pickerFormat = "YYYY-MM-DD"; }
-                            clearedDateTimeFormat = column.AdditionalProperties.DateTimeFormat.replace(/([A-Z])/g, ' $1').trim();
+                        var datetimeOperatorFound = false;
+                        var operatorMinValue = 0;
+                        var operatorMaxValue = 0;
+                        switch (operator) {
+                            case "NextXHours": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 2000; break;
+                            case "LastXHours": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 2000; break;
+                            case "NextXDays": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 500; break;
+                            case "LastXDays": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 500; break;
+                            case "NextXWeeks": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "LastXWeeks": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "NextXMonths": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "LastXMonths": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "NextXYears": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "LastXYears": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "NextXFiscalYears": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "LastXFiscalYears": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "NextXFiscalPeriods": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "LastXFiscalPeriods": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "OlderThanXMinutes": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 1440; break;
+                            case "OlderThanXHours": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 2000; break;
+                            case "OlderThanXDays": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 500; break;
+                            case "OlderThanXWeeks": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "OlderThanXMonths": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "OlderThanXYears": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
                         }
-
-                        var dateTimeBehavior = "ND"; // not defined
-                        var clearedDateTimeBehavior = "";
-                        if (DRB.Utilities.HasValue(column.AdditionalProperties.DateTimeBehavior)) {
-                            dateTimeBehavior = column.AdditionalProperties.DateTimeBehavior;
-                            clearedDateTimeBehavior = column.AdditionalProperties.DateTimeBehavior.replace(/([A-Z])/g, ' $1').trim();
+                        if (datetimeOperatorFound === true) {
+                            divValue.append(DRB.UI.CreateInputNumber("txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath, "Min Value: " + operatorMinValue + " - Max Value: " + operatorMaxValue));
+                            DRB.Common.BindInteger("txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath, operatorMinValue, operatorMaxValue);
+                            DRB.Logic.BindFilterColumnValue("txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
                         }
+                        if (datetimeOperatorFound === false) {
+                            var clearedDateTimeFormat = "";
+                            var pickerFormat = "YYYY-MM-DD HH:mm";
+                            if (DRB.Utilities.HasValue(column.AdditionalProperties.DateTimeFormat)) {
+                                if (column.AdditionalProperties.DateTimeFormat === "DateOnly") { pickerFormat = "YYYY-MM-DD"; }
+                                clearedDateTimeFormat = column.AdditionalProperties.DateTimeFormat.replace(/([A-Z])/g, ' $1').trim();
+                            }
 
-                        if (clearedDateTimeBehavior === "Time Zone Independent") { clearedDateTimeBehavior = "TZI"; }
-                        divValue.append(DRB.UI.CreateInputDateTime("txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath, dateTimeBehavior, "Behavior: " + clearedDateTimeBehavior + " - Format: " + clearedDateTimeFormat));
-                        DRB.Logic.BindFilterColumnValue("txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
-                        $("#txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath).datetimepicker({ format: pickerFormat, ignoreReadonly: true, showClear: true, showTodayButton: true }).on('dp.change', function (e) { $(e.target).change(); });
+                            var dateTimeBehavior = "ND"; // not defined
+                            var clearedDateTimeBehavior = "";
+                            if (DRB.Utilities.HasValue(column.AdditionalProperties.DateTimeBehavior)) {
+                                dateTimeBehavior = column.AdditionalProperties.DateTimeBehavior;
+                                clearedDateTimeBehavior = column.AdditionalProperties.DateTimeBehavior.replace(/([A-Z])/g, ' $1').trim();
+                            }
+
+                            if (clearedDateTimeBehavior === "Time Zone Independent") { clearedDateTimeBehavior = "TZI"; }
+                            divValue.append(DRB.UI.CreateInputDateTime("txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath, dateTimeBehavior, "Behavior: " + clearedDateTimeBehavior + " - Format: " + clearedDateTimeFormat));
+                            DRB.Logic.BindFilterColumnValue("txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
+                            $("#txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath).datetimepicker({ format: pickerFormat, ignoreReadonly: true, showClear: true, showTodayButton: true }).on('dp.change', function (e) { $(e.target).change(); });
+                        }
                         break;
                 }
             }
@@ -354,7 +386,9 @@ DRB.Logic.BindFilterColumn = function (id, columnType, domObject, metadataPath) 
             DRB.UI.FillDropdown(currentId, "Select Operator", new DRB.Models.Records(optionsOperator).ToDropdown());
             DRB.Logic.BindFilterColumnOperator(currentId, domObject);
         }
+        var a = true;
         DRB.Logic.RefreshColumns(columnType, domObject, metadataPath);
+        var b = true;
     });
 }
 // #endregion

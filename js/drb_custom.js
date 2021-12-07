@@ -4869,6 +4869,26 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                             case "EqualUserOrUserTeams": // Microsoft.Dynamics.CRM.EqualUserOrUserTeams(PropertyName='ownerid')
                             case "EqualBusinessId": // Microsoft.Dynamics.CRM.EqualBusinessId(PropertyName='owningbusinessunit')
                             case "NotEqualBusinessId": // Microsoft.Dynamics.CRM.NotEqualBusinessId(PropertyName='owningbusinessunit')
+                            case "Yesterday": // Microsoft.Dynamics.CRM.Yesterday(PropertyName='createdon')
+                            case "Today": // Microsoft.Dynamics.CRM.Today(PropertyName='createdon')
+                            case "Tomorrow": // Microsoft.Dynamics.CRM.Tomorrow(PropertyName='createdon')
+                            case "Next7Days": // Microsoft.Dynamics.CRM.Next7Days(PropertyName='createdon')
+                            case "Last7Days": // Microsoft.Dynamics.CRM.Last7Days(PropertyName='createdon')
+                            case "NextWeek": // Microsoft.Dynamics.CRM.NextWeek(PropertyName='createdon')
+                            case "LastWeek": // Microsoft.Dynamics.CRM.LastWeek(PropertyName='createdon')
+                            case "ThisWeek": // Microsoft.Dynamics.CRM.ThisWeek(PropertyName='createdon')
+                            case "NextMonth": // Microsoft.Dynamics.CRM.NextMonth(PropertyName='createdon')
+                            case "LastMonth": // Microsoft.Dynamics.CRM.LastMonth(PropertyName='createdon')
+                            case "ThisMonth": // Microsoft.Dynamics.CRM.ThisMonth(PropertyName='createdon')
+                            case "NextYear": // Microsoft.Dynamics.CRM.NextYear(PropertyName='createdon')
+                            case "LastYear": // Microsoft.Dynamics.CRM.LastYear(PropertyName='createdon')
+                            case "ThisYear": // Microsoft.Dynamics.CRM.ThisYear(PropertyName='createdon')
+                            case "NextFiscalYear": // Microsoft.Dynamics.CRM.NextFiscalYear(PropertyName='createdon')
+                            case "LastFiscalYear": // Microsoft.Dynamics.CRM.LastFiscalYear(PropertyName='createdon')
+                            case "ThisFiscalYear": // Microsoft.Dynamics.CRM.ThisFiscalYear(PropertyName='createdon')
+                            case "NextFiscalPeriod": // Microsoft.Dynamics.CRM.NextFiscalPeriod(PropertyName='createdon')
+                            case "LastFiscalPeriod": // Microsoft.Dynamics.CRM.LastFiscalPeriod(PropertyName='createdon')
+                            case "ThisFiscalPeriod": // Microsoft.Dynamics.CRM.ThisFiscalPeriod(PropertyName='createdon')
                                 operatorFound = true;
                                 partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + filterField.logicalName + "')";
                                 break;
@@ -4909,6 +4929,31 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                                     if (filterField.value.length > 0) { clearedValue = clearedValue.slice(0, -1); }
                                 }
                                 partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + filterField.oDataName + "',PropertyValues=[" + clearedValue + "])";
+                                break;
+
+                            case "NextXHours": // Microsoft.Dynamics.CRM.NextXHours(PropertyName='createdon',PropertyValue=1)
+                            case "LastXHours": // Microsoft.Dynamics.CRM.LastXHours(PropertyName='createdon',PropertyValue=1)
+                            case "NextXDays": // Microsoft.Dynamics.CRM.NextXDays(PropertyName='createdon',PropertyValue=1)
+                            case "LastXDays": // Microsoft.Dynamics.CRM.LastXDays(PropertyName='createdon',PropertyValue=1)
+                            case "NextXWeeks": // Microsoft.Dynamics.CRM.NextXWeeks(PropertyName='createdon',PropertyValue=1)
+                            case "LastXWeeks": // Microsoft.Dynamics.CRM.LastXWeeks(PropertyName='createdon',PropertyValue=1)
+                            case "NextXMonths": // Microsoft.Dynamics.CRM.NextXMonths(PropertyName='createdon',PropertyValue=1)
+                            case "LastXMonths": // Microsoft.Dynamics.CRM.LastXMonths(PropertyName='createdon',PropertyValue=1)
+                            case "NextXYears": // Microsoft.Dynamics.CRM.NextXYears(PropertyName='createdon',PropertyValue=1)
+                            case "LastXYears": // Microsoft.Dynamics.CRM.LastXYears(PropertyName='createdon',PropertyValue=1)
+                            case "NextXFiscalYears": // Microsoft.Dynamics.CRM.NextXFiscalYears(PropertyName='createdon',PropertyValue=1)
+                            case "LastXFiscalYears": // Microsoft.Dynamics.CRM.LastXFiscalYears(PropertyName='createdon',PropertyValue=1)
+                            case "NextXFiscalPeriods": // Microsoft.Dynamics.CRM.NextXFiscalPeriods(PropertyName='createdon',PropertyValue=1)
+                            case "LastXFiscalPeriods": // Microsoft.Dynamics.CRM.LastXFiscalPeriods(PropertyName='createdon',PropertyValue=1)
+                            case "OlderThanXMinutes": // Microsoft.Dynamics.CRM.OlderThanXMinutes(PropertyName='createdon',PropertyValue=1)
+                            case "OlderThanXHours": // Microsoft.Dynamics.CRM.OlderThanXHours(PropertyName='createdon',PropertyValue=1)
+                            case "OlderThanXDays": // Microsoft.Dynamics.CRM.OlderThanXDays(PropertyName='createdon',PropertyValue=1)
+                            case "OlderThanXWeeks": // Microsoft.Dynamics.CRM.OlderThanXWeeks(PropertyName='createdon',PropertyValue=1)
+                            case "OlderThanXMonths": // Microsoft.Dynamics.CRM.OlderThanXMonths(PropertyName='createdon',PropertyValue=1)
+                            case "OlderThanXYears": // Microsoft.Dynamics.CRM.OlderThanXYears(PropertyName='createdon',PropertyValue=1)
+                                operatorFound = true;
+                                var clearedValue = filterField.value;
+                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + filterField.oDataName + "',PropertyValue=" + clearedValue + ")";
                                 break;
                         }
                         if (operatorFound === false) {
@@ -9092,24 +9137,56 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
                         }
                         break;
                     case "DateTime":
-                        var clearedDateTimeFormat = "";
-                        var pickerFormat = "YYYY-MM-DD HH:mm";
-                        if (DRB.Utilities.HasValue(column.AdditionalProperties.DateTimeFormat)) {
-                            if (column.AdditionalProperties.DateTimeFormat === "DateOnly") { pickerFormat = "YYYY-MM-DD"; }
-                            clearedDateTimeFormat = column.AdditionalProperties.DateTimeFormat.replace(/([A-Z])/g, ' $1').trim();
+                        var datetimeOperatorFound = false;
+                        var operatorMinValue = 0;
+                        var operatorMaxValue = 0;
+                        switch (operator) {
+                            case "NextXHours": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 2000; break;
+                            case "LastXHours": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 2000; break;
+                            case "NextXDays": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 500; break;
+                            case "LastXDays": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 500; break;
+                            case "NextXWeeks": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "LastXWeeks": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "NextXMonths": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "LastXMonths": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "NextXYears": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "LastXYears": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "NextXFiscalYears": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "LastXFiscalYears": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "NextXFiscalPeriods": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "LastXFiscalPeriods": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "OlderThanXMinutes": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 1440; break;
+                            case "OlderThanXHours": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 2000; break;
+                            case "OlderThanXDays": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 500; break;
+                            case "OlderThanXWeeks": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "OlderThanXMonths": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "OlderThanXYears": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
                         }
-
-                        var dateTimeBehavior = "ND"; // not defined
-                        var clearedDateTimeBehavior = "";
-                        if (DRB.Utilities.HasValue(column.AdditionalProperties.DateTimeBehavior)) {
-                            dateTimeBehavior = column.AdditionalProperties.DateTimeBehavior;
-                            clearedDateTimeBehavior = column.AdditionalProperties.DateTimeBehavior.replace(/([A-Z])/g, ' $1').trim();
+                        if (datetimeOperatorFound === true) {
+                            divValue.append(DRB.UI.CreateInputNumber("txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath, "Min Value: " + operatorMinValue + " - Max Value: " + operatorMaxValue));
+                            DRB.Common.BindInteger("txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath, operatorMinValue, operatorMaxValue);
+                            DRB.Logic.BindFilterColumnValue("txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
                         }
+                        if (datetimeOperatorFound === false) {
+                            var clearedDateTimeFormat = "";
+                            var pickerFormat = "YYYY-MM-DD HH:mm";
+                            if (DRB.Utilities.HasValue(column.AdditionalProperties.DateTimeFormat)) {
+                                if (column.AdditionalProperties.DateTimeFormat === "DateOnly") { pickerFormat = "YYYY-MM-DD"; }
+                                clearedDateTimeFormat = column.AdditionalProperties.DateTimeFormat.replace(/([A-Z])/g, ' $1').trim();
+                            }
 
-                        if (clearedDateTimeBehavior === "Time Zone Independent") { clearedDateTimeBehavior = "TZI"; }
-                        divValue.append(DRB.UI.CreateInputDateTime("txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath, dateTimeBehavior, "Behavior: " + clearedDateTimeBehavior + " - Format: " + clearedDateTimeFormat));
-                        DRB.Logic.BindFilterColumnValue("txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
-                        $("#txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath).datetimepicker({ format: pickerFormat, ignoreReadonly: true, showClear: true, showTodayButton: true }).on('dp.change', function (e) { $(e.target).change(); });
+                            var dateTimeBehavior = "ND"; // not defined
+                            var clearedDateTimeBehavior = "";
+                            if (DRB.Utilities.HasValue(column.AdditionalProperties.DateTimeBehavior)) {
+                                dateTimeBehavior = column.AdditionalProperties.DateTimeBehavior;
+                                clearedDateTimeBehavior = column.AdditionalProperties.DateTimeBehavior.replace(/([A-Z])/g, ' $1').trim();
+                            }
+
+                            if (clearedDateTimeBehavior === "Time Zone Independent") { clearedDateTimeBehavior = "TZI"; }
+                            divValue.append(DRB.UI.CreateInputDateTime("txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath, dateTimeBehavior, "Behavior: " + clearedDateTimeBehavior + " - Format: " + clearedDateTimeFormat));
+                            DRB.Logic.BindFilterColumnValue("txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
+                            $("#txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath).datetimepicker({ format: pickerFormat, ignoreReadonly: true, showClear: true, showTodayButton: true }).on('dp.change', function (e) { $(e.target).change(); });
+                        }
                         break;
                 }
             }
@@ -9210,7 +9287,9 @@ DRB.Logic.BindFilterColumn = function (id, columnType, domObject, metadataPath) 
             DRB.UI.FillDropdown(currentId, "Select Operator", new DRB.Models.Records(optionsOperator).ToDropdown());
             DRB.Logic.BindFilterColumnOperator(currentId, domObject);
         }
+        var a = true;
         DRB.Logic.RefreshColumns(columnType, domObject, metadataPath);
+        var b = true;
     });
 }
 // #endregion  
@@ -9760,7 +9839,7 @@ DRB.Logic.RetrieveMultiple.AddFilterColumns = function (domObject, metadataPath)
                 break;
 
             case "DateTime":
-                controlPrefix = "cbxm_";
+                controlPrefix = "txtd_";
                 break;
         }
 
@@ -13210,6 +13289,50 @@ DRB.SetDefaultSettings = function () {
     var optEqCurrentBusinessUnit = new DRB.Models.IdValue("EqualBusinessId", "Equals Current Business Unit");
     var optNeCurrentBusinessUnit = new DRB.Models.IdValue("NotEqualBusinessId", "Does Not Equal Business Unit");
 
+    // Datetime operators (no required value)
+    var optYesterday = new DRB.Models.IdValue("Yesterday", "Yesterday");
+    var optToday = new DRB.Models.IdValue("Today", "Today");
+    var optTomorrow = new DRB.Models.IdValue("Tomorrow", "Tomorrow");
+    var optNext7Days = new DRB.Models.IdValue("Next7Days", "Next 7 Days");
+    var optLast7Days = new DRB.Models.IdValue("Last7Days", "Last 7 Days");
+    var optNextWeek = new DRB.Models.IdValue("NextWeek", "Next Week");
+    var optLastWeek = new DRB.Models.IdValue("LastWeek", "Last Week");
+    var optThisWeek = new DRB.Models.IdValue("ThisWeek", "This Week");
+    var optNextMonth = new DRB.Models.IdValue("NextMonth", "Next Month");
+    var optLastMonth = new DRB.Models.IdValue("LastMonth", "Last Month");
+    var optThisMonth = new DRB.Models.IdValue("ThisMonth", "This Month");
+    var optNextYear = new DRB.Models.IdValue("NextYear", "Next Year");
+    var optLastYear = new DRB.Models.IdValue("LastYear", "Last Year");
+    var optThisYear = new DRB.Models.IdValue("ThisYear", "This Year");
+    var optNextFiscalYear = new DRB.Models.IdValue("NextFiscalYear", "Next Fiscal Year");
+    var optLastFiscalYear = new DRB.Models.IdValue("LastFiscalYear", "Last Fiscal Year");
+    var optThisFiscalYear = new DRB.Models.IdValue("ThisFiscalYear", "This Fiscal Year");
+    var optNextFiscalPeriod = new DRB.Models.IdValue("NextFiscalPeriod", "Next Fiscal Period");
+    var optLastFiscalPeriod = new DRB.Models.IdValue("LastFiscalPeriod", "Last Fiscal Period");
+    var optThisFiscalPeriod = new DRB.Models.IdValue("ThisFiscalPeriod", "This Fiscal Period");
+    // Datetime operators (required value)
+    var optNextXHours = new DRB.Models.IdValue("NextXHours", "Next X Hours");
+    var optLastXHours = new DRB.Models.IdValue("LastXHours", "Last X Hours");
+    var optNextXDays = new DRB.Models.IdValue("NextXDays", "Next X Days");
+    var optLastXDays = new DRB.Models.IdValue("LastXDays", "Last X Days");
+    var optNextXWeeks = new DRB.Models.IdValue("NextXWeeks", "Next X Weeks");
+    var optLastXWeeks = new DRB.Models.IdValue("LastXWeeks", "Last X Weeks");
+    var optNextXMonths = new DRB.Models.IdValue("NextXMonths", "Next X Months");
+    var optLastXMonths = new DRB.Models.IdValue("LastXMonths", "Last X Months");
+    var optNextXYears = new DRB.Models.IdValue("NextXYears", "Next X Years");
+    var optLastXYears = new DRB.Models.IdValue("LastXYears", "Last X Years");
+    var optNextXFiscalYears = new DRB.Models.IdValue("NextXFiscalYears", "Next X Fiscal Years");
+    var optLastXFiscalYears = new DRB.Models.IdValue("LastXFiscalYears", "Last X Fiscal Years");
+    var optNextXFiscalPeriods = new DRB.Models.IdValue("NextXFiscalPeriods", "Next X Fiscal Periods");
+    var optLastXFiscalPeriods = new DRB.Models.IdValue("LastXFiscalPeriods", "Last X Fiscal Periods");
+    var optOlderThanXMinutes = new DRB.Models.IdValue("OlderThanXMinutes", "Older Than X Minutes");
+    var optOlderThanXHours = new DRB.Models.IdValue("OlderThanXHours", "Older Than X Hours");
+    var optOlderThanXDays = new DRB.Models.IdValue("OlderThanXDays", "Older Than X Days");
+    var optOlderThanXWeeks = new DRB.Models.IdValue("OlderThanXWeeks", "Older Than X Weeks");
+    var optOlderThanXMonths = new DRB.Models.IdValue("OlderThanXMonths", "Older Than X Months");
+    var optOlderThanXYears = new DRB.Models.IdValue("OlderThanXYears", "Older Than X Years");
+
+
     DRB.Settings.OptionsOperatorBasic = [optEq, optNe, optNeNull, optEqNull];
     DRB.Settings.OptionsOperatorLookupBusinessUnit = [optEq, optNe, optNeNull, optEqNull, optEqCurrentBusinessUnit, optNeCurrentBusinessUnit];
     DRB.Settings.OptionsOperatorLookupUser = [optEq, optNe, optNeNull, optEqNull, optEqCurrentUser, optNeCurrentUser];
@@ -13219,9 +13342,13 @@ DRB.SetDefaultSettings = function () {
     DRB.Settings.OptionsOperatorPicklist = [optEq, optNe, optNeNull, optEqNull];
     DRB.Settings.OptionsOperatorMultiPicklist = [optIn, optNotIn, optContainValues, optNotContainValues, optNeNull, optEqNull];
     DRB.Settings.OptionsOperatorNumber = [optEq, optNe, optGreater, optGreaterEqual, optLess, optLessEqual, optNeNull, optEqNull];
-    DRB.Settings.OptionsOperatorDateTime = [optOn, optNotOn, optAfter, optOnOrAfter, optBefore, optOnOrBefore, optNeNull, optEqNull];
+    DRB.Settings.OptionsOperatorDateTime = [optOn, optNotOn, optAfter, optOnOrAfter, optBefore, optOnOrBefore, optNeNull, optEqNull,
+        optYesterday, optToday, optTomorrow, optNext7Days, optLast7Days, optNextWeek, optLastWeek, optThisWeek, optNextMonth, optLastMonth, optThisMonth, optNextYear, optLastYear, optThisYear, optNextFiscalYear, optLastFiscalYear, optThisFiscalYear, optNextFiscalPeriod, optLastFiscalPeriod, optThisFiscalPeriod,
+        optNextXHours, optLastXHours, optNextXDays, optLastXDays, optNextXWeeks, optLastXWeeks, optNextXMonths, optLastXMonths, optNextXYears, optLastXYears, optNextXFiscalYears, optLastXFiscalYears, optNextXFiscalPeriods, optLastXFiscalPeriods,
+        optOlderThanXMinutes, optOlderThanXHours, optOlderThanXDays, optOlderThanXWeeks, optOlderThanXMonths, optOlderThanXYears];
 
-    DRB.Settings.OperatorsToStop = [optNeNull, optEqNull, optEqCurrentUser, optNeCurrentUser, optEqCurrentUserHierarchy, optEqCurrentUserHierarchyAndTeams, optEqCurrentUserTeams, optEqCurrentUserOrTeams, optEqCurrentBusinessUnit, optNeCurrentBusinessUnit];
+    DRB.Settings.OperatorsToStop = [optNeNull, optEqNull, optEqCurrentUser, optNeCurrentUser, optEqCurrentUserHierarchy, optEqCurrentUserHierarchyAndTeams, optEqCurrentUserTeams, optEqCurrentUserOrTeams, optEqCurrentBusinessUnit, optNeCurrentBusinessUnit,
+        optYesterday, optToday, optTomorrow, optNext7Days, optLast7Days, optNextWeek, optLastWeek, optThisWeek, optNextMonth, optLastMonth, optThisMonth, optNextYear, optLastYear, optThisYear, optNextFiscalYear, optLastFiscalYear, optThisFiscalYear, optNextFiscalPeriod, optLastFiscalPeriod, optThisFiscalPeriod];
 
     // #endregion
 

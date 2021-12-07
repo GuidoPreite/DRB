@@ -84,6 +84,50 @@ DRB.SetDefaultSettings = function () {
     var optEqCurrentBusinessUnit = new DRB.Models.IdValue("EqualBusinessId", "Equals Current Business Unit");
     var optNeCurrentBusinessUnit = new DRB.Models.IdValue("NotEqualBusinessId", "Does Not Equal Business Unit");
 
+    // Datetime operators (no required value)
+    var optYesterday = new DRB.Models.IdValue("Yesterday", "Yesterday");
+    var optToday = new DRB.Models.IdValue("Today", "Today");
+    var optTomorrow = new DRB.Models.IdValue("Tomorrow", "Tomorrow");
+    var optNext7Days = new DRB.Models.IdValue("Next7Days", "Next 7 Days");
+    var optLast7Days = new DRB.Models.IdValue("Last7Days", "Last 7 Days");
+    var optNextWeek = new DRB.Models.IdValue("NextWeek", "Next Week");
+    var optLastWeek = new DRB.Models.IdValue("LastWeek", "Last Week");
+    var optThisWeek = new DRB.Models.IdValue("ThisWeek", "This Week");
+    var optNextMonth = new DRB.Models.IdValue("NextMonth", "Next Month");
+    var optLastMonth = new DRB.Models.IdValue("LastMonth", "Last Month");
+    var optThisMonth = new DRB.Models.IdValue("ThisMonth", "This Month");
+    var optNextYear = new DRB.Models.IdValue("NextYear", "Next Year");
+    var optLastYear = new DRB.Models.IdValue("LastYear", "Last Year");
+    var optThisYear = new DRB.Models.IdValue("ThisYear", "This Year");
+    var optNextFiscalYear = new DRB.Models.IdValue("NextFiscalYear", "Next Fiscal Year");
+    var optLastFiscalYear = new DRB.Models.IdValue("LastFiscalYear", "Last Fiscal Year");
+    var optThisFiscalYear = new DRB.Models.IdValue("ThisFiscalYear", "This Fiscal Year");
+    var optNextFiscalPeriod = new DRB.Models.IdValue("NextFiscalPeriod", "Next Fiscal Period");
+    var optLastFiscalPeriod = new DRB.Models.IdValue("LastFiscalPeriod", "Last Fiscal Period");
+    var optThisFiscalPeriod = new DRB.Models.IdValue("ThisFiscalPeriod", "This Fiscal Period");
+    // Datetime operators (required value)
+    var optNextXHours = new DRB.Models.IdValue("NextXHours", "Next X Hours");
+    var optLastXHours = new DRB.Models.IdValue("LastXHours", "Last X Hours");
+    var optNextXDays = new DRB.Models.IdValue("NextXDays", "Next X Days");
+    var optLastXDays = new DRB.Models.IdValue("LastXDays", "Last X Days");
+    var optNextXWeeks = new DRB.Models.IdValue("NextXWeeks", "Next X Weeks");
+    var optLastXWeeks = new DRB.Models.IdValue("LastXWeeks", "Last X Weeks");
+    var optNextXMonths = new DRB.Models.IdValue("NextXMonths", "Next X Months");
+    var optLastXMonths = new DRB.Models.IdValue("LastXMonths", "Last X Months");
+    var optNextXYears = new DRB.Models.IdValue("NextXYears", "Next X Years");
+    var optLastXYears = new DRB.Models.IdValue("LastXYears", "Last X Years");
+    var optNextXFiscalYears = new DRB.Models.IdValue("NextXFiscalYears", "Next X Fiscal Years");
+    var optLastXFiscalYears = new DRB.Models.IdValue("LastXFiscalYears", "Last X Fiscal Years");
+    var optNextXFiscalPeriods = new DRB.Models.IdValue("NextXFiscalPeriods", "Next X Fiscal Periods");
+    var optLastXFiscalPeriods = new DRB.Models.IdValue("LastXFiscalPeriods", "Last X Fiscal Periods");
+    var optOlderThanXMinutes = new DRB.Models.IdValue("OlderThanXMinutes", "Older Than X Minutes");
+    var optOlderThanXHours = new DRB.Models.IdValue("OlderThanXHours", "Older Than X Hours");
+    var optOlderThanXDays = new DRB.Models.IdValue("OlderThanXDays", "Older Than X Days");
+    var optOlderThanXWeeks = new DRB.Models.IdValue("OlderThanXWeeks", "Older Than X Weeks");
+    var optOlderThanXMonths = new DRB.Models.IdValue("OlderThanXMonths", "Older Than X Months");
+    var optOlderThanXYears = new DRB.Models.IdValue("OlderThanXYears", "Older Than X Years");
+
+
     DRB.Settings.OptionsOperatorBasic = [optEq, optNe, optNeNull, optEqNull];
     DRB.Settings.OptionsOperatorLookupBusinessUnit = [optEq, optNe, optNeNull, optEqNull, optEqCurrentBusinessUnit, optNeCurrentBusinessUnit];
     DRB.Settings.OptionsOperatorLookupUser = [optEq, optNe, optNeNull, optEqNull, optEqCurrentUser, optNeCurrentUser];
@@ -93,9 +137,13 @@ DRB.SetDefaultSettings = function () {
     DRB.Settings.OptionsOperatorPicklist = [optEq, optNe, optNeNull, optEqNull];
     DRB.Settings.OptionsOperatorMultiPicklist = [optIn, optNotIn, optContainValues, optNotContainValues, optNeNull, optEqNull];
     DRB.Settings.OptionsOperatorNumber = [optEq, optNe, optGreater, optGreaterEqual, optLess, optLessEqual, optNeNull, optEqNull];
-    DRB.Settings.OptionsOperatorDateTime = [optOn, optNotOn, optAfter, optOnOrAfter, optBefore, optOnOrBefore, optNeNull, optEqNull];
+    DRB.Settings.OptionsOperatorDateTime = [optOn, optNotOn, optAfter, optOnOrAfter, optBefore, optOnOrBefore, optNeNull, optEqNull,
+        optYesterday, optToday, optTomorrow, optNext7Days, optLast7Days, optNextWeek, optLastWeek, optThisWeek, optNextMonth, optLastMonth, optThisMonth, optNextYear, optLastYear, optThisYear, optNextFiscalYear, optLastFiscalYear, optThisFiscalYear, optNextFiscalPeriod, optLastFiscalPeriod, optThisFiscalPeriod,
+        optNextXHours, optLastXHours, optNextXDays, optLastXDays, optNextXWeeks, optLastXWeeks, optNextXMonths, optLastXMonths, optNextXYears, optLastXYears, optNextXFiscalYears, optLastXFiscalYears, optNextXFiscalPeriods, optLastXFiscalPeriods,
+        optOlderThanXMinutes, optOlderThanXHours, optOlderThanXDays, optOlderThanXWeeks, optOlderThanXMonths, optOlderThanXYears];
 
-    DRB.Settings.OperatorsToStop = [optNeNull, optEqNull, optEqCurrentUser, optNeCurrentUser, optEqCurrentUserHierarchy, optEqCurrentUserHierarchyAndTeams, optEqCurrentUserTeams, optEqCurrentUserOrTeams, optEqCurrentBusinessUnit, optNeCurrentBusinessUnit];
+    DRB.Settings.OperatorsToStop = [optNeNull, optEqNull, optEqCurrentUser, optNeCurrentUser, optEqCurrentUserHierarchy, optEqCurrentUserHierarchyAndTeams, optEqCurrentUserTeams, optEqCurrentUserOrTeams, optEqCurrentBusinessUnit, optNeCurrentBusinessUnit,
+        optYesterday, optToday, optTomorrow, optNext7Days, optLast7Days, optNextWeek, optLastWeek, optThisWeek, optNextMonth, optLastMonth, optThisMonth, optNextYear, optLastYear, optThisYear, optNextFiscalYear, optLastFiscalYear, optThisFiscalYear, optNextFiscalPeriod, optLastFiscalPeriod, optThisFiscalPeriod];
 
     // #endregion
 

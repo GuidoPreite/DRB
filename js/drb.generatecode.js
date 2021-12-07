@@ -235,6 +235,26 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                             case "EqualUserOrUserTeams": // Microsoft.Dynamics.CRM.EqualUserOrUserTeams(PropertyName='ownerid')
                             case "EqualBusinessId": // Microsoft.Dynamics.CRM.EqualBusinessId(PropertyName='owningbusinessunit')
                             case "NotEqualBusinessId": // Microsoft.Dynamics.CRM.NotEqualBusinessId(PropertyName='owningbusinessunit')
+                            case "Yesterday": // Microsoft.Dynamics.CRM.Yesterday(PropertyName='createdon')
+                            case "Today": // Microsoft.Dynamics.CRM.Today(PropertyName='createdon')
+                            case "Tomorrow": // Microsoft.Dynamics.CRM.Tomorrow(PropertyName='createdon')
+                            case "Next7Days": // Microsoft.Dynamics.CRM.Next7Days(PropertyName='createdon')
+                            case "Last7Days": // Microsoft.Dynamics.CRM.Last7Days(PropertyName='createdon')
+                            case "NextWeek": // Microsoft.Dynamics.CRM.NextWeek(PropertyName='createdon')
+                            case "LastWeek": // Microsoft.Dynamics.CRM.LastWeek(PropertyName='createdon')
+                            case "ThisWeek": // Microsoft.Dynamics.CRM.ThisWeek(PropertyName='createdon')
+                            case "NextMonth": // Microsoft.Dynamics.CRM.NextMonth(PropertyName='createdon')
+                            case "LastMonth": // Microsoft.Dynamics.CRM.LastMonth(PropertyName='createdon')
+                            case "ThisMonth": // Microsoft.Dynamics.CRM.ThisMonth(PropertyName='createdon')
+                            case "NextYear": // Microsoft.Dynamics.CRM.NextYear(PropertyName='createdon')
+                            case "LastYear": // Microsoft.Dynamics.CRM.LastYear(PropertyName='createdon')
+                            case "ThisYear": // Microsoft.Dynamics.CRM.ThisYear(PropertyName='createdon')
+                            case "NextFiscalYear": // Microsoft.Dynamics.CRM.NextFiscalYear(PropertyName='createdon')
+                            case "LastFiscalYear": // Microsoft.Dynamics.CRM.LastFiscalYear(PropertyName='createdon')
+                            case "ThisFiscalYear": // Microsoft.Dynamics.CRM.ThisFiscalYear(PropertyName='createdon')
+                            case "NextFiscalPeriod": // Microsoft.Dynamics.CRM.NextFiscalPeriod(PropertyName='createdon')
+                            case "LastFiscalPeriod": // Microsoft.Dynamics.CRM.LastFiscalPeriod(PropertyName='createdon')
+                            case "ThisFiscalPeriod": // Microsoft.Dynamics.CRM.ThisFiscalPeriod(PropertyName='createdon')
                                 operatorFound = true;
                                 partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + filterField.logicalName + "')";
                                 break;
@@ -275,6 +295,31 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                                     if (filterField.value.length > 0) { clearedValue = clearedValue.slice(0, -1); }
                                 }
                                 partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + filterField.oDataName + "',PropertyValues=[" + clearedValue + "])";
+                                break;
+
+                            case "NextXHours": // Microsoft.Dynamics.CRM.NextXHours(PropertyName='createdon',PropertyValue=1)
+                            case "LastXHours": // Microsoft.Dynamics.CRM.LastXHours(PropertyName='createdon',PropertyValue=1)
+                            case "NextXDays": // Microsoft.Dynamics.CRM.NextXDays(PropertyName='createdon',PropertyValue=1)
+                            case "LastXDays": // Microsoft.Dynamics.CRM.LastXDays(PropertyName='createdon',PropertyValue=1)
+                            case "NextXWeeks": // Microsoft.Dynamics.CRM.NextXWeeks(PropertyName='createdon',PropertyValue=1)
+                            case "LastXWeeks": // Microsoft.Dynamics.CRM.LastXWeeks(PropertyName='createdon',PropertyValue=1)
+                            case "NextXMonths": // Microsoft.Dynamics.CRM.NextXMonths(PropertyName='createdon',PropertyValue=1)
+                            case "LastXMonths": // Microsoft.Dynamics.CRM.LastXMonths(PropertyName='createdon',PropertyValue=1)
+                            case "NextXYears": // Microsoft.Dynamics.CRM.NextXYears(PropertyName='createdon',PropertyValue=1)
+                            case "LastXYears": // Microsoft.Dynamics.CRM.LastXYears(PropertyName='createdon',PropertyValue=1)
+                            case "NextXFiscalYears": // Microsoft.Dynamics.CRM.NextXFiscalYears(PropertyName='createdon',PropertyValue=1)
+                            case "LastXFiscalYears": // Microsoft.Dynamics.CRM.LastXFiscalYears(PropertyName='createdon',PropertyValue=1)
+                            case "NextXFiscalPeriods": // Microsoft.Dynamics.CRM.NextXFiscalPeriods(PropertyName='createdon',PropertyValue=1)
+                            case "LastXFiscalPeriods": // Microsoft.Dynamics.CRM.LastXFiscalPeriods(PropertyName='createdon',PropertyValue=1)
+                            case "OlderThanXMinutes": // Microsoft.Dynamics.CRM.OlderThanXMinutes(PropertyName='createdon',PropertyValue=1)
+                            case "OlderThanXHours": // Microsoft.Dynamics.CRM.OlderThanXHours(PropertyName='createdon',PropertyValue=1)
+                            case "OlderThanXDays": // Microsoft.Dynamics.CRM.OlderThanXDays(PropertyName='createdon',PropertyValue=1)
+                            case "OlderThanXWeeks": // Microsoft.Dynamics.CRM.OlderThanXWeeks(PropertyName='createdon',PropertyValue=1)
+                            case "OlderThanXMonths": // Microsoft.Dynamics.CRM.OlderThanXMonths(PropertyName='createdon',PropertyValue=1)
+                            case "OlderThanXYears": // Microsoft.Dynamics.CRM.OlderThanXYears(PropertyName='createdon',PropertyValue=1)
+                                operatorFound = true;
+                                var clearedValue = filterField.value;
+                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + filterField.oDataName + "',PropertyValue=" + clearedValue + ")";
                                 break;
                         }
                         if (operatorFound === false) {
