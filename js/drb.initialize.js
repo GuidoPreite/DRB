@@ -127,8 +127,15 @@ DRB.SetDefaultSettings = function () {
     var optOlderThanXMonths = new DRB.Models.IdValue("OlderThanXMonths", "Older Than X Months");
     var optOlderThanXYears = new DRB.Models.IdValue("OlderThanXYears", "Older Than X Years");
 
+    // Hierarchy Primary Key operators
+    var optAbove = new DRB.Models.IdValue("Above", "Above");
+    var optAboveOrEqual = new DRB.Models.IdValue("AboveOrEqual", "Above Or Equals");
+    var optNotUnder = new DRB.Models.IdValue("NotUnder", "Not Under");
+    var optUnder = new DRB.Models.IdValue("Under", "Under");
+    var optUnderOrEqual = new DRB.Models.IdValue("UnderOrEqual", "Under Or Equals");
 
     DRB.Settings.OptionsOperatorBasic = [optEq, optNe, optNeNull, optEqNull];
+    DRB.Settings.OptionsOperatorHierarchyPrimaryKey = [optEq, optNe, optNeNull, optEqNull, optAbove, optAboveOrEqual, optNotUnder, optUnder, optUnderOrEqual];
     DRB.Settings.OptionsOperatorLookupBusinessUnit = [optEq, optNe, optNeNull, optEqNull, optEqCurrentBusinessUnit, optNeCurrentBusinessUnit];
     DRB.Settings.OptionsOperatorLookupUser = [optEq, optNe, optNeNull, optEqNull, optEqCurrentUser, optNeCurrentUser];
     DRB.Settings.OptionsOperatorOwner = [optEq, optNe, optNeNull, optEqNull, optEqCurrentUser, optNeCurrentUser, optEqCurrentUserHierarchy, optEqCurrentUserHierarchyAndTeams, optEqCurrentUserTeams, optEqCurrentUserOrTeams];
@@ -144,7 +151,6 @@ DRB.SetDefaultSettings = function () {
 
     DRB.Settings.OperatorsToStop = [optNeNull, optEqNull, optEqCurrentUser, optNeCurrentUser, optEqCurrentUserHierarchy, optEqCurrentUserHierarchyAndTeams, optEqCurrentUserTeams, optEqCurrentUserOrTeams, optEqCurrentBusinessUnit, optNeCurrentBusinessUnit,
         optYesterday, optToday, optTomorrow, optNext7Days, optLast7Days, optNextWeek, optLastWeek, optThisWeek, optNextMonth, optLastMonth, optThisMonth, optNextYear, optLastYear, optThisYear, optNextFiscalYear, optLastFiscalYear, optThisFiscalYear, optNextFiscalPeriod, optLastFiscalPeriod, optThisFiscalPeriod];
-
     // #endregion
 
     // #region Postman Export Settings

@@ -95,7 +95,7 @@ DRB.Common.MapColumns = function (data, primaryIdAttribute, primaryNameAttribute
 
         var selectedColumns = [];
         columns.forEach(function (column) {
-            if (column.IsValidForRead === true && column.AttributeType !== "PartyList") {
+            if (column.AttributeType !== "PartyList") {
                 if (column.AttributeOf == null) { // TBD why not ===
                     if (imageColumns.indexOf(column.LogicalName) > -1) { column.Name = imageNameColumns[imageColumns.indexOf(column.LogicalName)] + " (ID)"; }
                     selectedColumns.push(column);
@@ -225,10 +225,10 @@ DRB.Common.MapRelationships = function (data, type, sortProperty, sourceTable) {
             var entity2LogicalName = record.Entity2LogicalName;
             var entity1NavigationPropertyName = record.Entity1NavigationPropertyName;
             var entity2NavigationPropertyName = record.Entity2NavigationPropertyName;
-
+            var isHierarchical = record.IsHierarchical;
             switch (type) {
                 case "OneToMany":
-                    relationships.push(new DRB.Models.Relationship(schemaName, type, sourceTable, referencingEntity, referencedEntityNavigationPropertyName, referencingAttribute));
+                    relationships.push(new DRB.Models.Relationship(schemaName, type, sourceTable, referencingEntity, referencedEntityNavigationPropertyName, referencingAttribute, isHierarchical));
                     break;
                 case "ManyToOne":
                     relationships.push(new DRB.Models.Relationship(schemaName, type, sourceTable, referencedEntity, referencingEntityNavigationPropertyName, referencingAttribute));

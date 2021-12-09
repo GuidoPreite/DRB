@@ -62,7 +62,7 @@ DRB.Models.OptionSetValue = function (value, label) {
  * @param {string} navigationProperty Navigation Property
  * @param {string} navigationAttribute Navigation Attribute
  */
-DRB.Models.Relationship = function (schemaName, type, sourceTable, targetTable, navigationProperty, navigationAttribute) {
+DRB.Models.Relationship = function (schemaName, type, sourceTable, targetTable, navigationProperty, navigationAttribute, isHierarchical) {
     this.Id = schemaName;
     this.Name = schemaName;
     this.SchemaName = schemaName;
@@ -73,6 +73,7 @@ DRB.Models.Relationship = function (schemaName, type, sourceTable, targetTable, 
     this.NavigationProperty = navigationProperty;
     this.NavigationAttribute = navigationAttribute;
     this.NavigationAttributeName = "";
+    this.IsHierarchical = isHierarchical;
 
     this.Columns = [];
     this.ToDropdownOption = function () {
@@ -219,6 +220,12 @@ DRB.Models.Column = function (logicalName, name, schemaName, attributeType, isPr
     this.AttributeOf = null;
     this.OptionValues = null;
 
+    // if column is not valid for read it can't be used for filter or order
+    if (this.IsValidForRead === false) {
+        this.IsValidForFilter = false;
+        this.IsValidForOrder = false;
+    }
+
     // check attribute type for setting some specific properties
     switch (attributeType) {
         case "Lookup":
@@ -302,12 +309,13 @@ DRB.Models.Table = function (logicalName, name, schemaName, entitySetName, prima
     this.ManyToManyRelationships = [];
     this.AlternateKeys = [];
     this.PersonalViews = [];
+    this.HasHierarchy = false;
 
     this.ColumnsLoaded = false;
     this.RelationshipsLoaded = false;
     this.AlternateKeysLoaded = false;
     this.PersonalViewsLoaded = false;
-
+    
     this.ToDropdownOption = function () { return new DRB.Models.DropdownOption(this.Id, this.Name, this.LogicalName); }
 }
 

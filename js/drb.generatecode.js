@@ -321,6 +321,16 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                                 var clearedValue = filterField.value;
                                 partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + filterField.oDataName + "',PropertyValue=" + clearedValue + ")";
                                 break;
+
+                            case "Above": // Microsoft.Dynamics.CRM.Above(PropertyName='accountid',PropertyValue='51de97a6-f82e-1472-376d-11949cb13d52')
+                            case "AboveOrEqual": // Microsoft.Dynamics.CRM.AboveOrEqual(PropertyName='accountid',PropertyValue='51de97a6-f82e-1472-376d-11949cb13d52')
+                            case "NotUnder": // Microsoft.Dynamics.CRM.NotUnder(PropertyName='accountid',PropertyValue='51de97a6-f82e-1472-376d-11949cb13d52')
+                            case "Under": // Microsoft.Dynamics.CRM.Under(PropertyName='accountid',PropertyValue='51de97a6-f82e-1472-376d-11949cb13d52')
+                            case "UnderOrEqual": // Microsoft.Dynamics.CRM.UnderOrEqual(PropertyName='accountid',PropertyValue='51de97a6-f82e-1472-376d-11949cb13d52')
+                                operatorFound = true;
+                                var clearedValue = filterField.value;
+                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + filterField.oDataName + "',PropertyValue='" + clearedValue + "')";
+                                break;
                         }
                         if (operatorFound === false) {
                             // default syntax: fieldname operator value

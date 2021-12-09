@@ -466,7 +466,11 @@ DRB.Logic.FillColumns = function () {
     if (DRB.Metadata.CurrentColumns.length === 0) {
         DRB.UI.ResetDropdown(DRB.DOM.Columns.Dropdown.Id, DRB.DOM.Columns.Dropdown.Name);
     } else {
-        DRB.UI.FillDropdown(DRB.DOM.Columns.Dropdown.Id, DRB.DOM.Columns.Dropdown.Name, new DRB.Models.Records(DRB.Metadata.CurrentColumns).ToDropdown());
+        var readColumns = [];
+        DRB.Metadata.CurrentColumns.forEach(function (currentColumn) {
+            if (currentColumn.IsValidForRead === true) { readColumns.push(currentColumn); }
+        });
+        DRB.UI.FillDropdown(DRB.DOM.Columns.Dropdown.Id, DRB.DOM.Columns.Dropdown.Name, new DRB.Models.Records(readColumns).ToDropdown());
         var columnsValues = [];
         DRB.Metadata.CurrentNode.data.configuration.fields.forEach(function (field) { columnsValues.push(field.logicalName); });
         if (columnsValues.length > 0) { $("#" + DRB.DOM.Columns.Dropdown.Id).val(columnsValues).change(); }

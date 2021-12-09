@@ -1023,7 +1023,7 @@ DRB.Models.OptionSetValue = function (value, label) {
  * @param {string} navigationProperty Navigation Property
  * @param {string} navigationAttribute Navigation Attribute
  */
-DRB.Models.Relationship = function (schemaName, type, sourceTable, targetTable, navigationProperty, navigationAttribute) {
+DRB.Models.Relationship = function (schemaName, type, sourceTable, targetTable, navigationProperty, navigationAttribute, isHierarchical) {
     this.Id = schemaName;
     this.Name = schemaName;
     this.SchemaName = schemaName;
@@ -1034,6 +1034,7 @@ DRB.Models.Relationship = function (schemaName, type, sourceTable, targetTable, 
     this.NavigationProperty = navigationProperty;
     this.NavigationAttribute = navigationAttribute;
     this.NavigationAttributeName = "";
+    this.IsHierarchical = isHierarchical;
 
     this.Columns = [];
     this.ToDropdownOption = function () {
@@ -1180,6 +1181,12 @@ DRB.Models.Column = function (logicalName, name, schemaName, attributeType, isPr
     this.AttributeOf = null;
     this.OptionValues = null;
 
+    // if column is not valid for read it can't be used for filter or order
+    if (this.IsValidForRead === false) {
+        this.IsValidForFilter = false;
+        this.IsValidForOrder = false;
+    }
+
     // check attribute type for setting some specific properties
     switch (attributeType) {
         case "Lookup":
@@ -1263,12 +1270,13 @@ DRB.Models.Table = function (logicalName, name, schemaName, entitySetName, prima
     this.ManyToManyRelationships = [];
     this.AlternateKeys = [];
     this.PersonalViews = [];
+    this.HasHierarchy = false;
 
     this.ColumnsLoaded = false;
     this.RelationshipsLoaded = false;
     this.AlternateKeysLoaded = false;
     this.PersonalViewsLoaded = false;
-
+    
     this.ToDropdownOption = function () { return new DRB.Models.DropdownOption(this.Id, this.Name, this.LogicalName); }
 }
 
@@ -2498,7 +2506,7 @@ DRB.Common.RetrieveTablesDetails = function (tableLogicalNames, includeRelations
             queryTable.Filters = "$select=LogicalName&$expand=Attributes"; // retrieve all Attributes due to "Additional Properties" mapping
             if (includeRelationships === true) {
                 queryTable.Filters +=
-                    ",OneToManyRelationships($select=SchemaName,ReferencingEntity,ReferencedEntity,ReferencingAttribute,ReferencedAttribute,ReferencingEntityNavigationPropertyName,ReferencedEntityNavigationPropertyName)" +
+                    ",OneToManyRelationships($select=SchemaName,ReferencingEntity,ReferencedEntity,ReferencingAttribute,ReferencedAttribute,ReferencingEntityNavigationPropertyName,ReferencedEntityNavigationPropertyName,IsHierarchical)" +
                     ",ManyToOneRelationships($select=SchemaName,ReferencingEntity,ReferencedEntity,ReferencingAttribute,ReferencedAttribute,ReferencingEntityNavigationPropertyName,ReferencedEntityNavigationPropertyName)" +
                     ",ManyToManyRelationships($select=Entity1LogicalName,Entity2LogicalName,Entity1NavigationPropertyName,Entity2NavigationPropertyName,SchemaName)";
             }
@@ -2619,7 +2627,16 @@ DRB.Common.SetTables = function (args, tables, mapRelationships, mapAlternateKey
                         currentTable.ManyToOneRelationships = DRB.Common.MapRelationships(context.ManyToOneRelationships, "ManyToOne", "Name", tableLogicalName);
                         currentTable.ManyToManyRelationships = DRB.Common.MapRelationships(context.ManyToManyRelationships, "ManyToMany", "Name", tableLogicalName);
                         currentTable.RelationshipsLoaded = true;
+
+                        // check Hierarchy
+                        for (var countRel = 0; countRel < currentTable.OneToManyRelationships.length; countRel++) {
+                            if (currentTable.OneToManyRelationships[countRel].IsHierarchical === true) {
+                                currentTable.HasHierarchy = true;
+                                break;
+                            }
+                        }
                     }
+
                     if (mapAlternateKeys === true) {
                         currentTable.AlternateKeys = DRB.Common.MapAlternateKeys(context.Keys, "Name");
                         currentTable.AlternateKeysLoaded = true;
@@ -2734,7 +2751,7 @@ DRB.Common.MapColumns = function (data, primaryIdAttribute, primaryNameAttribute
 
         var selectedColumns = [];
         columns.forEach(function (column) {
-            if (column.IsValidForRead === true && column.AttributeType !== "PartyList") {
+            if (column.AttributeType !== "PartyList") {
                 if (column.AttributeOf == null) { // TBD why not ===
                     if (imageColumns.indexOf(column.LogicalName) > -1) { column.Name = imageNameColumns[imageColumns.indexOf(column.LogicalName)] + " (ID)"; }
                     selectedColumns.push(column);
@@ -2864,10 +2881,10 @@ DRB.Common.MapRelationships = function (data, type, sortProperty, sourceTable) {
             var entity2LogicalName = record.Entity2LogicalName;
             var entity1NavigationPropertyName = record.Entity1NavigationPropertyName;
             var entity2NavigationPropertyName = record.Entity2NavigationPropertyName;
-
+            var isHierarchical = record.IsHierarchical;
             switch (type) {
                 case "OneToMany":
-                    relationships.push(new DRB.Models.Relationship(schemaName, type, sourceTable, referencingEntity, referencedEntityNavigationPropertyName, referencingAttribute));
+                    relationships.push(new DRB.Models.Relationship(schemaName, type, sourceTable, referencingEntity, referencedEntityNavigationPropertyName, referencingAttribute, isHierarchical));
                     break;
                 case "ManyToOne":
                     relationships.push(new DRB.Models.Relationship(schemaName, type, sourceTable, referencedEntity, referencingEntityNavigationPropertyName, referencingAttribute));
@@ -3916,7 +3933,11 @@ DRB.Logic.FillColumns = function () {
     if (DRB.Metadata.CurrentColumns.length === 0) {
         DRB.UI.ResetDropdown(DRB.DOM.Columns.Dropdown.Id, DRB.DOM.Columns.Dropdown.Name);
     } else {
-        DRB.UI.FillDropdown(DRB.DOM.Columns.Dropdown.Id, DRB.DOM.Columns.Dropdown.Name, new DRB.Models.Records(DRB.Metadata.CurrentColumns).ToDropdown());
+        var readColumns = [];
+        DRB.Metadata.CurrentColumns.forEach(function (currentColumn) {
+            if (currentColumn.IsValidForRead === true) { readColumns.push(currentColumn); }
+        });
+        DRB.UI.FillDropdown(DRB.DOM.Columns.Dropdown.Id, DRB.DOM.Columns.Dropdown.Name, new DRB.Models.Records(readColumns).ToDropdown());
         var columnsValues = [];
         DRB.Metadata.CurrentNode.data.configuration.fields.forEach(function (field) { columnsValues.push(field.logicalName); });
         if (columnsValues.length > 0) { $("#" + DRB.DOM.Columns.Dropdown.Id).val(columnsValues).change(); }
@@ -4954,6 +4975,16 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                                 operatorFound = true;
                                 var clearedValue = filterField.value;
                                 partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + filterField.oDataName + "',PropertyValue=" + clearedValue + ")";
+                                break;
+
+                            case "Above": // Microsoft.Dynamics.CRM.Above(PropertyName='accountid',PropertyValue='51de97a6-f82e-1472-376d-11949cb13d52')
+                            case "AboveOrEqual": // Microsoft.Dynamics.CRM.AboveOrEqual(PropertyName='accountid',PropertyValue='51de97a6-f82e-1472-376d-11949cb13d52')
+                            case "NotUnder": // Microsoft.Dynamics.CRM.NotUnder(PropertyName='accountid',PropertyValue='51de97a6-f82e-1472-376d-11949cb13d52')
+                            case "Under": // Microsoft.Dynamics.CRM.Under(PropertyName='accountid',PropertyValue='51de97a6-f82e-1472-376d-11949cb13d52')
+                            case "UnderOrEqual": // Microsoft.Dynamics.CRM.UnderOrEqual(PropertyName='accountid',PropertyValue='51de97a6-f82e-1472-376d-11949cb13d52')
+                                operatorFound = true;
+                                var clearedValue = filterField.value;
+                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + filterField.oDataName + "',PropertyValue='" + clearedValue + "')";
                                 break;
                         }
                         if (operatorFound === false) {
@@ -9049,6 +9080,27 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
                         divValue.append(DRB.UI.CreateInputGuid("txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath));
                         DRB.Common.BindGuid("txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
                         DRB.Logic.BindFilterColumnValue("txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
+                        if (column.IsPrimaryIdAttribute === true) {
+                            var target = DRB.Metadata.CurrentNode.data.configuration.primaryEntity.logicalName;
+                            var targetTable = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, target);
+                            if (DRB.Utilities.HasValue(targetTable)) {
+                                var targets = [];
+                                targets.push(new DRB.Models.Table(target, targetTable.Name));
+                                divValue.append(DRB.UI.CreateSimpleDropdown("cbxg_" + DRB.DOM[domObject].ControlValue.Id + metadataPath));
+                                DRB.UI.FillDropdown("cbxg_" + DRB.DOM[domObject].ControlValue.Id + metadataPath, "", new DRB.Models.Records(targets).ToDropdown());
+                                divValue.append(DRB.UI.CreateLookup("lkp_" + DRB.DOM[domObject].ControlValue.Id + metadataPath, DRB.UI.OpenLookup,
+                                    {
+                                        openCustom: true,
+                                        defaultEntityType: target,
+                                        entityTypes: [target],
+                                        textId: "txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath,
+                                        dropdownId: "cbxg_" + DRB.DOM[domObject].ControlValue.Id + metadataPath
+                                    }));
+
+                                DRB.Logic.BindFilterColumnValue("cbxg_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
+                                $("#cbxg_" + DRB.DOM[domObject].ControlValue.Id + metadataPath).val(targets[0].Id).change();
+                            }
+                        }
                         break;
 
                     case "String":
@@ -9269,6 +9321,16 @@ DRB.Logic.BindFilterColumn = function (id, columnType, domObject, metadataPath) 
                 case "Money":
                     optionsOperator = DRB.Settings.OptionsOperatorNumber;
                     break;
+            }
+
+            if (field.type === "Uniqueidentifier" && column.IsPrimaryIdAttribute === true) {
+                var target = DRB.Metadata.CurrentNode.data.configuration.primaryEntity.logicalName;
+                var targetTable = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, target);
+                if (DRB.Utilities.HasValue(targetTable)) {
+                    if (targetTable.HasHierarchy === true) {
+                        optionsOperator = DRB.Settings.OptionsOperatorHierarchyPrimaryKey;
+                    }
+                }
             }
 
             if (field.type === "Lookup") {
@@ -13330,8 +13392,15 @@ DRB.SetDefaultSettings = function () {
     var optOlderThanXMonths = new DRB.Models.IdValue("OlderThanXMonths", "Older Than X Months");
     var optOlderThanXYears = new DRB.Models.IdValue("OlderThanXYears", "Older Than X Years");
 
+    // Hierarchy Primary Key operators
+    var optAbove = new DRB.Models.IdValue("Above", "Above");
+    var optAboveOrEqual = new DRB.Models.IdValue("AboveOrEqual", "Above Or Equals");
+    var optNotUnder = new DRB.Models.IdValue("NotUnder", "Not Under");
+    var optUnder = new DRB.Models.IdValue("Under", "Under");
+    var optUnderOrEqual = new DRB.Models.IdValue("UnderOrEqual", "Under Or Equals");
 
     DRB.Settings.OptionsOperatorBasic = [optEq, optNe, optNeNull, optEqNull];
+    DRB.Settings.OptionsOperatorHierarchyPrimaryKey = [optEq, optNe, optNeNull, optEqNull, optAbove, optAboveOrEqual, optNotUnder, optUnder, optUnderOrEqual];
     DRB.Settings.OptionsOperatorLookupBusinessUnit = [optEq, optNe, optNeNull, optEqNull, optEqCurrentBusinessUnit, optNeCurrentBusinessUnit];
     DRB.Settings.OptionsOperatorLookupUser = [optEq, optNe, optNeNull, optEqNull, optEqCurrentUser, optNeCurrentUser];
     DRB.Settings.OptionsOperatorOwner = [optEq, optNe, optNeNull, optEqNull, optEqCurrentUser, optNeCurrentUser, optEqCurrentUserHierarchy, optEqCurrentUserHierarchyAndTeams, optEqCurrentUserTeams, optEqCurrentUserOrTeams];
@@ -13347,7 +13416,6 @@ DRB.SetDefaultSettings = function () {
 
     DRB.Settings.OperatorsToStop = [optNeNull, optEqNull, optEqCurrentUser, optNeCurrentUser, optEqCurrentUserHierarchy, optEqCurrentUserHierarchyAndTeams, optEqCurrentUserTeams, optEqCurrentUserOrTeams, optEqCurrentBusinessUnit, optNeCurrentBusinessUnit,
         optYesterday, optToday, optTomorrow, optNext7Days, optLast7Days, optNextWeek, optLastWeek, optThisWeek, optNextMonth, optLastMonth, optThisMonth, optNextYear, optLastYear, optThisYear, optNextFiscalYear, optLastFiscalYear, optThisFiscalYear, optNextFiscalPeriod, optLastFiscalPeriod, optThisFiscalPeriod];
-
     // #endregion
 
     // #region Postman Export Settings

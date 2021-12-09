@@ -156,7 +156,7 @@ DRB.Common.RetrieveTablesDetails = function (tableLogicalNames, includeRelations
             queryTable.Filters = "$select=LogicalName&$expand=Attributes"; // retrieve all Attributes due to "Additional Properties" mapping
             if (includeRelationships === true) {
                 queryTable.Filters +=
-                    ",OneToManyRelationships($select=SchemaName,ReferencingEntity,ReferencedEntity,ReferencingAttribute,ReferencedAttribute,ReferencingEntityNavigationPropertyName,ReferencedEntityNavigationPropertyName)" +
+                    ",OneToManyRelationships($select=SchemaName,ReferencingEntity,ReferencedEntity,ReferencingAttribute,ReferencedAttribute,ReferencingEntityNavigationPropertyName,ReferencedEntityNavigationPropertyName,IsHierarchical)" +
                     ",ManyToOneRelationships($select=SchemaName,ReferencingEntity,ReferencedEntity,ReferencingAttribute,ReferencedAttribute,ReferencingEntityNavigationPropertyName,ReferencedEntityNavigationPropertyName)" +
                     ",ManyToManyRelationships($select=Entity1LogicalName,Entity2LogicalName,Entity1NavigationPropertyName,Entity2NavigationPropertyName,SchemaName)";
             }
@@ -277,7 +277,16 @@ DRB.Common.SetTables = function (args, tables, mapRelationships, mapAlternateKey
                         currentTable.ManyToOneRelationships = DRB.Common.MapRelationships(context.ManyToOneRelationships, "ManyToOne", "Name", tableLogicalName);
                         currentTable.ManyToManyRelationships = DRB.Common.MapRelationships(context.ManyToManyRelationships, "ManyToMany", "Name", tableLogicalName);
                         currentTable.RelationshipsLoaded = true;
+
+                        // check Hierarchy
+                        for (var countRel = 0; countRel < currentTable.OneToManyRelationships.length; countRel++) {
+                            if (currentTable.OneToManyRelationships[countRel].IsHierarchical === true) {
+                                currentTable.HasHierarchy = true;
+                                break;
+                            }
+                        }
                     }
+
                     if (mapAlternateKeys === true) {
                         currentTable.AlternateKeys = DRB.Common.MapAlternateKeys(context.Keys, "Name");
                         currentTable.AlternateKeysLoaded = true;

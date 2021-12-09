@@ -148,6 +148,27 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
                         divValue.append(DRB.UI.CreateInputGuid("txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath));
                         DRB.Common.BindGuid("txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
                         DRB.Logic.BindFilterColumnValue("txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
+                        if (column.IsPrimaryIdAttribute === true) {
+                            var target = DRB.Metadata.CurrentNode.data.configuration.primaryEntity.logicalName;
+                            var targetTable = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, target);
+                            if (DRB.Utilities.HasValue(targetTable)) {
+                                var targets = [];
+                                targets.push(new DRB.Models.Table(target, targetTable.Name));
+                                divValue.append(DRB.UI.CreateSimpleDropdown("cbxg_" + DRB.DOM[domObject].ControlValue.Id + metadataPath));
+                                DRB.UI.FillDropdown("cbxg_" + DRB.DOM[domObject].ControlValue.Id + metadataPath, "", new DRB.Models.Records(targets).ToDropdown());
+                                divValue.append(DRB.UI.CreateLookup("lkp_" + DRB.DOM[domObject].ControlValue.Id + metadataPath, DRB.UI.OpenLookup,
+                                    {
+                                        openCustom: true,
+                                        defaultEntityType: target,
+                                        entityTypes: [target],
+                                        textId: "txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath,
+                                        dropdownId: "cbxg_" + DRB.DOM[domObject].ControlValue.Id + metadataPath
+                                    }));
+
+                                DRB.Logic.BindFilterColumnValue("cbxg_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
+                                $("#cbxg_" + DRB.DOM[domObject].ControlValue.Id + metadataPath).val(targets[0].Id).change();
+                            }
+                        }
                         break;
 
                     case "String":
@@ -368,6 +389,16 @@ DRB.Logic.BindFilterColumn = function (id, columnType, domObject, metadataPath) 
                 case "Money":
                     optionsOperator = DRB.Settings.OptionsOperatorNumber;
                     break;
+            }
+
+            if (field.type === "Uniqueidentifier" && column.IsPrimaryIdAttribute === true) {
+                var target = DRB.Metadata.CurrentNode.data.configuration.primaryEntity.logicalName;
+                var targetTable = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, target);
+                if (DRB.Utilities.HasValue(targetTable)) {
+                    if (targetTable.HasHierarchy === true) {
+                        optionsOperator = DRB.Settings.OptionsOperatorHierarchyPrimaryKey;
+                    }
+                }
             }
 
             if (field.type === "Lookup") {
