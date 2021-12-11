@@ -5,10 +5,11 @@
  * @param {any[]} headers Headers
  * @param {string} body Body
  */
-DRB.GeneratePostman.ReturnValues = function (settings, method, url, body) {
+DRB.GeneratePostman.ReturnValues = function (settings, method, url, body, isBinary) {
     var postmanUrl = { raw: "{{url}}" + url, host: ["{{url}}" + url] };
     var postmanBody = { mode: "raw", raw: body, options: { raw: { language: "json" } } };
-    var postmanHeader = DRB.GeneratePostman.GetRequestHeaders(settings, method);
+    if (isBinary === true) { postmanBody = { mode: "file", file: { src: "" } }; }
+    var postmanHeader = DRB.GeneratePostman.GetRequestHeaders(settings, method, isBinary);
     return { postmanMethod: method, postmanUrl: postmanUrl, postmanHeader: postmanHeader, postmanBody: postmanBody };
 }
 
@@ -16,7 +17,7 @@ DRB.GeneratePostman.ReturnValues = function (settings, method, url, body) {
  * Generate Postman - Get Request Headers
  * @param {any} settings Configuration
  */
-DRB.GeneratePostman.GetRequestHeaders = function (settings, method) {
+DRB.GeneratePostman.GetRequestHeaders = function (settings, method, isBinary) {
     // Request Headers
     var headers = [];
 
@@ -25,7 +26,11 @@ DRB.GeneratePostman.GetRequestHeaders = function (settings, method) {
     headers.push({ key: "Accept", value: "application/json", type: "text" });
 
     if (method === "POST" || method === "PATCH") {
-        headers.push({ key: "Content-Type", value: "application/json; charset=utf-8", type: "text" });
+        if (isBinary === true) {
+            headers.push({ key: "Content-Type", value: "application/octet-stream", type: "text" });
+        } else {
+            headers.push({ key: "Content-Type", value: "application/json; charset=utf-8", type: "text" });
+        }
     }
 
     // Formatted Values and Return Record
@@ -564,6 +569,39 @@ DRB.GeneratePostman.ExecuteWorkflow = function (settings) {
 }
 
 /**
+ * Generate Postman - Manage File Data
+ */
+DRB.GeneratePostman.ManageFileData = function (settings) {
+    var url = "";
+    var body = "";
+    var isBinary = false;
+    var operation = "GET";
+    if (DRB.Utilities.HasValue(settings.primaryEntity)) {
+        var entityCriteria = settings.primaryId;
+        var field = "";
+        if (DRB.Utilities.HasValue(settings.fileField)) { field = settings.fileField.logicalName; }
+        var fileName = encodeURIComponent(settings.fileName);
+
+        switch (settings.fileOperation) {
+            case "retrieve":
+                operation = "GET";
+                url = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field + "/$value";
+                break;
+            case "upload":
+                operation = "PATCH";
+                url = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field + "?x-ms-file-name=" + fileName;
+                isBinary = true;
+                break;
+            case "delete":
+                operation = "DELETE";
+                url = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field;
+                break;
+        }
+    }
+    return DRB.GeneratePostman.ReturnValues(settings, operation, url, body, isBinary);
+}
+
+/**
  * Generate Postman - Start
  */
 DRB.GeneratePostman.Start = function (requestType, settings) {
@@ -578,6 +616,7 @@ DRB.GeneratePostman.Start = function (requestType, settings) {
         case "retrievenextlink": return DRB.GeneratePostman.RetrieveNextLink(settings); break;
         case "predefinedquery": return DRB.GeneratePostman.PredefinedQuery(settings); break;
         case "executeworkflow": return DRB.GeneratePostman.ExecuteWorkflow(settings); break;
+        case "managefiledata": return DRB.GeneratePostman.ManageFileData(settings); break;
 
         // Custom API, Custom Action, Action, Function share the same code
         case "executecustomapi":

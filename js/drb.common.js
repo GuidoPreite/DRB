@@ -101,6 +101,29 @@ DRB.Common.BindTopCountNumber = function (id) {
 }
 
 /**
+ * Common - Bind File Name
+ * Bind the input event to check if it is a valid file name
+ * @param {string} id Element Id
+ */
+DRB.Common.BindFileName = function (id) {
+    $("#" + id).on("input", function (e) {
+        $(this).val(function (i, v) {
+            // \/:*?"<>| these chars are not allowed inside a file name
+            var finalName = v.replace(/\\/g, "");
+            finalName = finalName.replace(/\//g, "");
+            finalName = finalName.replace(/:/g, "");
+            finalName = finalName.replace(/\*/g, "");
+            finalName = finalName.replace(/\?/g, "");
+            finalName = finalName.replace(/"/g, "");
+            finalName = finalName.replace(/</g, "");
+            finalName = finalName.replace(/>/g, "");
+            finalName = finalName.replace(/\|/g, "");
+            return finalName;
+        });
+    });
+}
+
+/**
  * Common - Bind Number
  * Bind the input event to check if it is a valid Number
  * @param {string} id Element Id

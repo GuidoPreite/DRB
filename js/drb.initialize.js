@@ -17,7 +17,8 @@ DRB.SetDefaultSettings = function () {
     { Id: "executecustomaction", Name: "Execute Custom Action" },
     { Id: "executeaction", Name: "Execute Action" },
     { Id: "executefunction", Name: "Execute Function" },
-    { Id: "executeworkflow", Name: "Execute Workflow" }];
+    { Id: "executeworkflow", Name: "Execute Workflow" },
+    { Id: "managefiledata", Name: "Manage File Data" }];
     DRB.Settings.RequestTypes = [];
     requests.forEach(function (request) { DRB.Settings.RequestTypes.push(new DRB.Models.IdValue(request.Id, request.Name)); });
     // #endregion
@@ -40,6 +41,7 @@ DRB.SetDefaultSettings = function () {
     DRB.Settings.OptionsOrder = [new DRB.Models.IdValue("asc", "Ascending"), new DRB.Models.IdValue("desc", "Descending")]; // Retrieve Multiple
     DRB.Settings.OptionsAndOr = [new DRB.Models.IdValue("and", "And"), new DRB.Models.IdValue("or", "Or")]; // Retrieve Multiple
     DRB.Settings.OptionsTrueFalse = [new DRB.Models.IdValue("yes", "True"), new DRB.Models.IdValue("no", "False")]; // Dataverse Execute
+    DRB.Settings.OptionsManageFile = [new DRB.Models.IdValue("retrieve", "Retrieve"), new DRB.Models.IdValue("upload", "Upload"), new DRB.Models.IdValue("delete", "Delete")]; // Manage File Data
     // #endregion
 
     // #region Operators

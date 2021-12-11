@@ -24,4 +24,5 @@ DRB.Logic.RetrieveNextLink = {}; // Retrieve NextLink Functions
 DRB.Logic.PredefinedQuery = {}; // Predefined Query Functions
 DRB.Logic.DataverseExecute = {}; // Dataverse Action, Dataverse Function Functions
 DRB.Logic.ExecuteWorkflow = {}; // Execute Workflow Functions
+DRB.Logic.ManageFileData = {}; // Manage File Data Functions
 // #endregion

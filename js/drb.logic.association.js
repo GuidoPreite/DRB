@@ -67,7 +67,7 @@ DRB.Logic.Association.AfterTableLoaded = function (table) {
         var childTable = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, tableLogicalName);
         if (DRB.Utilities.HasValue(childTable)) { childTables.push(childTable); }
     });
-
+    childTables.sort(DRB.Utilities.CustomSort("Name"));
     DRB.UI.FillDropdown(DRB.DOM.ChildTable.Dropdown.Id, DRB.DOM.ChildTable.Dropdown.Name, new DRB.Models.Records(childTables).ToDropdown());
 
     var childTable = "";

@@ -77,7 +77,6 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
         codeValue = codeValue.replace(/req.setRequestHeader\("OData-MaxVersion", "4.0"\);/gi, 'req.setRequestHeader("OData-MaxVersion", "4.0"); req.setRequestHeader("Authorization", "Bearer " + DRB.Settings.JWTToken);');
     }
 
-    console.log(codeValue);
     DRB.UI.ShowLoading("Executing code...");
     setTimeout(function () {
         try {
@@ -220,16 +219,19 @@ DRB.Logic.BindRequestType = function (id) {
         $("#" + DRB.DOM.ConfigureContent.Id).empty();
         $("#a_" + DRB.Settings.Tabs[0].id).click();
 
+        // hide or show Tab "Xrm.WebApi" (Tab number 1) based on the request type
         // hide or show Tab "Xrm.WebApi execute" (Tab number 2) based on the request type
         // hide or show Tab "Portals" (Tab number 5) based on the request type
         // hide or show Tab "Power Automate" (Tab number 8) based on the request type
         switch (requestTypeValue) {
             case "retrievesingle":
+                $("#a_" + DRB.Settings.Tabs[1].id).show();
                 $("#a_" + DRB.Settings.Tabs[2].id).show();
                 $("#a_" + DRB.Settings.Tabs[5].id).show();
                 $("#a_" + DRB.Settings.Tabs[8].id).show();
                 break;
             case "retrievemultiple":
+                $("#a_" + DRB.Settings.Tabs[1].id).show();
                 $("#a_" + DRB.Settings.Tabs[2].id).hide();
                 $("#a_" + DRB.Settings.Tabs[5].id).show();
                 $("#a_" + DRB.Settings.Tabs[8].id).show();
@@ -237,14 +239,22 @@ DRB.Logic.BindRequestType = function (id) {
             case "create":
             case "update":
             case "delete":
+                $("#a_" + DRB.Settings.Tabs[1].id).show();
                 $("#a_" + DRB.Settings.Tabs[2].id).show();
                 $("#a_" + DRB.Settings.Tabs[5].id).show();
                 $("#a_" + DRB.Settings.Tabs[8].id).hide();
                 break;
             case "associate":
             case "disassociate":
+                $("#a_" + DRB.Settings.Tabs[1].id).show();
                 $("#a_" + DRB.Settings.Tabs[2].id).hide();
                 $("#a_" + DRB.Settings.Tabs[5].id).show();
+                $("#a_" + DRB.Settings.Tabs[8].id).hide();
+                break;
+            case "managefiledata":
+                $("#a_" + DRB.Settings.Tabs[1].id).hide();
+                $("#a_" + DRB.Settings.Tabs[2].id).hide();
+                $("#a_" + DRB.Settings.Tabs[5].id).hide();
                 $("#a_" + DRB.Settings.Tabs[8].id).hide();
                 break;
             default:
@@ -297,6 +307,9 @@ DRB.Logic.BindRequestType = function (id) {
         if (!DRB.Utilities.HasValue(nodeConfiguration.dataverseExecute)) { nodeConfiguration.dataverseExecute = ""; } // Dataverse Execute
         if (!DRB.Utilities.HasValue(nodeConfiguration.dataverseOperationType)) { nodeConfiguration.dataverseOperationType = 0; } // Dataverse Execute
         if (!DRB.Utilities.HasValue(nodeConfiguration.dataverseParameters)) { nodeConfiguration.dataverseParameters = []; } // Dataverse Execute
+        if (!DRB.Utilities.HasValue(nodeConfiguration.fileField)) { nodeConfiguration.fileField = null; } // Manage File Data
+        if (!DRB.Utilities.HasValue(nodeConfiguration.fileOperation)) { nodeConfiguration.fileOperation = ""; } // Manage File Data
+        if (!DRB.Utilities.HasValue(nodeConfiguration.fileName)) { nodeConfiguration.fileName = ""; } // Manage File Data
 
         // Check the selected Request Type
         switch (requestTypeValue) {
@@ -388,6 +401,13 @@ DRB.Logic.BindRequestType = function (id) {
 
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
                 DRB.Logic.ExecuteWorkflow.Start();
+                break;
+            case "managefiledata": // Manage File Data
+                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateId",
+                    "primaryEntity", "primaryId", "fileField", "fileOperation", "fileName"];
+
+                DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
+                DRB.Logic.ManageFileData.Start();
                 break;
         }
 

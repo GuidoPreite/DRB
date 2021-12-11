@@ -77,6 +77,23 @@ DRB.DOM.Columns.Button = { Id: "btn_columns", Name: "Select Columns" };
 DRB.DOM.Columns.Span = { Id: "span_columns", Name: "Columns" };
 DRB.DOM.Columns.Dropdown = { Id: "cbx_columns", Name: "Select Columns" };
 
+// File Column
+DRB.DOM.FileColumn = {};
+DRB.DOM.FileColumn.Div = { Id: "div_filecolumn", Class: "sameline" };
+DRB.DOM.FileColumn.Span = { Id: "span_filecolumn", Name: "File Column" };
+DRB.DOM.FileColumn.Dropdown = { Id: "cbx_filecolumn", Name: "Select File Column" };
+
+// File Operation
+DRB.DOM.FileOperation = {};
+DRB.DOM.FileOperation.Span = { Id: "span_fileoperation", Name: "Operation" };
+DRB.DOM.FileOperation.Dropdown = { Id: "cbx_fileoperation", Name: "Select Operation" };
+
+// File Name
+DRB.DOM.FileName = {};
+DRB.DOM.FileName.Div = { Id: "div_filename" };
+DRB.DOM.FileName.Span = { Id: "span_filename", Name: "File Name" };
+DRB.DOM.FileName.Input = { Id: "txt_filename" };
+
 // Relationships
 DRB.DOM.DivRelationship = { Id: "div_relationships" };
 DRB.DOM.Relationship = {};

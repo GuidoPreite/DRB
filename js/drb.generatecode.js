@@ -2807,6 +2807,185 @@ DRB.GenerateCode.ExecuteWorkflow = function () {
 }
 
 /**
+ * Generate Code - Manage File Data
+ */
+DRB.GenerateCode.ManageFileData = function () {
+    var settings = DRB.Metadata.CurrentNode.data.configuration;
+
+    var codejQuery = [];
+    var codeXMLHttpRequest = [];
+
+    if (!DRB.Utilities.HasValue(settings.primaryEntity)) {
+        // Don't generate the code if a table is not selected
+        var errorMessage = "// Select a Table first";
+        codejQuery.push(errorMessage);
+        codeXMLHttpRequest.push(errorMessage);
+        DRB.GenerateCode.SetCodeEditors(null, null, codejQuery, codeXMLHttpRequest, null);
+        return;
+    }
+
+    var entityCriteria = settings.primaryId;
+    var field = "";
+    if (DRB.Utilities.HasValue(settings.fileField)) { field = settings.fileField.logicalName; }
+    var mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")";
+    switch (settings.fileOperation) {
+        case "retrieve":
+            mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field + "/$value";
+            break;
+        case "upload":
+            mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field + "?x-ms-file-name=";
+            break;
+        case "delete":
+            mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field;
+            break;
+    }
+
+    // Request Headers
+    var requestHeaders = DRB.GenerateCode.GetRequestHeaders(settings);
+    switch (settings.fileOperation) {
+        case "retrieve":
+            codejQuery.push('$.ajax({');
+            codejQuery.push('\ttype: "GET",');
+            codejQuery.push('\tcontentType: "application/json; charset=utf-8",');
+            codejQuery.push('\tdatatype: "json",');
+            codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '",');
+            codejQuery.push('\tbeforeSend: function (req) {');
+            requestHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
+            codejQuery.push('\t},');
+            codejQuery.push('\tasync: ' + settings.async + ',');
+            codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
+            codejQuery.push('\t\tvar fileContent = data;');
+            codejQuery.push('\t\tconsole.log("File retrieved");');
+            codejQuery.push('\t\t// Uncomment the following lines to download the file');
+            codejQuery.push('\t\t// var saveFile = new Blob([fileContent], { type: "application/octet-stream" });');
+            codejQuery.push('\t\t// var customLink = document.createElement("a");');
+            codejQuery.push('\t\t// customLink.href = URL.createObjectURL(saveFile);');
+            codejQuery.push('\t\t// customLink.download = "file.bin";');
+            codejQuery.push('\t\t// customLink.click();');
+            codejQuery.push('\t},');
+            codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
+            codejQuery.push('\t\tconsole.log(xhr.responseText);');
+            codejQuery.push('\t}');
+            codejQuery.push('});');
+            // #endregion
+
+            // #region XMLHttpRequest
+            codeXMLHttpRequest.push('var req = new XMLHttpRequest();');
+            codeXMLHttpRequest.push('req.open("GET", Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", ' + settings.async + ');');
+            codeXMLHttpRequest.push(requestHeaders.join('\n'));
+            codeXMLHttpRequest.push('req.onreadystatechange = function () {');
+            codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
+            codeXMLHttpRequest.push('\t\treq.onreadystatechange = null;');
+            codeXMLHttpRequest.push('\t\tif (this.status === 200) {');
+            codeXMLHttpRequest.push('\t\t\tvar fileContent = this.response;');
+            codeXMLHttpRequest.push('\t\t\tconsole.log("File retrieved");');
+            codeXMLHttpRequest.push('\t\t\t// Uncomment the following lines to download the file');
+            codeXMLHttpRequest.push('\t\t\t// var saveFile = new Blob([fileContent], { type: "application/octet-stream" });');
+            codeXMLHttpRequest.push('\t\t\t// var customLink = document.createElement("a");');
+            codeXMLHttpRequest.push('\t\t\t// customLink.href = URL.createObjectURL(saveFile);');
+            codeXMLHttpRequest.push('\t\t\t// customLink.download = "file.bin";');
+            codeXMLHttpRequest.push('\t\t\t// customLink.click();');
+            codeXMLHttpRequest.push('\t\t} else {');
+            codeXMLHttpRequest.push('\t\t\tconsole.log(this.responseText);');
+            codeXMLHttpRequest.push('\t\t}');
+            codeXMLHttpRequest.push('\t}');
+            codeXMLHttpRequest.push('};');
+            codeXMLHttpRequest.push('req.send();');
+            // #endregion
+            break;
+
+        case "upload":
+            var warningFileContent = ' // Binary content';
+            var escapedFileName = settings.fileName;
+            var warningFileName = ' // The following characters are not allowed inside a file name: \\ / : * ? " < > |';
+
+            var uploadCode = [];
+            uploadCode.push('var fileContent = "";' + warningFileContent);
+            uploadCode.push('var fileName = encodeURIComponent("' + escapedFileName + '");' + warningFileName);
+            uploadCode.push('');
+
+            // #region jQuery
+            uploadCode.forEach(function (line) { codejQuery.push(line); });
+            codejQuery.push('$.ajax({');
+            codejQuery.push('\ttype: "PATCH",');
+            codejQuery.push('\tcontentType: "application/octet-stream",'); // Binary upload
+            codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '" + fileName,');
+            codejQuery.push('\tdata: fileContent,');
+            codejQuery.push('\tbeforeSend: function (req) {');
+            requestHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
+            codejQuery.push('\t},');
+            codejQuery.push('\tasync: ' + settings.async + ',');
+            codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
+            codejQuery.push('\t\tconsole.log("File uploaded");');
+            codejQuery.push('\t},');
+            codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
+            codejQuery.push('\t\tconsole.log(xhr.responseText);');
+            codejQuery.push('\t}');
+            codejQuery.push('});');
+            // #endregion
+
+            // #region XMLHttpRequest
+            uploadCode.forEach(function (line) { codeXMLHttpRequest.push(line); });
+            codeXMLHttpRequest.push('var req = new XMLHttpRequest();');
+            codeXMLHttpRequest.push('req.open("PATCH", Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '" + fileName, ' + settings.async + ');');
+            codeXMLHttpRequest.push(requestHeaders.join('\n'));
+            codeXMLHttpRequest.push('req.setRequestHeader("Content-Type", "application/octet-stream");'); // Binary upload
+            codeXMLHttpRequest.push('req.onreadystatechange = function () {');
+            codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
+            codeXMLHttpRequest.push('\t\treq.onreadystatechange = null;');
+            codeXMLHttpRequest.push('\t\tif (this.status === 204) {');
+            codeXMLHttpRequest.push('\t\t\tconsole.log("File uploaded");');
+            codeXMLHttpRequest.push('\t\t} else {');
+            codeXMLHttpRequest.push('\t\t\tconsole.log(this.responseText);');
+            codeXMLHttpRequest.push('\t\t}');
+            codeXMLHttpRequest.push('\t}');
+            codeXMLHttpRequest.push('};');
+            codeXMLHttpRequest.push('req.send(fileContent);');
+            // #endregion
+            break;
+
+        case "delete":
+            // #region jQuery
+            codejQuery.push('$.ajax({');
+            codejQuery.push('\ttype: "DELETE",');
+            codejQuery.push('\tcontentType: "application/json; charset=utf-8",');
+            codejQuery.push('\tdatatype: "json",');
+            codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '",');
+            codejQuery.push('\tbeforeSend: function (req) {');
+            requestHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
+            codejQuery.push('\t},');
+            codejQuery.push('\tasync: ' + settings.async + ',');
+            codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
+            codejQuery.push('\t\tconsole.log("File deleted");');
+            codejQuery.push('\t},');
+            codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
+            codejQuery.push('\t\tconsole.log(xhr.responseText);');
+            codejQuery.push('\t}');
+            codejQuery.push('});');
+            // #endregion
+
+            // #region XMLHttpRequest
+            codeXMLHttpRequest.push('var req = new XMLHttpRequest();');
+            codeXMLHttpRequest.push('req.open("DELETE", Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", ' + settings.async + ');');
+            codeXMLHttpRequest.push(requestHeaders.join('\n'));
+            codeXMLHttpRequest.push('req.onreadystatechange = function () {');
+            codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
+            codeXMLHttpRequest.push('\t\treq.onreadystatechange = null;');
+            codeXMLHttpRequest.push('\t\tif (this.status === 204 || this.status === 1223) {');
+            codeXMLHttpRequest.push('\t\t\tconsole.log("File deleted");');
+            codeXMLHttpRequest.push('\t\t} else {');
+            codeXMLHttpRequest.push('\t\t\tconsole.log(this.responseText);');
+            codeXMLHttpRequest.push('\t\t}');
+            codeXMLHttpRequest.push('\t}');
+            codeXMLHttpRequest.push('};');
+            codeXMLHttpRequest.push('req.send();');
+            // #endregion
+            break;
+    }
+    DRB.GenerateCode.SetCodeEditors(null, null, codejQuery, codeXMLHttpRequest, null);
+}
+
+/**
  * Generate Code - Power Automate
  */
 DRB.GenerateCode.PowerAutomate = function (requestType) {
@@ -2923,6 +3102,7 @@ DRB.GenerateCode.Start = function () {
         case "retrievenextlink": DRB.GenerateCode.RetrieveNextLink(); break;
         case "predefinedquery": DRB.GenerateCode.PredefinedQuery(); break;
         case "executeworkflow": DRB.GenerateCode.ExecuteWorkflow(); break;
+        case "managefiledata": DRB.GenerateCode.ManageFileData(); break;
 
         // Custom API, Custom Action, Action, Function share the same code
         case "executecustomapi":
