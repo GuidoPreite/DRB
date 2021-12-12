@@ -320,6 +320,18 @@ DRB.Models.Table = function (logicalName, name, schemaName, entitySetName, prima
 }
 
 /**
+ * Models - User
+ * @param {string} id Id
+ * @param {string} name Name
+ * @param {string} aadObjectId AAD Object Id
+ */
+DRB.Models.User = function (id, name, aadObjectId) {
+    this.Id = id;
+    this.Name = name;
+    this.AADObjectId = aadObjectId;
+}
+
+/**
  * Models - Personal View
  * @param {string} id Id
  * @param {string} name Name

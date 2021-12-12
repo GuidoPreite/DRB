@@ -28,6 +28,29 @@ DRB.Common.MapTables = function (data, sortProperty) {
 }
 
 /**
+ * Common - Map Users
+ * @param {any} data Data to parse
+ * @param {string} sortProperty Sort Property
+ */
+DRB.Common.MapUsers = function (data, sortProperty) {
+    // create the array
+    var users = [];
+    // parse data
+    if (Array.isArray(data.value)) {
+        data.value.forEach(function (record) {
+            var id = record.systemuserid;
+            var name = record.fullname;
+            var aadObjectId = record.azureactivedirectoryobjectid;
+            users.push(new DRB.Models.User(id, name, aadObjectId));
+        });
+        // sort the array based on the provided sortProperty
+        if (DRB.Utilities.HasValue(sortProperty)) { users.sort(DRB.Utilities.CustomSort(sortProperty)); }
+    }
+    // return the array
+    return users;
+}
+
+/**
  * Common - Map Columns
  * @param {any} data Data to parse
  * @param {string} sortProperty Sort Property

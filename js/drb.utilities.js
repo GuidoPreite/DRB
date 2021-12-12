@@ -1,5 +1,6 @@
 ﻿// #region DRB.Utilities
 /**
+ * Utilities - Has Value
  * Returns true if a parameter is not undefined, not null and not an empty string, otherwise returns false
  * @param {any} parameter Parameter to check
  */
@@ -8,6 +9,19 @@ DRB.Utilities.HasValue = function (parameter) {
 }
 
 /**
+ * Utilities - Local Storage Available
+ * Check if localStorage is available
+ */
+DRB.Utilities.LocalStorageAvailable = function () {
+    try {
+        localStorage.setItem("DRB_CheckLocalStorage", "DRB");
+        localStorage.removeItem("DRB_CheckLocalStorage");
+        return true;
+    } catch (e) { return false; }
+}
+
+/**
+ * Utilities - Generate Guid
  * Returns a Random Guid with options to add Braces or Upper Case
  * @param {boolean} braces if the Guid contains braces
  * @param {boolean} upperCase if the Guid is returned as Upper Case
@@ -23,6 +37,7 @@ DRB.Utilities.GenerateGuid = function (braces, upperCase) {
 }
 
 /**
+ * Utilities - Remove Duplicates From Array
  * Returns a new Array without duplicates
  * @param {any[]} array Array to check
  */

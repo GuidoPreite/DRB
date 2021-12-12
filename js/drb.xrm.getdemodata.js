@@ -286,6 +286,9 @@ DRB.Xrm.GetDemoData = function (entitySetName, filters, singleRecord) {
             // fakeData.value.push({ ObjectTypeCode: 10002, SchemaName: "new_CustomTable", LogicalName: "new_customtable", EntitySetName: "new_customtables", PrimaryIdAttribute: "new_customtableid", PrimaryNameAttribute: "new_name", DisplayName: { UserLocalizedLabel: { Label: "Custom Table (New)" } } });
             fakeData.value.push({ ObjectTypeCode: 1, SchemaName: "Account", LogicalName: "account", EntitySetName: "accounts", PrimaryIdAttribute: "accountid", PrimaryNameAttribute: "name" });
             break;
+        case "systemusers":
+            fakeData.value.push({ systemuserid: "11111111-1111-1111-1111-111111111111", fullname: "User 1", azureactivedirectoryobjectid: "22222222-2222-2222-2222-222222222222" });
+            break;
         case "userqueries":
             fakeData.value.push({ userqueryid: "9650cd65-fe3e-4d71-b1ef-e2e2e61edcdb", name: "Contact Personal View", returnedtypecode: "contact" });
             fakeData.value.push({ userqueryid: "8470fc1b-220c-4353-a4e8-e9c91ebf8185", name: "Custom Table Personal View", returnedtypecode: "sample_customtable" });

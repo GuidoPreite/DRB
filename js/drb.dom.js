@@ -143,7 +143,9 @@ DRB.DOM.Impersonate.Dropdown = { Id: "cbx_impersonate", Name: "Impersonate" };
 // Impersonate Id 
 DRB.DOM.ImpersonateId = {};
 DRB.DOM.ImpersonateId.Div = { Id: "div_impersonateid", Class: "sameline" };
-DRB.DOM.ImpersonateId.Span = { Id: "span_impersonateid", Name: "Impersonate Id" };
+DRB.DOM.ImpersonateId.TypeSpan = { Id: "span_impersonatetype", Name: "Type" };
+DRB.DOM.ImpersonateId.Dropdown = { Id: "cbx_impersonatetype", Name: "Type" };
+DRB.DOM.ImpersonateId.Span = { Id: "span_impersonateid", Name: "Id" };
 DRB.DOM.ImpersonateId.Input = { Id: "txt_impersonateid" };
 DRB.DOM.ImpersonateId.Lookup = { Id: "lkp_impersonateid" };
 

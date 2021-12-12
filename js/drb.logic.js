@@ -161,16 +161,46 @@ DRB.Logic.CopyCodeForPowerautomate = function (id, name) {
 }
 
 /**
- * Logic - Refresh Tables
+ * Logic - Complete Initialize
  */
-DRB.Logic.RefreshTables = function () {
+DRB.Logic.CompleteInitialize = function () {
     // retrieve tables
-    DRB.UI.ShowLoading("Retrieving Tables...");
+    DRB.UI.ShowLoading("Retrieving Tables and Users...");
     setTimeout(function () {
         DRB.Common.RetrieveTables()
             .done(function (data) {
                 DRB.Metadata.Tables = DRB.Common.MapTables(data, "Name");
-                DRB.UI.HideLoading();
+                DRB.Common.RetrieveUsers()
+                    .done(function (data2) {
+                        DRB.Metadata.Users = DRB.Common.MapUsers(data2, "Name");
+
+                        // Check localStorage
+                        if (DRB.Settings.LocalStorageAvailable === true) {
+                            var storedJson = localStorage.getItem("DRB_" + DRB.Xrm.GetClientUrl());
+                            if (storedJson !== null) {
+                                try {
+                                    var parsedContent = JSON.parse(storedJson);
+                                    // version check
+                                    if (parsedContent.version > 1) {
+                                        // verion not compatible, remove the localStorage item
+                                        localStorage.removeItem("DRB_" + DRB.Xrm.GetClientUrl());
+                                    } else {
+                                        // create an empty data structure
+                                        var currentNodes = [{}];
+                                        // import jsTree nodes to the new data structure
+                                        DRB.Collection.ImportNodes(parsedContent, currentNodes[0]);
+                                        // load nodes
+                                        DRB.Collection.LoadNodes(currentNodes);
+                                    }
+                                } catch (e) {
+                                    // something went wrong when parsing the file, remove the localStorage item
+                                    localStorage.removeItem("DRB_" + DRB.Xrm.GetClientUrl());
+                                }
+                            }
+                        }
+                        DRB.UI.HideLoading();
+                    })
+                    .fail(function (xhr) { DRB.UI.ShowError("DRB.Common.RetrieveUsers Error", DRB.Common.GetErrorMessage(xhr)); });
             })
             .fail(function (xhr) { DRB.UI.ShowError("DRB.Common.RetrieveTables Error", DRB.Common.GetErrorMessage(xhr)); });
     }, DRB.Settings.TimeoutDelay);
@@ -274,6 +304,7 @@ DRB.Logic.BindRequestType = function (id) {
         if (!DRB.Utilities.HasValue(nodeConfiguration.async)) { nodeConfiguration.async = true; } // All
         if (!DRB.Utilities.HasValue(nodeConfiguration.tokenHeader)) { nodeConfiguration.tokenHeader = false; } // All
         if (!DRB.Utilities.HasValue(nodeConfiguration.impersonate)) { nodeConfiguration.impersonate = false; } // All
+        if (!DRB.Utilities.HasValue(nodeConfiguration.impersonateType)) { nodeConfiguration.impersonateType = "mscrmcallerid"; } // All
         if (!DRB.Utilities.HasValue(nodeConfiguration.impersonateId)) { nodeConfiguration.impersonateId = ""; } // All
         if (!DRB.Utilities.HasValue(nodeConfiguration.formattedValues)) { nodeConfiguration.formattedValues = true; }
         if (!DRB.Utilities.HasValue(nodeConfiguration.returnRecord)) { nodeConfiguration.returnRecord = false; } // Create, Update
@@ -314,7 +345,7 @@ DRB.Logic.BindRequestType = function (id) {
         // Check the selected Request Type
         switch (requestTypeValue) {
             case "retrievesingle": // Retrieve Single
-                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateId", "formattedValues",
+                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId", "formattedValues",
                     "detectChanges", "primaryEntity", "useAlternateKey", "alternateKeyName", "alternateKeyFields",
                     "primaryId", "primaryIdField", "fields", "oneToMany", "manyToOne", "manyToMany"];
 
@@ -323,7 +354,7 @@ DRB.Logic.BindRequestType = function (id) {
                 break;
 
             case "retrievemultiple": // Retrieve Multiple
-                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateId", "formattedValues",
+                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId", "formattedValues",
                     "retrieveCount", "topCount", "primaryEntity", "primaryIdField", "fields", "oneToMany", "manyToOne", "manyToMany",
                     "filterCriteria", "orderFields"];
 
@@ -332,7 +363,7 @@ DRB.Logic.BindRequestType = function (id) {
                 break;
 
             case "create": // Create
-                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateId", "formattedValues",
+                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId", "formattedValues",
                     "returnRecord", "detectDuplicates", "primaryEntity", "primaryIdField", "fields", "setFields", "oneToMany", "manyToOne", "manyToMany"];
 
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
@@ -340,7 +371,7 @@ DRB.Logic.BindRequestType = function (id) {
                 break;
 
             case "update": // Update
-                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateId", "formattedValues",
+                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId", "formattedValues",
                     "returnRecord", "detectDuplicates", "prevent", "primaryEntity", "useAlternateKey", "alternateKeyName", "alternateKeyFields",
                     "primaryId", "primaryIdField", "fields", "setFields", "oneToMany", "manyToOne", "manyToMany"];
 
@@ -349,7 +380,7 @@ DRB.Logic.BindRequestType = function (id) {
                 break;
 
             case "delete": // Delete
-                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateId",
+                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId",
                     "primaryEntity", "useAlternateKey", "alternateKeyName", "alternateKeyFields", "primaryId"];
 
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
@@ -359,7 +390,7 @@ DRB.Logic.BindRequestType = function (id) {
             // Associate and Disassociate have the same configuration
             case "associate": // Associate
             case "disassociate": // Disassociate
-                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateId",
+                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId",
                     "primaryEntity", "primaryId", "secondaryEntity", "secondaryIds", "relationship"];
 
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
@@ -367,7 +398,7 @@ DRB.Logic.BindRequestType = function (id) {
                 break;
 
             case "retrievenextlink": // Retrieve NextLink
-                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateId", "formattedValues",
+                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId", "formattedValues",
                     "detectChanges", "primaryEntity", "retrieveCount", "nextLink"];
 
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
@@ -376,7 +407,7 @@ DRB.Logic.BindRequestType = function (id) {
                 break;
 
             case "predefinedquery": // Predefined Query
-                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateId", "formattedValues",
+                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId", "formattedValues",
                     "retrieveCount", "primaryEntity", "queryType", "systemViewId", "personalViewId", "fetchXML"];
 
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
@@ -388,7 +419,7 @@ DRB.Logic.BindRequestType = function (id) {
             case "executecustomaction": // Execute Custom Action
             case "executeaction": // Execute Action
             case "executefunction": // Execute Function
-                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateId",
+                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId",
                     "primaryEntity", "dataverseExecute", "dataverseOperationType", "dataverseParameters"];
 
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
@@ -396,14 +427,14 @@ DRB.Logic.BindRequestType = function (id) {
                 break;
 
             case "executeworkflow": // Execute Workflow
-                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateId",
+                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId",
                     "primaryEntity", "primaryId", "workflowId"];
 
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
                 DRB.Logic.ExecuteWorkflow.Start();
                 break;
             case "managefiledata": // Manage File Data
-                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateId",
+                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId",
                     "primaryEntity", "primaryId", "fileField", "fileOperation", "fileName"];
 
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);

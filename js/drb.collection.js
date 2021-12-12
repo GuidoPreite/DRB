@@ -92,7 +92,7 @@ DRB.Collection.Parse = function (e) {
                     DRB.Collection.LoadNodes(currentNodes);
                 }
             } catch (e) {
-                // // something went wrong when parsing the file, show error
+                // something went wrong when parsing the file, show error
                 DRB.UI.ShowError("Load Collection Error", "Failed to parse the selected file. Make sure the file is a collection for Dataverse REST Builder");
             }
         };

@@ -33,7 +33,7 @@ DRB.SetDefaultSettings = function () {
     }
     // #endregion
 
-    // #region General
+    // #region General    
     DRB.Settings.OptionsAyncSync = [new DRB.Models.IdValue("yes", "Asynchronous"), new DRB.Models.IdValue("no", "Synchronous")];
     DRB.Settings.OptionsYesNo = [new DRB.Models.IdValue("yes", "Yes"), new DRB.Models.IdValue("no", "No")];
     DRB.Settings.OptionsViews = [new DRB.Models.IdValue("savedquery", "System View"), new DRB.Models.IdValue("userquery", "Personal View"), new DRB.Models.IdValue("fetchxml", "FetchXML")]; // Predefined Query
@@ -42,6 +42,7 @@ DRB.SetDefaultSettings = function () {
     DRB.Settings.OptionsAndOr = [new DRB.Models.IdValue("and", "And"), new DRB.Models.IdValue("or", "Or")]; // Retrieve Multiple
     DRB.Settings.OptionsTrueFalse = [new DRB.Models.IdValue("yes", "True"), new DRB.Models.IdValue("no", "False")]; // Dataverse Execute
     DRB.Settings.OptionsManageFile = [new DRB.Models.IdValue("retrieve", "Retrieve"), new DRB.Models.IdValue("upload", "Upload"), new DRB.Models.IdValue("delete", "Delete")]; // Manage File Data
+    DRB.Settings.OptionsImpersonation = [new DRB.Models.IdValue("mscrmcallerid", "SystemUser Id"), new DRB.Models.IdValue("callerobjectid", "AAD Object Id")]; // Impersonation
     // #endregion
 
     // #region Operators
@@ -258,6 +259,10 @@ DRB.DefineOperations = function () {
                             var questionTitle = "";
                             var questionText = "";
                             switch (node.type) {
+                                case "collection":
+                                    questionTitle = "Delete Collection";
+                                    questionText = "Are you sure to delete the collection?<br/><u>All the folders and requests will be deleted</u>";
+                                    break;
                                 case "folder":
                                     questionTitle = "Delete Folder";
                                     questionText = "Are you sure to delete the folder <b>" + node.text + "</b>?<br/><u>All the folders and requests inside this folder will be deleted</u>";
@@ -272,14 +277,36 @@ DRB.DefineOperations = function () {
                                     var inst = $.jstree.reference(data.reference);
                                     var obj = inst.get_node(data.reference);
                                     if (inst.is_selected(obj)) { inst.delete_node(inst.get_selected()); } else { inst.delete_node(obj); }
+                                    if (node.type === "collection" && DRB.Settings.LocalStorageAvailable === true) {
+                                        localStorage.removeItem("DRB_" + DRB.Xrm.GetClientUrl());
+                                    }
                                 });
+                        }
+                    },
+                    "savestate": {
+                        "separator_before": true,
+                        "label": "Save State",
+                        "action": function (data) {
+                            var inst = $.jstree.reference(data.reference);
+                            var currentNodes = inst.get_json("#");
+                            var now = new Date(); // get current DateTime
+                            var collection = {}; // create json collection
+                            collection.created_on = now.toJSON(); // current DateTime as json 
+                            collection.version = 1; // collection version                            
+                            DRB.Collection.ExportNodes(currentNodes[0], collection); // export jsTree nodes to the json collection
+                            localStorage.setItem("DRB_" + DRB.Xrm.GetClientUrl(), JSON.stringify(collection));
                         }
                     }
                 };
                 // delete entries based on the node type
-                if (node.type === "collection") { delete customItems.duplicaterequest; delete customItems.duplicatefolder; delete customItems.remove; }
-                if (node.type === "folder") { delete customItems.duplicaterequest; }
-                if (node.type === "request") { delete customItems.createfolder; delete customItems.duplicatefolder; delete customItems.createrequest; }
+                if (node.type === "collection") {
+                    delete customItems.duplicaterequest; delete customItems.duplicatefolder;
+                    if (DRB.Settings.LocalStorageAvailable !== true) {
+                        delete customItems.savestate;
+                    }
+                }
+                if (node.type === "folder") { delete customItems.duplicaterequest; delete customItems.savestate; }
+                if (node.type === "request") { delete customItems.createfolder; delete customItems.duplicatefolder; delete customItems.createrequest; delete customItems.savestate; }
                 return customItems;
             }
         },
@@ -475,6 +502,9 @@ DRB.ShowNotice = function () {
  * Main function called by the Index
  */
 DRB.Initialize = async function () {
+    // localStorage
+    DRB.Settings.LocalStorageAvailable = DRB.Utilities.LocalStorageAvailable();
+
     // #region XTB
     DRB.Settings.XTBContext = false;
     var xtbSettings = null;
@@ -496,37 +526,39 @@ DRB.Initialize = async function () {
 
     // #region JWT
     DRB.Settings.JWTContext = false;
-    try {
-        if (localStorage.getItem("DRB_JWT") !== null) {
-            var removeToken = true;
-            var token = localStorage.getItem("DRB_JWT");
-            var parsedToken = DRB.Common.ParseJWT(token);
-            if (DRB.Utilities.HasValue(parsedToken)) {
-                var jwtUrl = parsedToken.aud;
-                if (jwtUrl.length > 0 && jwtUrl.substr(-1) === '/') { jwtUrl = jwtUrl.substr(0, str.length - 1); }
-                var jwtExpireDate = parsedToken.exp * 1000;
-                var now = new Date().getTime();
-                if (jwtExpireDate > now) {
-                    if (DRB.Utilities.HasValue(jwtUrl)) {
-                        DRB.UI.ShowLoading("Checking JWT Settings...");
-                        try {
-                            await DRB.Xrm.GetServerVersion(jwtUrl, token).done(function (data) {
-                                DRB.Settings.JWTToken = token;
-                                DRB.Settings.JWTUrl = jwtUrl;
-                                DRB.Settings.JWTVersion = data.Version;
-                                DRB.Settings.JWTContext = true;
-                                removeToken = false;
-                            });
-                        } catch { }
-                        DRB.UI.HideLoading();
+    if (DRB.Settings.LocalStorageAvailable === true) {
+        try {
+            if (localStorage.getItem("DRB_JWT") !== null) {
+                var removeToken = true;
+                var token = localStorage.getItem("DRB_JWT");
+                var parsedToken = DRB.Common.ParseJWT(token);
+                if (DRB.Utilities.HasValue(parsedToken)) {
+                    var jwtUrl = parsedToken.aud;
+                    if (jwtUrl.length > 0 && jwtUrl.substr(-1) === '/') { jwtUrl = jwtUrl.substr(0, str.length - 1); }
+                    var jwtExpireDate = parsedToken.exp * 1000;
+                    var now = new Date().getTime();
+                    if (jwtExpireDate > now) {
+                        if (DRB.Utilities.HasValue(jwtUrl)) {
+                            DRB.UI.ShowLoading("Checking JWT Settings...");
+                            try {
+                                await DRB.Xrm.GetServerVersion(jwtUrl, token).done(function (data) {
+                                    DRB.Settings.JWTToken = token;
+                                    DRB.Settings.JWTUrl = jwtUrl;
+                                    DRB.Settings.JWTVersion = data.Version;
+                                    DRB.Settings.JWTContext = true;
+                                    removeToken = false;
+                                });
+                            } catch { }
+                            DRB.UI.HideLoading();
+                        }
                     }
                 }
+                if (removeToken === true) { localStorage.removeItem("DRB_JWT"); }
             }
-            if (removeToken === true) { localStorage.removeItem("DRB_JWT"); }
+        } catch {
+            // something went wrong, remove the token
+            localStorage.removeItem("DRB_JWT");
         }
-    } catch {
-        // something went wrong, remove the token
-        localStorage.removeItem("DRB_JWT");
     }
     // #endregion
 
@@ -552,7 +584,7 @@ DRB.Initialize = async function () {
         });
     });
 
-    // retrieve Tables and add them to DRB.Metadata.Tables
-    DRB.Logic.RefreshTables();
+    // Complete Initialize
+    DRB.Logic.CompleteInitialize();
 }
 // #endregion

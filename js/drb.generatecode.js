@@ -536,8 +536,15 @@ DRB.GenerateCode.GetRequestHeaders = function (settings) {
     // Impersonate
     if (settings.hasOwnProperty("impersonate") && settings.impersonate === true) {
         var impersonateId = "";
+        var impersonateHeader = "MSCRMCallerID";
+        if (DRB.Utilities.HasValue(settings.impersonateType)) {
+            switch (settings.impersonateType) {
+                case "mscrmcallerid": impersonateHeader = "MSCRMCallerID"; break;
+                case "callerobjectid": impersonateHeader = "CallerObjectId"; break;
+            }
+        }
         if (DRB.Utilities.HasValue(settings.impersonateId)) { impersonateId = settings.impersonateId; }
-        headers.push('req.setRequestHeader("MSCRMCallerID", "' + impersonateId + '");');
+        headers.push('req.setRequestHeader("' + impersonateHeader + '", "' + impersonateId + '");');
     }
 
     // Detect Changes

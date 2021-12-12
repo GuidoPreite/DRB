@@ -41,6 +41,48 @@ DRB.Logic.BindImpersonate = function (id) {
 }
 
 /**
+ * Logic - Bind Impersonate Type
+ * @param {string} id Id
+ */
+DRB.Logic.BindImpersonateType = function (id) {
+    $("#" + id).on("change", function (e) {
+        var impersonateTypeValue = $(this).val();
+        DRB.Metadata.CurrentNode.data.configuration.impersonateType = impersonateTypeValue;
+        var impersonateIdValue = DRB.Metadata.CurrentNode.data.configuration.impersonateId;
+        if (DRB.Utilities.HasValue(impersonateTypeValue) && DRB.Utilities.HasValue(impersonateIdValue)) {
+            var checkUser = null;
+            var newImpersonateId = "";
+            switch (impersonateTypeValue) {
+                case "mscrmcallerid":
+                    checkUser = DRB.Utilities.GetRecordByProperty(DRB.Metadata.Users, "AADObjectId", impersonateIdValue);
+                    if (DRB.Utilities.HasValue(checkUser)) { newImpersonateId = checkUser.Id; }
+                    break;
+                case "callerobjectid":
+                    checkUser = DRB.Utilities.GetRecordById(DRB.Metadata.Users, impersonateIdValue);
+                    if (DRB.Utilities.HasValue(checkUser)) { newImpersonateId = checkUser.AADObjectId; }
+                    break;
+            }
+            if (DRB.Utilities.HasValue(newImpersonateId)) {
+                $("#" + DRB.DOM.ImpersonateId.Input.Id).val(newImpersonateId).trigger("input").change();
+            }
+        }
+    });
+}
+
+/**
+ * Logic - Bind Impersonate Id
+ * @param {string} id Id
+ */
+DRB.Logic.BindImpersonateId = function (id) {
+    $("#" + id).on("change", function (e) {
+        var impersonateIdValue = $(this).val();
+        DRB.Metadata.CurrentNode.data.configuration.impersonateId = impersonateIdValue;
+        var impersonateTypeValue = DRB.Metadata.CurrentNode.data.configuration.impersonateType;
+        if (impersonateTypeValue === "callerobjectid") { $("#" + DRB.DOM.ImpersonateId.Dropdown.Id).val(impersonateTypeValue).change(); }
+    });
+}
+
+/**
  * Logic - Bind Return Record
  * @param {string} id Id
  */

@@ -172,7 +172,9 @@ DRB.DOM.Impersonate.Dropdown = { Id: "cbx_impersonate", Name: "Impersonate" };
 // Impersonate Id 
 DRB.DOM.ImpersonateId = {};
 DRB.DOM.ImpersonateId.Div = { Id: "div_impersonateid", Class: "sameline" };
-DRB.DOM.ImpersonateId.Span = { Id: "span_impersonateid", Name: "Impersonate Id" };
+DRB.DOM.ImpersonateId.TypeSpan = { Id: "span_impersonatetype", Name: "Type" };
+DRB.DOM.ImpersonateId.Dropdown = { Id: "cbx_impersonatetype", Name: "Type" };
+DRB.DOM.ImpersonateId.Span = { Id: "span_impersonateid", Name: "Id" };
 DRB.DOM.ImpersonateId.Input = { Id: "txt_impersonateid" };
 DRB.DOM.ImpersonateId.Lookup = { Id: "lkp_impersonateid" };
 
@@ -493,6 +495,7 @@ DRB.DOM.PowerAutomate.RowCountInput = { Id: "txt_rowcount" };
  
 ﻿// #region DRB.Utilities
 /**
+ * Utilities - Has Value
  * Returns true if a parameter is not undefined, not null and not an empty string, otherwise returns false
  * @param {any} parameter Parameter to check
  */
@@ -501,6 +504,19 @@ DRB.Utilities.HasValue = function (parameter) {
 }
 
 /**
+ * Utilities - Local Storage Available
+ * Check if localStorage is available
+ */
+DRB.Utilities.LocalStorageAvailable = function () {
+    try {
+        localStorage.setItem("DRB_CheckLocalStorage", "DRB");
+        localStorage.removeItem("DRB_CheckLocalStorage");
+        return true;
+    } catch (e) { return false; }
+}
+
+/**
+ * Utilities - Generate Guid
  * Returns a Random Guid with options to add Braces or Upper Case
  * @param {boolean} braces if the Guid contains braces
  * @param {boolean} upperCase if the Guid is returned as Upper Case
@@ -516,6 +532,7 @@ DRB.Utilities.GenerateGuid = function (braces, upperCase) {
 }
 
 /**
+ * Utilities - Remove Duplicates From Array
  * Returns a new Array without duplicates
  * @param {any[]} array Array to check
  */
@@ -853,6 +870,9 @@ DRB.Xrm.GetDemoData = function (entitySetName, filters, singleRecord) {
             fakeData.value.push({ ObjectTypeCode: 10001, SchemaName: "sample_CustomTable", LogicalName: "sample_customtable", EntitySetName: "sample_customtables", PrimaryIdAttribute: "sample_customtableid", PrimaryNameAttribute: "sample_name", DisplayName: { UserLocalizedLabel: { Label: "Custom Table" } } });
             // fakeData.value.push({ ObjectTypeCode: 10002, SchemaName: "new_CustomTable", LogicalName: "new_customtable", EntitySetName: "new_customtables", PrimaryIdAttribute: "new_customtableid", PrimaryNameAttribute: "new_name", DisplayName: { UserLocalizedLabel: { Label: "Custom Table (New)" } } });
             fakeData.value.push({ ObjectTypeCode: 1, SchemaName: "Account", LogicalName: "account", EntitySetName: "accounts", PrimaryIdAttribute: "accountid", PrimaryNameAttribute: "name" });
+            break;
+        case "systemusers":
+            fakeData.value.push({ systemuserid: "11111111-1111-1111-1111-111111111111", fullname: "User 1", azureactivedirectoryobjectid: "22222222-2222-2222-2222-222222222222" });
             break;
         case "userqueries":
             fakeData.value.push({ userqueryid: "9650cd65-fe3e-4d71-b1ef-e2e2e61edcdb", name: "Contact Personal View", returnedtypecode: "contact" });
@@ -1296,6 +1316,18 @@ DRB.Models.Table = function (logicalName, name, schemaName, entitySetName, prima
     this.PersonalViewsLoaded = false;
     
     this.ToDropdownOption = function () { return new DRB.Models.DropdownOption(this.Id, this.Name, this.LogicalName); }
+}
+
+/**
+ * Models - User
+ * @param {string} id Id
+ * @param {string} name Name
+ * @param {string} aadObjectId AAD Object Id
+ */
+DRB.Models.User = function (id, name, aadObjectId) {
+    this.Id = id;
+    this.Name = name;
+    this.AADObjectId = aadObjectId;
 }
 
 /**
@@ -2118,8 +2150,8 @@ DRB.Xrm.GetXrmObject = function () {
  * Xrm - Get Context
  */
 DRB.Xrm.GetContext = function () {
-    if (DRB.Xrm.IsXTBMode() === true) { return "(XTB) <small>" + DRB.Settings.XTBUrl + "</small>"; }
-    if (DRB.Xrm.IsJWTMode() === true) { return "(JWT) <small>" + DRB.Settings.JWTUrl + "</small>"; }
+    if (DRB.Xrm.IsXTBMode() === true) { return "<small>" + DRB.Settings.XTBUrl + "</small>"; }
+    if (DRB.Xrm.IsJWTMode() === true) { return "<small>" + DRB.Settings.JWTUrl + "</small>"; }
     if (DRB.Xrm.IsInstanceMode() === true) { return ""; }
     if (DRB.Xrm.IsDemoMode() === true) { return "(Demo)"; }
 }
@@ -2171,10 +2203,7 @@ DRB.Xrm.GetClientUrl = function () {
  * Xrm - Get Metadata Url
  */
 DRB.Xrm.GetMetadataUrl = function () {
-    if (DRB.Xrm.IsXTBMode()) { return DRB.Xrm.GetClientUrl() + "/api/data/v9.0/$metadata"; }
-    if (DRB.Xrm.IsJWTMode()) { return DRB.Xrm.GetClientUrl() + "/api/data/v9.0/$metadata"; }
-    if (DRB.Xrm.IsInstanceMode()) { return DRB.Xrm.GetClientUrl() + "/api/data/v9.0/$metadata"; }
-    if (DRB.Xrm.IsDemoMode()) { return "https://democall/api/data/v9.0/$metadata"; }
+    return DRB.Xrm.GetClientUrl() + "/api/data/v9.0/$metadata";
 }
 
 /**
@@ -2372,6 +2401,13 @@ DRB.Xrm.GetServerVersion = function (serverUrl, token) {
  */
 DRB.Common.RetrieveTables = function () {
     return DRB.Xrm.Retrieve("EntityDefinitions", "$select=LogicalName,SchemaName,DisplayName,EntitySetName,PrimaryIdAttribute,PrimaryNameAttribute,ObjectTypeCode");
+}
+
+/**
+ * Retrieve Users
+ */
+DRB.Common.RetrieveUsers = function () {
+    return DRB.Xrm.Retrieve("systemusers", "$select=systemuserid,fullname,azureactivedirectoryobjectid&$filter=azureactivedirectoryobjectid ne null");
 }
 
 /**
@@ -2699,6 +2735,29 @@ DRB.Common.MapTables = function (data, sortProperty) {
     }
     // return the array
     return tables;
+}
+
+/**
+ * Common - Map Users
+ * @param {any} data Data to parse
+ * @param {string} sortProperty Sort Property
+ */
+DRB.Common.MapUsers = function (data, sortProperty) {
+    // create the array
+    var users = [];
+    // parse data
+    if (Array.isArray(data.value)) {
+        data.value.forEach(function (record) {
+            var id = record.systemuserid;
+            var name = record.fullname;
+            var aadObjectId = record.azureactivedirectoryobjectid;
+            users.push(new DRB.Models.User(id, name, aadObjectId));
+        });
+        // sort the array based on the provided sortProperty
+        if (DRB.Utilities.HasValue(sortProperty)) { users.sort(DRB.Utilities.CustomSort(sortProperty)); }
+    }
+    // return the array
+    return users;
 }
 
 /**
@@ -3669,16 +3728,46 @@ DRB.Logic.CopyCodeForPowerautomate = function (id, name) {
 }
 
 /**
- * Logic - Refresh Tables
+ * Logic - Complete Initialize
  */
-DRB.Logic.RefreshTables = function () {
+DRB.Logic.CompleteInitialize = function () {
     // retrieve tables
-    DRB.UI.ShowLoading("Retrieving Tables...");
+    DRB.UI.ShowLoading("Retrieving Tables and Users...");
     setTimeout(function () {
         DRB.Common.RetrieveTables()
             .done(function (data) {
                 DRB.Metadata.Tables = DRB.Common.MapTables(data, "Name");
-                DRB.UI.HideLoading();
+                DRB.Common.RetrieveUsers()
+                    .done(function (data2) {
+                        DRB.Metadata.Users = DRB.Common.MapUsers(data2, "Name");
+
+                        // Check localStorage
+                        if (DRB.Settings.LocalStorageAvailable === true) {
+                            var storedJson = localStorage.getItem("DRB_" + DRB.Xrm.GetClientUrl());
+                            if (storedJson !== null) {
+                                try {
+                                    var parsedContent = JSON.parse(storedJson);
+                                    // version check
+                                    if (parsedContent.version > 1) {
+                                        // verion not compatible, remove the localStorage item
+                                        localStorage.removeItem("DRB_" + DRB.Xrm.GetClientUrl());
+                                    } else {
+                                        // create an empty data structure
+                                        var currentNodes = [{}];
+                                        // import jsTree nodes to the new data structure
+                                        DRB.Collection.ImportNodes(parsedContent, currentNodes[0]);
+                                        // load nodes
+                                        DRB.Collection.LoadNodes(currentNodes);
+                                    }
+                                } catch (e) {
+                                    // something went wrong when parsing the file, remove the localStorage item
+                                    localStorage.removeItem("DRB_" + DRB.Xrm.GetClientUrl());
+                                }
+                            }
+                        }
+                        DRB.UI.HideLoading();
+                    })
+                    .fail(function (xhr) { DRB.UI.ShowError("DRB.Common.RetrieveUsers Error", DRB.Common.GetErrorMessage(xhr)); });
             })
             .fail(function (xhr) { DRB.UI.ShowError("DRB.Common.RetrieveTables Error", DRB.Common.GetErrorMessage(xhr)); });
     }, DRB.Settings.TimeoutDelay);
@@ -3782,6 +3871,7 @@ DRB.Logic.BindRequestType = function (id) {
         if (!DRB.Utilities.HasValue(nodeConfiguration.async)) { nodeConfiguration.async = true; } // All
         if (!DRB.Utilities.HasValue(nodeConfiguration.tokenHeader)) { nodeConfiguration.tokenHeader = false; } // All
         if (!DRB.Utilities.HasValue(nodeConfiguration.impersonate)) { nodeConfiguration.impersonate = false; } // All
+        if (!DRB.Utilities.HasValue(nodeConfiguration.impersonateType)) { nodeConfiguration.impersonateType = "mscrmcallerid"; } // All
         if (!DRB.Utilities.HasValue(nodeConfiguration.impersonateId)) { nodeConfiguration.impersonateId = ""; } // All
         if (!DRB.Utilities.HasValue(nodeConfiguration.formattedValues)) { nodeConfiguration.formattedValues = true; }
         if (!DRB.Utilities.HasValue(nodeConfiguration.returnRecord)) { nodeConfiguration.returnRecord = false; } // Create, Update
@@ -3822,7 +3912,7 @@ DRB.Logic.BindRequestType = function (id) {
         // Check the selected Request Type
         switch (requestTypeValue) {
             case "retrievesingle": // Retrieve Single
-                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateId", "formattedValues",
+                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId", "formattedValues",
                     "detectChanges", "primaryEntity", "useAlternateKey", "alternateKeyName", "alternateKeyFields",
                     "primaryId", "primaryIdField", "fields", "oneToMany", "manyToOne", "manyToMany"];
 
@@ -3831,7 +3921,7 @@ DRB.Logic.BindRequestType = function (id) {
                 break;
 
             case "retrievemultiple": // Retrieve Multiple
-                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateId", "formattedValues",
+                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId", "formattedValues",
                     "retrieveCount", "topCount", "primaryEntity", "primaryIdField", "fields", "oneToMany", "manyToOne", "manyToMany",
                     "filterCriteria", "orderFields"];
 
@@ -3840,7 +3930,7 @@ DRB.Logic.BindRequestType = function (id) {
                 break;
 
             case "create": // Create
-                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateId", "formattedValues",
+                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId", "formattedValues",
                     "returnRecord", "detectDuplicates", "primaryEntity", "primaryIdField", "fields", "setFields", "oneToMany", "manyToOne", "manyToMany"];
 
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
@@ -3848,7 +3938,7 @@ DRB.Logic.BindRequestType = function (id) {
                 break;
 
             case "update": // Update
-                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateId", "formattedValues",
+                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId", "formattedValues",
                     "returnRecord", "detectDuplicates", "prevent", "primaryEntity", "useAlternateKey", "alternateKeyName", "alternateKeyFields",
                     "primaryId", "primaryIdField", "fields", "setFields", "oneToMany", "manyToOne", "manyToMany"];
 
@@ -3857,7 +3947,7 @@ DRB.Logic.BindRequestType = function (id) {
                 break;
 
             case "delete": // Delete
-                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateId",
+                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId",
                     "primaryEntity", "useAlternateKey", "alternateKeyName", "alternateKeyFields", "primaryId"];
 
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
@@ -3867,7 +3957,7 @@ DRB.Logic.BindRequestType = function (id) {
             // Associate and Disassociate have the same configuration
             case "associate": // Associate
             case "disassociate": // Disassociate
-                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateId",
+                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId",
                     "primaryEntity", "primaryId", "secondaryEntity", "secondaryIds", "relationship"];
 
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
@@ -3875,7 +3965,7 @@ DRB.Logic.BindRequestType = function (id) {
                 break;
 
             case "retrievenextlink": // Retrieve NextLink
-                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateId", "formattedValues",
+                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId", "formattedValues",
                     "detectChanges", "primaryEntity", "retrieveCount", "nextLink"];
 
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
@@ -3884,7 +3974,7 @@ DRB.Logic.BindRequestType = function (id) {
                 break;
 
             case "predefinedquery": // Predefined Query
-                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateId", "formattedValues",
+                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId", "formattedValues",
                     "retrieveCount", "primaryEntity", "queryType", "systemViewId", "personalViewId", "fetchXML"];
 
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
@@ -3896,7 +3986,7 @@ DRB.Logic.BindRequestType = function (id) {
             case "executecustomaction": // Execute Custom Action
             case "executeaction": // Execute Action
             case "executefunction": // Execute Function
-                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateId",
+                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId",
                     "primaryEntity", "dataverseExecute", "dataverseOperationType", "dataverseParameters"];
 
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
@@ -3904,14 +3994,14 @@ DRB.Logic.BindRequestType = function (id) {
                 break;
 
             case "executeworkflow": // Execute Workflow
-                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateId",
+                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId",
                     "primaryEntity", "primaryId", "workflowId"];
 
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
                 DRB.Logic.ExecuteWorkflow.Start();
                 break;
             case "managefiledata": // Manage File Data
-                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateId",
+                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId",
                     "primaryEntity", "primaryId", "fileField", "fileOperation", "fileName"];
 
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
@@ -4289,6 +4379,48 @@ DRB.Logic.BindImpersonate = function (id) {
             DRB.Metadata.CurrentNode.data.configuration.impersonate = false;
             $("#" + DRB.DOM.ImpersonateId.Div.Id).hide();
         }
+    });
+}
+
+/**
+ * Logic - Bind Impersonate Type
+ * @param {string} id Id
+ */
+DRB.Logic.BindImpersonateType = function (id) {
+    $("#" + id).on("change", function (e) {
+        var impersonateTypeValue = $(this).val();
+        DRB.Metadata.CurrentNode.data.configuration.impersonateType = impersonateTypeValue;
+        var impersonateIdValue = DRB.Metadata.CurrentNode.data.configuration.impersonateId;
+        if (DRB.Utilities.HasValue(impersonateTypeValue) && DRB.Utilities.HasValue(impersonateIdValue)) {
+            var checkUser = null;
+            var newImpersonateId = "";
+            switch (impersonateTypeValue) {
+                case "mscrmcallerid":
+                    checkUser = DRB.Utilities.GetRecordByProperty(DRB.Metadata.Users, "AADObjectId", impersonateIdValue);
+                    if (DRB.Utilities.HasValue(checkUser)) { newImpersonateId = checkUser.Id; }
+                    break;
+                case "callerobjectid":
+                    checkUser = DRB.Utilities.GetRecordById(DRB.Metadata.Users, impersonateIdValue);
+                    if (DRB.Utilities.HasValue(checkUser)) { newImpersonateId = checkUser.AADObjectId; }
+                    break;
+            }
+            if (DRB.Utilities.HasValue(newImpersonateId)) {
+                $("#" + DRB.DOM.ImpersonateId.Input.Id).val(newImpersonateId).trigger("input").change();
+            }
+        }
+    });
+}
+
+/**
+ * Logic - Bind Impersonate Id
+ * @param {string} id Id
+ */
+DRB.Logic.BindImpersonateId = function (id) {
+    $("#" + id).on("change", function (e) {
+        var impersonateIdValue = $(this).val();
+        DRB.Metadata.CurrentNode.data.configuration.impersonateId = impersonateIdValue;
+        var impersonateTypeValue = DRB.Metadata.CurrentNode.data.configuration.impersonateType;
+        if (impersonateTypeValue === "callerobjectid") { $("#" + DRB.DOM.ImpersonateId.Dropdown.Id).val(impersonateTypeValue).change(); }
     });
 }
 
@@ -5252,8 +5384,15 @@ DRB.GenerateCode.GetRequestHeaders = function (settings) {
     // Impersonate
     if (settings.hasOwnProperty("impersonate") && settings.impersonate === true) {
         var impersonateId = "";
+        var impersonateHeader = "MSCRMCallerID";
+        if (DRB.Utilities.HasValue(settings.impersonateType)) {
+            switch (settings.impersonateType) {
+                case "mscrmcallerid": impersonateHeader = "MSCRMCallerID"; break;
+                case "callerobjectid": impersonateHeader = "CallerObjectId"; break;
+            }
+        }
         if (DRB.Utilities.HasValue(settings.impersonateId)) { impersonateId = settings.impersonateId; }
-        headers.push('req.setRequestHeader("MSCRMCallerID", "' + impersonateId + '");');
+        headers.push('req.setRequestHeader("' + impersonateHeader + '", "' + impersonateId + '");');
     }
 
     // Detect Changes
@@ -7894,8 +8033,15 @@ DRB.GeneratePostman.GetRequestHeaders = function (settings, method, isBinary) {
     // Impersonate
     if (settings.hasOwnProperty("impersonate") && settings.impersonate === true) {
         var impersonateId = "";
+        var impersonateHeader = "MSCRMCallerID";
+        if (DRB.Utilities.HasValue(settings.impersonateType)) {
+            switch (settings.impersonateType) {
+                case "mscrmcallerid": impersonateHeader = "MSCRMCallerID"; break;
+                case "callerobjectid": impersonateHeader = "CallerObjectId"; break;
+            }
+        }
         if (DRB.Utilities.HasValue(settings.impersonateId)) { impersonateId = settings.impersonateId; }
-        headers.push({ key: "MSCRMCallerID", value: impersonateId, type: "text" });
+        headers.push({ key: impersonateHeader, value: impersonateId, type: "text" });
     }
 
     // Detect Changes
@@ -8517,6 +8663,8 @@ DRB.CustomUI.AddImpersonate = function () {
     $("#" + DRB.DOM.ConfigureContent.Id).append(DRB.UI.CreateSpan(DRB.DOM.Impersonate.Span.Id, DRB.DOM.Impersonate.Span.Name));
     $("#" + DRB.DOM.ConfigureContent.Id).append(DRB.UI.CreateSimpleDropdown(DRB.DOM.Impersonate.Dropdown.Id));
     $("#" + DRB.DOM.ConfigureContent.Id).append(DRB.UI.CreateEmptyDiv(DRB.DOM.ImpersonateId.Div.Id, DRB.DOM.ImpersonateId.Div.Class));
+    $("#" + DRB.DOM.ImpersonateId.Div.Id).append(DRB.UI.CreateSpan(DRB.DOM.ImpersonateId.TypeSpan.Id, DRB.DOM.ImpersonateId.TypeSpan.Name));
+    $("#" + DRB.DOM.ImpersonateId.Div.Id).append(DRB.UI.CreateSimpleDropdown(DRB.DOM.ImpersonateId.Dropdown.Id));
     $("#" + DRB.DOM.ImpersonateId.Div.Id).append(DRB.UI.CreateSpan(DRB.DOM.ImpersonateId.Span.Id, DRB.DOM.ImpersonateId.Span.Name));
     $("#" + DRB.DOM.ImpersonateId.Div.Id).append(DRB.UI.CreateInputGuid(DRB.DOM.ImpersonateId.Input.Id));
     $("#" + DRB.DOM.ImpersonateId.Div.Id).append(DRB.UI.CreateLookup(DRB.DOM.ImpersonateId.Lookup.Id, DRB.UI.OpenLookup, { openUser: true, textId: DRB.DOM.ImpersonateId.Input.Id }));
@@ -8524,11 +8672,17 @@ DRB.CustomUI.AddImpersonate = function () {
 
     DRB.UI.FillDropdown(DRB.DOM.Impersonate.Dropdown.Id, DRB.DOM.Impersonate.Dropdown.Name, new DRB.Models.Records(DRB.Settings.OptionsYesNo).ToDropdown());
     DRB.Logic.BindImpersonate(DRB.DOM.Impersonate.Dropdown.Id);
-    DRB.Logic.BindPropertyValue(DRB.DOM.ImpersonateId.Input.Id, "impersonateId");
+    DRB.UI.FillDropdown(DRB.DOM.ImpersonateId.Dropdown.Id, DRB.DOM.ImpersonateId.Dropdown.Name, new DRB.Models.Records(DRB.Settings.OptionsImpersonation).ToDropdown());
+    DRB.Logic.BindImpersonateType(DRB.DOM.ImpersonateId.Dropdown.Id);
+    DRB.Logic.BindImpersonateId(DRB.DOM.ImpersonateId.Input.Id);
     DRB.Common.BindGuid(DRB.DOM.ImpersonateId.Input.Id);
     var impersonateValue = "no";
     if (DRB.Metadata.CurrentNode.data.configuration.impersonate === true) { impersonateValue = "yes"; }
     $("#" + DRB.DOM.Impersonate.Dropdown.Id).val(impersonateValue).change();
+
+    var impersonateType = "mscrmcallerid";
+    if (DRB.Utilities.HasValue(DRB.Metadata.CurrentNode.data.configuration.impersonateType)) { impersonateType = DRB.Metadata.CurrentNode.data.configuration.impersonateType; }
+    $("#" + DRB.DOM.ImpersonateId.Dropdown.Id).val(impersonateType).change();
 
     if (DRB.Utilities.HasValue(DRB.Metadata.CurrentNode.data.configuration.impersonateId)) {
         $("#" + DRB.DOM.ImpersonateId.Input.Id).val(DRB.Metadata.CurrentNode.data.configuration.impersonateId).trigger("input");
@@ -13427,7 +13581,7 @@ DRB.Collection.Parse = function (e) {
                     DRB.Collection.LoadNodes(currentNodes);
                 }
             } catch (e) {
-                // // something went wrong when parsing the file, show error
+                // something went wrong when parsing the file, show error
                 DRB.UI.ShowError("Load Collection Error", "Failed to parse the selected file. Make sure the file is a collection for Dataverse REST Builder");
             }
         };
@@ -13755,7 +13909,7 @@ DRB.SetDefaultSettings = function () {
     }
     // #endregion
 
-    // #region General
+    // #region General    
     DRB.Settings.OptionsAyncSync = [new DRB.Models.IdValue("yes", "Asynchronous"), new DRB.Models.IdValue("no", "Synchronous")];
     DRB.Settings.OptionsYesNo = [new DRB.Models.IdValue("yes", "Yes"), new DRB.Models.IdValue("no", "No")];
     DRB.Settings.OptionsViews = [new DRB.Models.IdValue("savedquery", "System View"), new DRB.Models.IdValue("userquery", "Personal View"), new DRB.Models.IdValue("fetchxml", "FetchXML")]; // Predefined Query
@@ -13764,6 +13918,7 @@ DRB.SetDefaultSettings = function () {
     DRB.Settings.OptionsAndOr = [new DRB.Models.IdValue("and", "And"), new DRB.Models.IdValue("or", "Or")]; // Retrieve Multiple
     DRB.Settings.OptionsTrueFalse = [new DRB.Models.IdValue("yes", "True"), new DRB.Models.IdValue("no", "False")]; // Dataverse Execute
     DRB.Settings.OptionsManageFile = [new DRB.Models.IdValue("retrieve", "Retrieve"), new DRB.Models.IdValue("upload", "Upload"), new DRB.Models.IdValue("delete", "Delete")]; // Manage File Data
+    DRB.Settings.OptionsImpersonation = [new DRB.Models.IdValue("mscrmcallerid", "SystemUser Id"), new DRB.Models.IdValue("callerobjectid", "AAD Object Id")]; // Impersonation
     // #endregion
 
     // #region Operators
@@ -13980,6 +14135,10 @@ DRB.DefineOperations = function () {
                             var questionTitle = "";
                             var questionText = "";
                             switch (node.type) {
+                                case "collection":
+                                    questionTitle = "Delete Collection";
+                                    questionText = "Are you sure to delete the collection?<br/><u>All the folders and requests will be deleted</u>";
+                                    break;
                                 case "folder":
                                     questionTitle = "Delete Folder";
                                     questionText = "Are you sure to delete the folder <b>" + node.text + "</b>?<br/><u>All the folders and requests inside this folder will be deleted</u>";
@@ -13994,14 +14153,36 @@ DRB.DefineOperations = function () {
                                     var inst = $.jstree.reference(data.reference);
                                     var obj = inst.get_node(data.reference);
                                     if (inst.is_selected(obj)) { inst.delete_node(inst.get_selected()); } else { inst.delete_node(obj); }
+                                    if (node.type === "collection" && DRB.Settings.LocalStorageAvailable === true) {
+                                        localStorage.removeItem("DRB_" + DRB.Xrm.GetClientUrl());
+                                    }
                                 });
+                        }
+                    },
+                    "savestate": {
+                        "separator_before": true,
+                        "label": "Save State",
+                        "action": function (data) {
+                            var inst = $.jstree.reference(data.reference);
+                            var currentNodes = inst.get_json("#");
+                            var now = new Date(); // get current DateTime
+                            var collection = {}; // create json collection
+                            collection.created_on = now.toJSON(); // current DateTime as json 
+                            collection.version = 1; // collection version                            
+                            DRB.Collection.ExportNodes(currentNodes[0], collection); // export jsTree nodes to the json collection
+                            localStorage.setItem("DRB_" + DRB.Xrm.GetClientUrl(), JSON.stringify(collection));
                         }
                     }
                 };
                 // delete entries based on the node type
-                if (node.type === "collection") { delete customItems.duplicaterequest; delete customItems.duplicatefolder; delete customItems.remove; }
-                if (node.type === "folder") { delete customItems.duplicaterequest; }
-                if (node.type === "request") { delete customItems.createfolder; delete customItems.duplicatefolder; delete customItems.createrequest; }
+                if (node.type === "collection") {
+                    delete customItems.duplicaterequest; delete customItems.duplicatefolder;
+                    if (DRB.Settings.LocalStorageAvailable !== true) {
+                        delete customItems.savestate;
+                    }
+                }
+                if (node.type === "folder") { delete customItems.duplicaterequest; delete customItems.savestate; }
+                if (node.type === "request") { delete customItems.createfolder; delete customItems.duplicatefolder; delete customItems.createrequest; delete customItems.savestate; }
                 return customItems;
             }
         },
@@ -14197,6 +14378,9 @@ DRB.ShowNotice = function () {
  * Main function called by the Index
  */
 DRB.Initialize = async function () {
+    // localStorage
+    DRB.Settings.LocalStorageAvailable = DRB.Utilities.LocalStorageAvailable();
+
     // #region XTB
     DRB.Settings.XTBContext = false;
     var xtbSettings = null;
@@ -14218,37 +14402,39 @@ DRB.Initialize = async function () {
 
     // #region JWT
     DRB.Settings.JWTContext = false;
-    try {
-        if (localStorage.getItem("DRB_JWT") !== null) {
-            var removeToken = true;
-            var token = localStorage.getItem("DRB_JWT");
-            var parsedToken = DRB.Common.ParseJWT(token);
-            if (DRB.Utilities.HasValue(parsedToken)) {
-                var jwtUrl = parsedToken.aud;
-                if (jwtUrl.length > 0 && jwtUrl.substr(-1) === '/') { jwtUrl = jwtUrl.substr(0, str.length - 1); }
-                var jwtExpireDate = parsedToken.exp * 1000;
-                var now = new Date().getTime();
-                if (jwtExpireDate > now) {
-                    if (DRB.Utilities.HasValue(jwtUrl)) {
-                        DRB.UI.ShowLoading("Checking JWT Settings...");
-                        try {
-                            await DRB.Xrm.GetServerVersion(jwtUrl, token).done(function (data) {
-                                DRB.Settings.JWTToken = token;
-                                DRB.Settings.JWTUrl = jwtUrl;
-                                DRB.Settings.JWTVersion = data.Version;
-                                DRB.Settings.JWTContext = true;
-                                removeToken = false;
-                            });
-                        } catch { }
-                        DRB.UI.HideLoading();
+    if (DRB.Settings.LocalStorageAvailable === true) {
+        try {
+            if (localStorage.getItem("DRB_JWT") !== null) {
+                var removeToken = true;
+                var token = localStorage.getItem("DRB_JWT");
+                var parsedToken = DRB.Common.ParseJWT(token);
+                if (DRB.Utilities.HasValue(parsedToken)) {
+                    var jwtUrl = parsedToken.aud;
+                    if (jwtUrl.length > 0 && jwtUrl.substr(-1) === '/') { jwtUrl = jwtUrl.substr(0, str.length - 1); }
+                    var jwtExpireDate = parsedToken.exp * 1000;
+                    var now = new Date().getTime();
+                    if (jwtExpireDate > now) {
+                        if (DRB.Utilities.HasValue(jwtUrl)) {
+                            DRB.UI.ShowLoading("Checking JWT Settings...");
+                            try {
+                                await DRB.Xrm.GetServerVersion(jwtUrl, token).done(function (data) {
+                                    DRB.Settings.JWTToken = token;
+                                    DRB.Settings.JWTUrl = jwtUrl;
+                                    DRB.Settings.JWTVersion = data.Version;
+                                    DRB.Settings.JWTContext = true;
+                                    removeToken = false;
+                                });
+                            } catch { }
+                            DRB.UI.HideLoading();
+                        }
                     }
                 }
+                if (removeToken === true) { localStorage.removeItem("DRB_JWT"); }
             }
-            if (removeToken === true) { localStorage.removeItem("DRB_JWT"); }
+        } catch {
+            // something went wrong, remove the token
+            localStorage.removeItem("DRB_JWT");
         }
-    } catch {
-        // something went wrong, remove the token
-        localStorage.removeItem("DRB_JWT");
     }
     // #endregion
 
@@ -14274,8 +14460,8 @@ DRB.Initialize = async function () {
         });
     });
 
-    // retrieve Tables and add them to DRB.Metadata.Tables
-    DRB.Logic.RefreshTables();
+    // Complete Initialize
+    DRB.Logic.CompleteInitialize();
 }
 // #endregion  
  

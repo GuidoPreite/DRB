@@ -9,8 +9,8 @@ DRB.Xrm.GetXrmObject = function () {
  * Xrm - Get Context
  */
 DRB.Xrm.GetContext = function () {
-    if (DRB.Xrm.IsXTBMode() === true) { return "(XTB) <small>" + DRB.Settings.XTBUrl + "</small>"; }
-    if (DRB.Xrm.IsJWTMode() === true) { return "(JWT) <small>" + DRB.Settings.JWTUrl + "</small>"; }
+    if (DRB.Xrm.IsXTBMode() === true) { return "<small>" + DRB.Settings.XTBUrl + "</small>"; }
+    if (DRB.Xrm.IsJWTMode() === true) { return "<small>" + DRB.Settings.JWTUrl + "</small>"; }
     if (DRB.Xrm.IsInstanceMode() === true) { return ""; }
     if (DRB.Xrm.IsDemoMode() === true) { return "(Demo)"; }
 }
@@ -62,10 +62,7 @@ DRB.Xrm.GetClientUrl = function () {
  * Xrm - Get Metadata Url
  */
 DRB.Xrm.GetMetadataUrl = function () {
-    if (DRB.Xrm.IsXTBMode()) { return DRB.Xrm.GetClientUrl() + "/api/data/v9.0/$metadata"; }
-    if (DRB.Xrm.IsJWTMode()) { return DRB.Xrm.GetClientUrl() + "/api/data/v9.0/$metadata"; }
-    if (DRB.Xrm.IsInstanceMode()) { return DRB.Xrm.GetClientUrl() + "/api/data/v9.0/$metadata"; }
-    if (DRB.Xrm.IsDemoMode()) { return "https://democall/api/data/v9.0/$metadata"; }
+    return DRB.Xrm.GetClientUrl() + "/api/data/v9.0/$metadata";
 }
 
 /**

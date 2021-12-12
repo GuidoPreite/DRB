@@ -53,6 +53,8 @@ DRB.CustomUI.AddImpersonate = function () {
     $("#" + DRB.DOM.ConfigureContent.Id).append(DRB.UI.CreateSpan(DRB.DOM.Impersonate.Span.Id, DRB.DOM.Impersonate.Span.Name));
     $("#" + DRB.DOM.ConfigureContent.Id).append(DRB.UI.CreateSimpleDropdown(DRB.DOM.Impersonate.Dropdown.Id));
     $("#" + DRB.DOM.ConfigureContent.Id).append(DRB.UI.CreateEmptyDiv(DRB.DOM.ImpersonateId.Div.Id, DRB.DOM.ImpersonateId.Div.Class));
+    $("#" + DRB.DOM.ImpersonateId.Div.Id).append(DRB.UI.CreateSpan(DRB.DOM.ImpersonateId.TypeSpan.Id, DRB.DOM.ImpersonateId.TypeSpan.Name));
+    $("#" + DRB.DOM.ImpersonateId.Div.Id).append(DRB.UI.CreateSimpleDropdown(DRB.DOM.ImpersonateId.Dropdown.Id));
     $("#" + DRB.DOM.ImpersonateId.Div.Id).append(DRB.UI.CreateSpan(DRB.DOM.ImpersonateId.Span.Id, DRB.DOM.ImpersonateId.Span.Name));
     $("#" + DRB.DOM.ImpersonateId.Div.Id).append(DRB.UI.CreateInputGuid(DRB.DOM.ImpersonateId.Input.Id));
     $("#" + DRB.DOM.ImpersonateId.Div.Id).append(DRB.UI.CreateLookup(DRB.DOM.ImpersonateId.Lookup.Id, DRB.UI.OpenLookup, { openUser: true, textId: DRB.DOM.ImpersonateId.Input.Id }));
@@ -60,11 +62,17 @@ DRB.CustomUI.AddImpersonate = function () {
 
     DRB.UI.FillDropdown(DRB.DOM.Impersonate.Dropdown.Id, DRB.DOM.Impersonate.Dropdown.Name, new DRB.Models.Records(DRB.Settings.OptionsYesNo).ToDropdown());
     DRB.Logic.BindImpersonate(DRB.DOM.Impersonate.Dropdown.Id);
-    DRB.Logic.BindPropertyValue(DRB.DOM.ImpersonateId.Input.Id, "impersonateId");
+    DRB.UI.FillDropdown(DRB.DOM.ImpersonateId.Dropdown.Id, DRB.DOM.ImpersonateId.Dropdown.Name, new DRB.Models.Records(DRB.Settings.OptionsImpersonation).ToDropdown());
+    DRB.Logic.BindImpersonateType(DRB.DOM.ImpersonateId.Dropdown.Id);
+    DRB.Logic.BindImpersonateId(DRB.DOM.ImpersonateId.Input.Id);
     DRB.Common.BindGuid(DRB.DOM.ImpersonateId.Input.Id);
     var impersonateValue = "no";
     if (DRB.Metadata.CurrentNode.data.configuration.impersonate === true) { impersonateValue = "yes"; }
     $("#" + DRB.DOM.Impersonate.Dropdown.Id).val(impersonateValue).change();
+
+    var impersonateType = "mscrmcallerid";
+    if (DRB.Utilities.HasValue(DRB.Metadata.CurrentNode.data.configuration.impersonateType)) { impersonateType = DRB.Metadata.CurrentNode.data.configuration.impersonateType; }
+    $("#" + DRB.DOM.ImpersonateId.Dropdown.Id).val(impersonateType).change();
 
     if (DRB.Utilities.HasValue(DRB.Metadata.CurrentNode.data.configuration.impersonateId)) {
         $("#" + DRB.DOM.ImpersonateId.Input.Id).val(DRB.Metadata.CurrentNode.data.configuration.impersonateId).trigger("input");

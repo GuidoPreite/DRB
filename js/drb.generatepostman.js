@@ -61,8 +61,15 @@ DRB.GeneratePostman.GetRequestHeaders = function (settings, method, isBinary) {
     // Impersonate
     if (settings.hasOwnProperty("impersonate") && settings.impersonate === true) {
         var impersonateId = "";
+        var impersonateHeader = "MSCRMCallerID";
+        if (DRB.Utilities.HasValue(settings.impersonateType)) {
+            switch (settings.impersonateType) {
+                case "mscrmcallerid": impersonateHeader = "MSCRMCallerID"; break;
+                case "callerobjectid": impersonateHeader = "CallerObjectId"; break;
+            }
+        }
         if (DRB.Utilities.HasValue(settings.impersonateId)) { impersonateId = settings.impersonateId; }
-        headers.push({ key: "MSCRMCallerID", value: impersonateId, type: "text" });
+        headers.push({ key: impersonateHeader, value: impersonateId, type: "text" });
     }
 
     // Detect Changes

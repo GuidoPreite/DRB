@@ -7,6 +7,13 @@ DRB.Common.RetrieveTables = function () {
 }
 
 /**
+ * Retrieve Users
+ */
+DRB.Common.RetrieveUsers = function () {
+    return DRB.Xrm.Retrieve("systemusers", "$select=systemuserid,fullname,azureactivedirectoryobjectid&$filter=azureactivedirectoryobjectid ne null");
+}
+
+/**
  * Retrieve Personal Views
  */
 DRB.Common.RetrievePersonalViews = function () {
