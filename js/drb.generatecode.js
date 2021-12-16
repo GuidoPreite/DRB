@@ -2814,36 +2814,57 @@ DRB.GenerateCode.ExecuteWorkflow = function () {
 }
 
 /**
- * Generate Code - Manage File Data
+ * Generate Code - Manage File Image Data
  */
-DRB.GenerateCode.ManageFileData = function () {
+DRB.GenerateCode.ManageFileImageData = function (requestType) {
     var settings = DRB.Metadata.CurrentNode.data.configuration;
 
     var codejQuery = [];
     var codeXMLHttpRequest = [];
+    var codePortals = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity)) {
         // Don't generate the code if a table is not selected
         var errorMessage = "// Select a Table first";
         codejQuery.push(errorMessage);
         codeXMLHttpRequest.push(errorMessage);
-        DRB.GenerateCode.SetCodeEditors(null, null, codejQuery, codeXMLHttpRequest, null);
+        codePortals.push(errorMessage);
+        DRB.GenerateCode.SetCodeEditors(null, null, codejQuery, codeXMLHttpRequest, codePortals);
         return;
+    }
+
+    var currentType = "";
+    var defaultFileName = "";
+    var fileFullSize = false;
+    switch (requestType) {
+        case "managefiledata": currentType = "File";
+            defaultFileName = "file.bin";
+            fileFullSize = true;
+            break;
+        case "manageimagedata": currentType = "Image";
+            defaultFileName = "file.jpg";
+            if (settings.fileFullSize === true) { fileFullSize = true; }
+            break;
     }
 
     var entityCriteria = settings.primaryId;
     var field = "";
     if (DRB.Utilities.HasValue(settings.fileField)) { field = settings.fileField.logicalName; }
     var mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")";
+    var portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")";
     switch (settings.fileOperation) {
         case "retrieve":
             mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field + "/$value";
+            portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field + "/$value";
+            if (requestType === "manageimagedata" && fileFullSize === true) { mainUrl += "?size=full"; portalsUrl += "?size=full"; }
             break;
         case "upload":
             mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field + "?x-ms-file-name=";
+            portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field + "?x-ms-file-name=";
             break;
         case "delete":
             mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field;
+            portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field;
             break;
     }
 
@@ -2851,10 +2872,43 @@ DRB.GenerateCode.ManageFileData = function () {
     var requestHeaders = DRB.GenerateCode.GetRequestHeaders(settings);
     switch (settings.fileOperation) {
         case "retrieve":
+
+            var fullSizeCodejQuery = [];
+            fullSizeCodejQuery.push('');
+            fullSizeCodejQuery.push('// NOTE: the following code decodes the file name from the header');
+            fullSizeCodejQuery.push('var contentDisposition = xhr.getResponseHeader("content-disposition");');
+
+            var fullSizeCodeXMLHttpRequest = [];
+            fullSizeCodeXMLHttpRequest.push('');
+            fullSizeCodeXMLHttpRequest.push('// NOTE: the following code decodes the file name from the header');
+            fullSizeCodeXMLHttpRequest.push('var contentDisposition = req.getResponseHeader("content-disposition");');
+
+            var fullSizeCode = [];
+            fullSizeCode.push('try {');
+            fullSizeCode.push('\tvar strToCheck = "filename=";');
+            fullSizeCode.push('\tvar mimeEncodingCheck = "\\"=?utf-8?B?";');
+            fullSizeCode.push('\tif (contentDisposition.indexOf(strToCheck) > 0) {');
+            fullSizeCode.push('\t\tvar parseFileName = contentDisposition.substring(contentDisposition.indexOf(strToCheck) + strToCheck.length);');
+            fullSizeCode.push('\t\tif (parseFileName.indexOf(mimeEncodingCheck) === -1) { fileName = parseFileName; }');
+            fullSizeCode.push('\t\telse {');
+            fullSizeCode.push('\t\t\tvar parseFileNameBase64 = parseFileName.substring(parseFileName.indexOf(mimeEncodingCheck) + mimeEncodingCheck.length, parseFileName.length - 3);');
+            fullSizeCode.push('\t\t\tfileName = decodeURIComponent(atob(parseFileNameBase64).split("").map(function (c) { return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2); }).join(""));');
+            fullSizeCode.push('\t\t}');
+            fullSizeCode.push('\t}');
+            fullSizeCode.push('} catch {}');
+
+            var downloadFileCode = [];
+            downloadFileCode.push('// NOTE: Uncomment the following lines to download the file');
+            downloadFileCode.push('// var saveFile = new Blob([fileContent], { type: "application/octet-stream" });');
+            downloadFileCode.push('// var customLink = document.createElement("a");');
+            downloadFileCode.push('// customLink.href = URL.createObjectURL(saveFile);');
+            downloadFileCode.push('// customLink.download = fileName;');
+            downloadFileCode.push('// customLink.click();');
+
             codejQuery.push('$.ajax({');
             codejQuery.push('\ttype: "GET",');
             codejQuery.push('\tcontentType: "application/json; charset=utf-8",');
-            codejQuery.push('\tdatatype: "json",');
+            codejQuery.push('\txhr: function() { var xhr = new XMLHttpRequest(); xhr.responseType = "blob"; return xhr; },');
             codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '",');
             codejQuery.push('\tbeforeSend: function (req) {');
             requestHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
@@ -2862,13 +2916,15 @@ DRB.GenerateCode.ManageFileData = function () {
             codejQuery.push('\tasync: ' + settings.async + ',');
             codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
             codejQuery.push('\t\tvar fileContent = data;');
-            codejQuery.push('\t\tconsole.log("File retrieved");');
-            codejQuery.push('\t\t// Uncomment the following lines to download the file');
-            codejQuery.push('\t\t// var saveFile = new Blob([fileContent], { type: "application/octet-stream" });');
-            codejQuery.push('\t\t// var customLink = document.createElement("a");');
-            codejQuery.push('\t\t// customLink.href = URL.createObjectURL(saveFile);');
-            codejQuery.push('\t\t// customLink.download = "file.bin";');
-            codejQuery.push('\t\t// customLink.click();');
+            codejQuery.push('\t\tvar fileName = "' + defaultFileName + '"; // default name');
+            if (fileFullSize === true) {
+                fullSizeCodejQuery.forEach(function (line) { codejQuery.push('\t\t' + line); });
+                fullSizeCode.forEach(function (line) { codejQuery.push('\t\t' + line); });
+            }
+            codejQuery.push('');
+            codejQuery.push('\t\tconsole.log("' + currentType + ' retrieved. Name: " + fileName);');
+            codejQuery.push('');
+            downloadFileCode.forEach(function (line) { codejQuery.push('\t\t' + line); });
             codejQuery.push('\t},');
             codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
             codejQuery.push('\t\tconsole.log(xhr.responseText);');
@@ -2880,24 +2936,49 @@ DRB.GenerateCode.ManageFileData = function () {
             codeXMLHttpRequest.push('var req = new XMLHttpRequest();');
             codeXMLHttpRequest.push('req.open("GET", Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", ' + settings.async + ');');
             codeXMLHttpRequest.push(requestHeaders.join('\n'));
+            codeXMLHttpRequest.push('req.responseType = "blob";');
             codeXMLHttpRequest.push('req.onreadystatechange = function () {');
             codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
             codeXMLHttpRequest.push('\t\treq.onreadystatechange = null;');
             codeXMLHttpRequest.push('\t\tif (this.status === 200) {');
             codeXMLHttpRequest.push('\t\t\tvar fileContent = this.response;');
-            codeXMLHttpRequest.push('\t\t\tconsole.log("File retrieved");');
-            codeXMLHttpRequest.push('\t\t\t// Uncomment the following lines to download the file');
-            codeXMLHttpRequest.push('\t\t\t// var saveFile = new Blob([fileContent], { type: "application/octet-stream" });');
-            codeXMLHttpRequest.push('\t\t\t// var customLink = document.createElement("a");');
-            codeXMLHttpRequest.push('\t\t\t// customLink.href = URL.createObjectURL(saveFile);');
-            codeXMLHttpRequest.push('\t\t\t// customLink.download = "file.bin";');
-            codeXMLHttpRequest.push('\t\t\t// customLink.click();');
+            codeXMLHttpRequest.push('\t\t\tvar fileName = "' + defaultFileName + '"; // default name');
+            if (fileFullSize === true) {
+                fullSizeCodeXMLHttpRequest.forEach(function (line) { codeXMLHttpRequest.push('\t\t\t' + line); });
+                fullSizeCode.forEach(function (line) { codeXMLHttpRequest.push('\t\t\t' + line); });
+            }
+            codeXMLHttpRequest.push('');
+            codeXMLHttpRequest.push('\t\t\tconsole.log("' + currentType + ' retrieved. Name: " + fileName);');
+            codeXMLHttpRequest.push('');
+            downloadFileCode.forEach(function (line) { codeXMLHttpRequest.push('\t\t\t' + line); });
             codeXMLHttpRequest.push('\t\t} else {');
             codeXMLHttpRequest.push('\t\t\tconsole.log(this.responseText);');
             codeXMLHttpRequest.push('\t\t}');
             codeXMLHttpRequest.push('\t}');
             codeXMLHttpRequest.push('};');
             codeXMLHttpRequest.push('req.send();');
+            // #endregion
+
+            // #region Portals
+            codePortals = DRB.GenerateCode.GetPortalsWarnings(settings);
+            codePortals.push('webapi.safeAjax({');
+            codePortals.push('\ttype: "GET",');
+            codePortals.push('\turl: "' + portalsUrl + '",');
+            codePortals.push('\tcontentType: "application/json",');
+            codePortals.push('\txhr: function() { var xhr = new XMLHttpRequest(); xhr.responseType = "blob"; return xhr; },');
+            codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
+            codePortals.push('\t\tvar fileContent = data;');
+            codePortals.push('\t\tvar fileName = "' + defaultFileName + '"; // default name');
+            if (fileFullSize === true) {
+                fullSizeCodejQuery.forEach(function (line) { codePortals.push('\t\t' + line); });
+                fullSizeCode.forEach(function (line) { codePortals.push('\t\t' + line); });
+            }
+            codePortals.push('');
+            codePortals.push('\t\tconsole.log("' + currentType + ' retrieved. Name: " + fileName);');
+            codePortals.push('');
+            downloadFileCode.forEach(function (line) { codePortals.push('\t\t' + line); });
+            codePortals.push('\t}');
+            codePortals.push('});');
             // #endregion
             break;
 
@@ -2923,7 +3004,7 @@ DRB.GenerateCode.ManageFileData = function () {
             codejQuery.push('\t},');
             codejQuery.push('\tasync: ' + settings.async + ',');
             codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
-            codejQuery.push('\t\tconsole.log("File uploaded");');
+            codejQuery.push('\t\tconsole.log("' + currentType + ' uploaded");');
             codejQuery.push('\t},');
             codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
             codejQuery.push('\t\tconsole.log(xhr.responseText);');
@@ -2941,13 +3022,27 @@ DRB.GenerateCode.ManageFileData = function () {
             codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
             codeXMLHttpRequest.push('\t\treq.onreadystatechange = null;');
             codeXMLHttpRequest.push('\t\tif (this.status === 204) {');
-            codeXMLHttpRequest.push('\t\t\tconsole.log("File uploaded");');
+            codeXMLHttpRequest.push('\t\t\tconsole.log("' + currentType + ' uploaded");');
             codeXMLHttpRequest.push('\t\t} else {');
             codeXMLHttpRequest.push('\t\t\tconsole.log(this.responseText);');
             codeXMLHttpRequest.push('\t\t}');
             codeXMLHttpRequest.push('\t}');
             codeXMLHttpRequest.push('};');
             codeXMLHttpRequest.push('req.send(fileContent);');
+            // #endregion
+
+            // #region Portals
+            codePortals = DRB.GenerateCode.GetPortalsWarnings(settings);
+            uploadCode.forEach(function (line) { codePortals.push(line); });
+            codePortals.push('webapi.safeAjax({');
+            codePortals.push('\ttype: "PATCH",');
+            codePortals.push('\turl: "' + portalsUrl + '" + fileName,');
+            codePortals.push('\tdata: fileContent,');
+            codePortals.push('\tcontentType: "application/octet-stream",'); // Binary upload
+            codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
+            codePortals.push('\t\tconsole.log("' + currentType + ' uploaded");');
+            codePortals.push('\t}');
+            codePortals.push('});');
             // #endregion
             break;
 
@@ -2963,7 +3058,7 @@ DRB.GenerateCode.ManageFileData = function () {
             codejQuery.push('\t},');
             codejQuery.push('\tasync: ' + settings.async + ',');
             codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
-            codejQuery.push('\t\tconsole.log("File deleted");');
+            codejQuery.push('\t\tconsole.log("' + currentType + ' deleted");');
             codejQuery.push('\t},');
             codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
             codejQuery.push('\t\tconsole.log(xhr.responseText);');
@@ -2979,7 +3074,7 @@ DRB.GenerateCode.ManageFileData = function () {
             codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
             codeXMLHttpRequest.push('\t\treq.onreadystatechange = null;');
             codeXMLHttpRequest.push('\t\tif (this.status === 204 || this.status === 1223) {');
-            codeXMLHttpRequest.push('\t\t\tconsole.log("File deleted");');
+            codeXMLHttpRequest.push('\t\t\tconsole.log("' + currentType + ' deleted");');
             codeXMLHttpRequest.push('\t\t} else {');
             codeXMLHttpRequest.push('\t\t\tconsole.log(this.responseText);');
             codeXMLHttpRequest.push('\t\t}');
@@ -2987,9 +3082,21 @@ DRB.GenerateCode.ManageFileData = function () {
             codeXMLHttpRequest.push('};');
             codeXMLHttpRequest.push('req.send();');
             // #endregion
+
+            // #region Portals
+            codePortals = DRB.GenerateCode.GetPortalsWarnings(settings);
+            codePortals.push('webapi.safeAjax({');
+            codePortals.push('\ttype: "DELETE",');
+            codePortals.push('\turl: "' + portalsUrl + '",');
+            codePortals.push('\tcontentType: "application/json",');
+            codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
+            codePortals.push('\t\tconsole.log("' + currentType + ' deleted");');
+            codePortals.push('\t}');
+            codePortals.push('});');
+            // #endregion
             break;
     }
-    DRB.GenerateCode.SetCodeEditors(null, null, codejQuery, codeXMLHttpRequest, null);
+    DRB.GenerateCode.SetCodeEditors(null, null, codejQuery, codeXMLHttpRequest, codePortals);
 }
 
 /**
@@ -3109,7 +3216,12 @@ DRB.GenerateCode.Start = function () {
         case "retrievenextlink": DRB.GenerateCode.RetrieveNextLink(); break;
         case "predefinedquery": DRB.GenerateCode.PredefinedQuery(); break;
         case "executeworkflow": DRB.GenerateCode.ExecuteWorkflow(); break;
-        case "managefiledata": DRB.GenerateCode.ManageFileData(); break;
+
+        // Manage File Data and Manage Image Data share the same code
+        case "managefiledata":
+        case "manageimagedata":
+            DRB.GenerateCode.ManageFileImageData(requestType);
+            break;
 
         // Custom API, Custom Action, Action, Function share the same code
         case "executecustomapi":

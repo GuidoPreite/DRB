@@ -256,10 +256,14 @@ DRB.Models.Column = function (logicalName, name, schemaName, attributeType, isPr
             case "Money": renamedAttributeType = "Currency"; break;
             case "BigInt": renamedAttributeType = "Big Integer"; break;
         }
+
+        if (this.AttributeType === "Lookup" && this.AdditionalProperties.IsPolymorphic === true) { renamedAttributeType = "Polymorphic Lookup"; }
+
         var subText = this.LogicalName + " (" + renamedAttributeType + ")";
         if (this.RequiredLevel === "Recommended") { subText += " +"; }
         if (this.RequiredLevel === "ApplicationRequired" || this.RequiredLevel === "SystemRequired") { subText += " *"; }
         if (this.IsPrimaryNameAttribute === true) { subText += " (Primary Column)"; }
+        if (this.AttributeType === "Image" && this.AdditionalProperties.CanStoreFullImage === true) { subText += " (Can Store Full Image)";  }
         return new DRB.Models.DropdownOption(this.Id, this.Name, subText);
     }
 }
@@ -315,7 +319,7 @@ DRB.Models.Table = function (logicalName, name, schemaName, entitySetName, prima
     this.RelationshipsLoaded = false;
     this.AlternateKeysLoaded = false;
     this.PersonalViewsLoaded = false;
-    
+
     this.ToDropdownOption = function () { return new DRB.Models.DropdownOption(this.Id, this.Name, this.LogicalName); }
 }
 

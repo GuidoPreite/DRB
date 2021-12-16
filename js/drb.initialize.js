@@ -18,7 +18,8 @@ DRB.SetDefaultSettings = function () {
     { Id: "executeaction", Name: "Execute Action" },
     { Id: "executefunction", Name: "Execute Function" },
     { Id: "executeworkflow", Name: "Execute Workflow" },
-    { Id: "managefiledata", Name: "Manage File Data" }];
+    { Id: "managefiledata", Name: "Manage File Data" },
+    { Id: "manageimagedata", Name: "Manage Image Data" }];
     DRB.Settings.RequestTypes = [];
     requests.forEach(function (request) { DRB.Settings.RequestTypes.push(new DRB.Models.IdValue(request.Id, request.Name)); });
     // #endregion
@@ -108,6 +109,7 @@ DRB.SetDefaultSettings = function () {
     var optNextFiscalPeriod = new DRB.Models.IdValue("NextFiscalPeriod", "Next Fiscal Period");
     var optLastFiscalPeriod = new DRB.Models.IdValue("LastFiscalPeriod", "Last Fiscal Period");
     var optThisFiscalPeriod = new DRB.Models.IdValue("ThisFiscalPeriod", "This Fiscal Period");
+
     // Datetime operators (required value)
     var optNextXHours = new DRB.Models.IdValue("NextXHours", "Next X Hours");
     var optLastXHours = new DRB.Models.IdValue("LastXHours", "Last X Hours");
@@ -348,7 +350,7 @@ DRB.DefineOperations = function () {
     container.append(DRB.UI.CreateSpan(DRB.DOM.RequestType.Span.Id, DRB.DOM.RequestType.Span.Name));
     container.append(DRB.UI.CreateSimpleDropdown(DRB.DOM.RequestType.Dropdown.Id));
     container.append(DRB.UI.CreateSpacer());
-    DRB.UI.FillDropdown(DRB.DOM.RequestType.Dropdown.Id, DRB.DOM.RequestType.Dropdown.Name, new DRB.Models.Records(DRB.Settings.RequestTypes).ToDropdown(), false, false, false, 15);
+    DRB.UI.FillDropdown(DRB.DOM.RequestType.Dropdown.Id, DRB.DOM.RequestType.Dropdown.Name, new DRB.Models.Records(DRB.Settings.RequestTypes).ToDropdown(), false, false, false, 16);
     DRB.Logic.BindRequestType(DRB.DOM.RequestType.Dropdown.Id);
     // #endregion
 
@@ -502,6 +504,11 @@ DRB.ShowNotice = function () {
  * Main function called by the Index
  */
 DRB.Initialize = async function () {
+    // DRB Version
+    var drbVersion = "1.0.0.15";
+    document.title = document.title + " " + drbVersion;
+    $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
+
     // localStorage
     DRB.Settings.LocalStorageAvailable = DRB.Utilities.LocalStorageAvailable();
 
@@ -526,7 +533,7 @@ DRB.Initialize = async function () {
 
     // #region JWT
     DRB.Settings.JWTContext = false;
-    if (DRB.Settings.LocalStorageAvailable === true) {
+    if (DRB.Xrm.IsXTBMode() === false && DRB.Settings.LocalStorageAvailable === true) {
         try {
             if (localStorage.getItem("DRB_JWT") !== null) {
                 var removeToken = true;

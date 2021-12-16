@@ -24,12 +24,13 @@ DRB.Logic.RetrieveNextLink = {}; // Retrieve NextLink Functions
 DRB.Logic.PredefinedQuery = {}; // Predefined Query Functions
 DRB.Logic.DataverseExecute = {}; // Dataverse Action, Dataverse Function Functions
 DRB.Logic.ExecuteWorkflow = {}; // Execute Workflow Functions
-DRB.Logic.ManageFileData = {}; // Manage File Data Functions
+DRB.Logic.ManageFileImageData = {}; // Manage File Image Data Functions
 // #endregion  
  
 // #region DRB.DOM
 // Main Content
 DRB.DOM.MainContent = { Id: "main_content" }; // defined also inside index.htm
+DRB.DOM.VersionSpan = { Id: "span_drbversion" }; // defined also inside index.htm
 DRB.DOM.ContextSpan = { Id: "span_context" }; // defined also inside index.htm
 
 // jsTree
@@ -112,6 +113,11 @@ DRB.DOM.FileColumn.Div = { Id: "div_filecolumn", Class: "sameline" };
 DRB.DOM.FileColumn.Span = { Id: "span_filecolumn", Name: "File Column" };
 DRB.DOM.FileColumn.Dropdown = { Id: "cbx_filecolumn", Name: "Select File Column" };
 
+// Image Column
+DRB.DOM.ImageColumn = {};
+DRB.DOM.ImageColumn.Span = { Name: "Image Column" };
+DRB.DOM.ImageColumn.Dropdown = { Name: "Select Image Column" };
+
 // File Operation
 DRB.DOM.FileOperation = {};
 DRB.DOM.FileOperation.Span = { Id: "span_fileoperation", Name: "Operation" };
@@ -122,6 +128,12 @@ DRB.DOM.FileName = {};
 DRB.DOM.FileName.Div = { Id: "div_filename" };
 DRB.DOM.FileName.Span = { Id: "span_filename", Name: "File Name" };
 DRB.DOM.FileName.Input = { Id: "txt_filename" };
+
+// File Full Size
+DRB.DOM.FileFullSize = {};
+DRB.DOM.FileFullSize.Div = { Id: "div_filefullsize", Class: "sameline" };
+DRB.DOM.FileFullSize.Span = { Id: "span_filefullsize", Name: "&nbsp;Full Size" };
+DRB.DOM.FileFullSize.CheckBox = { Id: "chk_filefullsize" };
 
 // Relationships
 DRB.DOM.DivRelationship = { Id: "div_relationships" };
@@ -652,7 +664,8 @@ DRB.Xrm.GetDemoDataBatch = function (queries) {
     columns_CustomTable.push({ "@odata.type": "#Microsoft.Dynamics.CRM.LookupAttributeMetadata", SchemaName: "sample_ContactId", LogicalName: "sample_contactid", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Lookup", Targets: ["contact"], IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, DisplayName: { UserLocalizedLabel: { Label: "Lookup (Contact)" } } });
     columns_CustomTable.push({ "@odata.type": "#Microsoft.Dynamics.CRM.LookupAttributeMetadata", SchemaName: "sample_CustomerId", LogicalName: "sample_customerid", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Customer", Targets: ["account", "contact"], IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, DisplayName: { UserLocalizedLabel: { Label: "Customer Lookup" } } });
     columns_CustomTable.push({ "@odata.type": "#Microsoft.Dynamics.CRM.DoubleAttributeMetadata", SchemaName: "sample_Float", LogicalName: "sample_float", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Double", IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, MinValue: 5, MaxValue: 10, Precision: 3, DisplayName: { UserLocalizedLabel: { Label: "Float" } } });
-    columns_CustomTable.push({ "@odata.type": "#Microsoft.Dynamics.CRM.ImageAttributeMetadata", SchemaName: "sample_Image", LogicalName: "sample_image", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Virtual", IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, MaxSizeInKB: 1024, DisplayName: { UserLocalizedLabel: { Label: "Image" } } });
+    columns_CustomTable.push({ "@odata.type": "#Microsoft.Dynamics.CRM.ImageAttributeMetadata", SchemaName: "sample_Image", LogicalName: "sample_image", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Virtual", IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, MaxSizeInKB: 10240, CanStoreFullImage: true, DisplayName: { UserLocalizedLabel: { Label: "Image" } } });
+    columns_CustomTable.push({ "@odata.type": "#Microsoft.Dynamics.CRM.ImageAttributeMetadata", SchemaName: "sample_Image2", LogicalName: "sample_image2", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Virtual", IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, MaxSizeInKB: 1024, CanStoreFullImage: false, DisplayName: { UserLocalizedLabel: { Label: "Image 2" } } });
 
 
     var sample_Boolean_Values = { "OptionSetType": "Boolean", "TrueOption": { "Value": true, "Label": { "UserLocalizedLabel": { "Label": "Yes" } } }, "FalseOption": { "Value": false, "Label": { "UserLocalizedLabel": { "Label": "No" } } } };
@@ -678,10 +691,11 @@ DRB.Xrm.GetDemoDataBatch = function (queries) {
 
     columns_CustomTable.push({ "@odata.type": "#Microsoft.Dynamics.CRM.BooleanAttributeMetadata", SchemaName: "sample_Boolean", LogicalName: "sample_boolean", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Boolean", IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, DisplayName: { UserLocalizedLabel: { Label: "Two Options" } } });
     columns_CustomTable.push({ "@odata.type": "#Microsoft.Dynamics.CRM.MultiSelectPicklistAttributeMetadata", SchemaName: "sample_Choices", LogicalName: "sample_choices", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Virtual", IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, DisplayName: { UserLocalizedLabel: { Label: "Choices" } } });
-    columns_CustomTable.push({ "@odata.type": "#Microsoft.Dynamics.CRM.FileAttributeMetadata", SchemaName: "sample_File", LogicalName: "sample_file", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Virtual", IsValidForRead: true, IsValidForCreate: false, IsValidForUpdate: false, DisplayName: { UserLocalizedLabel: { Label: "File" } } });
+    columns_CustomTable.push({ "@odata.type": "#Microsoft.Dynamics.CRM.FileAttributeMetadata", SchemaName: "sample_File", LogicalName: "sample_file", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Virtual", IsValidForRead: true, IsValidForCreate: false, IsValidForUpdate: false, MaxSizeInKB: 32768, DisplayName: { UserLocalizedLabel: { Label: "File" } } });
     columns_CustomTable.push({ "@odata.type": "#Microsoft.Dynamics.CRM.StringAttributeMetadata", SchemaName: "sample_File_Name", LogicalName: "sample_file_name", AttributeOf: "sample_file", AttributeType: "String", IsValidForCreate: false, IsValidForRead: true, IsValidForUpdate: false });
 
     columns_CustomTable.push({ SchemaName: "sample_ImageId", LogicalName: "sample_imageid", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Uniqueidentifier", IsValidForRead: true, IsValidForCreate: false, IsValidForUpdate: false });
+    columns_CustomTable.push({ SchemaName: "sample_Image2Id", LogicalName: "sample_image2id", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Uniqueidentifier", IsValidForRead: true, IsValidForCreate: false, IsValidForUpdate: false });
 
     var keys_CustomTable = [];
     keys_CustomTable.push({ SchemaName: "sample_SampleKey1", LogicalName: "sample_samplekey1", EntityKeyIndexStatus: "Active", KeyAttributes: ["sample_name"], DisplayName: { UserLocalizedLabel: { Label: "Sample Key 1" } } });
@@ -1255,10 +1269,14 @@ DRB.Models.Column = function (logicalName, name, schemaName, attributeType, isPr
             case "Money": renamedAttributeType = "Currency"; break;
             case "BigInt": renamedAttributeType = "Big Integer"; break;
         }
+
+        if (this.AttributeType === "Lookup" && this.AdditionalProperties.IsPolymorphic === true) { renamedAttributeType = "Polymorphic Lookup"; }
+
         var subText = this.LogicalName + " (" + renamedAttributeType + ")";
         if (this.RequiredLevel === "Recommended") { subText += " +"; }
         if (this.RequiredLevel === "ApplicationRequired" || this.RequiredLevel === "SystemRequired") { subText += " *"; }
         if (this.IsPrimaryNameAttribute === true) { subText += " (Primary Column)"; }
+        if (this.AttributeType === "Image" && this.AdditionalProperties.CanStoreFullImage === true) { subText += " (Can Store Full Image)";  }
         return new DRB.Models.DropdownOption(this.Id, this.Name, subText);
     }
 }
@@ -1314,7 +1332,7 @@ DRB.Models.Table = function (logicalName, name, schemaName, entitySetName, prima
     this.RelationshipsLoaded = false;
     this.AlternateKeysLoaded = false;
     this.PersonalViewsLoaded = false;
-    
+
     this.ToDropdownOption = function () { return new DRB.Models.DropdownOption(this.Id, this.Name, this.LogicalName); }
 }
 
@@ -2146,15 +2164,6 @@ DRB.UI.OpenLookup = function (settings) {
 DRB.Xrm.GetXrmObject = function () {
     if (typeof parent !== "undefined") { return parent.Xrm; } else { return undefined; }
 }
-/**
- * Xrm - Get Context
- */
-DRB.Xrm.GetContext = function () {
-    if (DRB.Xrm.IsXTBMode() === true) { return "<small>" + DRB.Settings.XTBUrl + "</small>"; }
-    if (DRB.Xrm.IsJWTMode() === true) { return "<small>" + DRB.Settings.JWTUrl + "</small>"; }
-    if (DRB.Xrm.IsInstanceMode() === true) { return ""; }
-    if (DRB.Xrm.IsDemoMode() === true) { return "(Demo)"; }
-}
 
 /**
  * Xrm - Is XTB Mode
@@ -2174,8 +2183,7 @@ DRB.Xrm.IsJWTMode = function () {
  * Xrm - Is Demo Mode
  */
 DRB.Xrm.IsDemoMode = function () {
-    if (DRB.Xrm.IsXTBMode()) { return false; }
-    if (DRB.Xrm.IsJWTMode()) { return false; }
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode()) { return false; }
     return typeof DRB.Xrm.GetXrmObject() === "undefined";
 }
 
@@ -2183,9 +2191,7 @@ DRB.Xrm.IsDemoMode = function () {
  * Xrm - Is Instance Mode
  */
 DRB.Xrm.IsInstanceMode = function () {
-    if (DRB.Xrm.IsXTBMode()) { return false; }
-    if (DRB.Xrm.IsJWTMode()) { return false; }
-    if (DRB.Xrm.IsDemoMode()) { return false; }
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDemoMode()) { return false; }
     return typeof DRB.Xrm.GetXrmObject() !== "undefined";
 }
 
@@ -2197,6 +2203,15 @@ DRB.Xrm.GetClientUrl = function () {
     if (DRB.Xrm.IsJWTMode()) { return DRB.Settings.JWTUrl; }
     if (DRB.Xrm.IsInstanceMode()) { return DRB.Xrm.GetXrmObject().Utility.getGlobalContext().getClientUrl(); }
     if (DRB.Xrm.IsDemoMode()) { return "https://democall"; }
+}
+
+/**
+ * Xrm - Get Context
+ */
+DRB.Xrm.GetContext = function () {
+    var context = "Demo";
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsInstanceMode()) { context = DRB.Xrm.GetClientUrl(); }
+    return "<small>(" + context + ")</small>";
 }
 
 /**
@@ -2230,7 +2245,7 @@ DRB.Xrm.GetVersion = function () {
 DRB.Xrm.Retrieve = function (entitySetName, filters) {
     var retrieveUrl = encodeURI(DRB.Xrm.GetClientUrl() + "/api/data/v9.0/" + entitySetName + "?" + filters);
 
-    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode()) {
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsInstanceMode()) {
         var token = "";
         if (DRB.Xrm.IsXTBMode()) { token = DRB.Settings.XTBToken; }
         if (DRB.Xrm.IsJWTMode()) { token = DRB.Settings.JWTToken; }
@@ -2244,23 +2259,7 @@ DRB.Xrm.Retrieve = function (entitySetName, filters) {
                 xhr.setRequestHeader("OData-Version", "4.0");
                 xhr.setRequestHeader("Accept", "application/json");
                 xhr.setRequestHeader("Prefer", "odata.include-annotations=\"*\"");
-                xhr.setRequestHeader("Authorization", "Bearer " + token);
-            },
-            url: retrieveUrl
-        });
-    }
-
-    if (DRB.Xrm.IsInstanceMode()) {
-        return $.ajax({
-            type: "GET",
-            contentType: "application/json; charset=utf-8",
-            datatype: "json",
-            async: true,
-            beforeSend: function (xhr) {
-                xhr.setRequestHeader("OData-MaxVersion", "4.0");
-                xhr.setRequestHeader("OData-Version", "4.0");
-                xhr.setRequestHeader("Accept", "application/json");
-                xhr.setRequestHeader("Prefer", "odata.include-annotations=\"*\"");
+                if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode()) { xhr.setRequestHeader("Authorization", "Bearer " + token); }
             },
             url: retrieveUrl
         });
@@ -2292,7 +2291,7 @@ DRB.Xrm.RetrieveBatch = function (queries) {
     data.push("--" + batchDescription + "--");
     var payload = data.join("\r\n");
 
-    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode()) {
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsInstanceMode()) {
         var token = "";
         if (DRB.Xrm.IsXTBMode()) { token = DRB.Settings.XTBToken; }
         if (DRB.Xrm.IsJWTMode()) { token = DRB.Settings.JWTToken; }
@@ -2305,22 +2304,7 @@ DRB.Xrm.RetrieveBatch = function (queries) {
                 xhr.setRequestHeader("OData-MaxVersion", "4.0");
                 xhr.setRequestHeader("OData-Version", "4.0");
                 xhr.setRequestHeader("Accept", "application/json");
-                xhr.setRequestHeader("Authorization", "Bearer " + token);
-            },
-            url: DRB.Xrm.GetClientUrl() + "/api/data/v9.0/$batch"
-        });
-    }
-
-    if (DRB.Xrm.IsInstanceMode()) {
-        return $.ajax({
-            method: "POST",
-            data: payload,
-            async: true,
-            beforeSend: function (xhr) {
-                xhr.setRequestHeader("Content-Type", "multipart/mixed;boundary=" + batchDescription);
-                xhr.setRequestHeader("OData-MaxVersion", "4.0");
-                xhr.setRequestHeader("OData-Version", "4.0");
-                xhr.setRequestHeader("Accept", "application/json");
+                if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode()) { xhr.setRequestHeader("Authorization", "Bearer " + token); }
             },
             url: DRB.Xrm.GetClientUrl() + "/api/data/v9.0/$batch"
         });
@@ -2348,7 +2332,7 @@ DRB.Xrm.RetrieveBatches = function (batchedQueries) {
  * Get $metadata content (XML)
  */
 DRB.Xrm.RetrieveMetadata = function () {
-    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode()) {
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsInstanceMode()) {
         var token = "";
         if (DRB.Xrm.IsXTBMode()) { token = DRB.Settings.XTBToken; }
         if (DRB.Xrm.IsJWTMode()) { token = DRB.Settings.JWTToken; }
@@ -2356,16 +2340,9 @@ DRB.Xrm.RetrieveMetadata = function () {
             type: "GET",
             datatype: "xml",
             async: true,
-            beforeSend: function (xhr) { xhr.setRequestHeader("Authorization", "Bearer " + token); },
-            url: DRB.Xrm.GetMetadataUrl()
-        });
-    }
-
-    if (DRB.Xrm.IsInstanceMode()) {
-        return $.ajax({
-            type: "GET",
-            datatype: "xml",
-            async: true,
+            beforeSend: function (xhr) {
+                if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode()) { xhr.setRequestHeader("Authorization", "Bearer " + token); }
+            },
             url: DRB.Xrm.GetMetadataUrl()
         });
     }
@@ -2797,12 +2774,13 @@ DRB.Common.MapColumns = function (data, primaryIdAttribute, primaryNameAttribute
             var isPolymorphic = false; // Polymorphic Lookup
             var precision = record.Precision; // Decimal, Money
             var precisionSource = record.PrecisionSource; // Money
-            var maxSizeInKB = record.MaxSizeInKB; // Image
+            var maxSizeInKB = record.MaxSizeInKB; // Image, File
+            var canStoreFullImage = record.CanStoreFullImage; // Image
             var dateTimeFormat = record.Format; // DateTime
             var dateTimeBehavior = ""; // DateTime
 
             if (DRB.Utilities.HasValue(record.DateTimeBehavior) && DRB.Utilities.HasValue(record.DateTimeBehavior.Value)) { dateTimeBehavior = record.DateTimeBehavior.Value; }
-            var additionalProperties = { MaxLength: maxLength, MinValue: minValue, MaxValue: maxValue, Targets: targets, IsPolymorphic: isPolymorphic, Precision: precision, PrecisionSource: precisionSource, MaxSizeInKB: maxSizeInKB, DateTimeFormat: dateTimeFormat, DateTimeBehavior: dateTimeBehavior };
+            var additionalProperties = { MaxLength: maxLength, MinValue: minValue, MaxValue: maxValue, Targets: targets, IsPolymorphic: isPolymorphic, Precision: precision, PrecisionSource: precisionSource, MaxSizeInKB: maxSizeInKB, CanStoreFullImage: canStoreFullImage, DateTimeFormat: dateTimeFormat, DateTimeBehavior: dateTimeBehavior };
 
             // fix for type fields appearing as Virtual
             var oDataType = record["@odata.type"];
@@ -3820,44 +3798,54 @@ DRB.Logic.BindRequestType = function (id) {
         // hide or show Tab "Xrm.WebApi execute" (Tab number 2) based on the request type
         // hide or show Tab "Portals" (Tab number 5) based on the request type
         // hide or show Tab "Power Automate" (Tab number 8) based on the request type
+
+        // Tabs 3 (jQuery), 4 (XMLHttpRequest), 6 (Editor), 7 (Results) are always visible
+
         switch (requestTypeValue) {
             case "retrievesingle":
-                $("#a_" + DRB.Settings.Tabs[1].id).show();
-                $("#a_" + DRB.Settings.Tabs[2].id).show();
-                $("#a_" + DRB.Settings.Tabs[5].id).show();
-                $("#a_" + DRB.Settings.Tabs[8].id).show();
+                $("#a_" + DRB.Settings.Tabs[1].id).show(); // Xrm.WebApi
+                $("#a_" + DRB.Settings.Tabs[2].id).show(); // Xrm.WebApi execute
+                $("#a_" + DRB.Settings.Tabs[5].id).show(); // Portals
+                $("#a_" + DRB.Settings.Tabs[8].id).show(); // Power Automate
                 break;
             case "retrievemultiple":
-                $("#a_" + DRB.Settings.Tabs[1].id).show();
-                $("#a_" + DRB.Settings.Tabs[2].id).hide();
-                $("#a_" + DRB.Settings.Tabs[5].id).show();
-                $("#a_" + DRB.Settings.Tabs[8].id).show();
+                $("#a_" + DRB.Settings.Tabs[1].id).show(); // Xrm.WebApi
+                $("#a_" + DRB.Settings.Tabs[2].id).hide(); // Xrm.WebApi execute
+                $("#a_" + DRB.Settings.Tabs[5].id).show(); // Portals
+                $("#a_" + DRB.Settings.Tabs[8].id).show(); // Power Automate
                 break;
             case "create":
             case "update":
             case "delete":
-                $("#a_" + DRB.Settings.Tabs[1].id).show();
-                $("#a_" + DRB.Settings.Tabs[2].id).show();
-                $("#a_" + DRB.Settings.Tabs[5].id).show();
-                $("#a_" + DRB.Settings.Tabs[8].id).hide();
+                $("#a_" + DRB.Settings.Tabs[1].id).show(); // Xrm.WebApi
+                $("#a_" + DRB.Settings.Tabs[2].id).show(); // Xrm.WebApi execute
+                $("#a_" + DRB.Settings.Tabs[5].id).show(); // Portals
+                $("#a_" + DRB.Settings.Tabs[8].id).hide(); // Power Automate
                 break;
             case "associate":
             case "disassociate":
-                $("#a_" + DRB.Settings.Tabs[1].id).show();
-                $("#a_" + DRB.Settings.Tabs[2].id).hide();
-                $("#a_" + DRB.Settings.Tabs[5].id).show();
-                $("#a_" + DRB.Settings.Tabs[8].id).hide();
+                $("#a_" + DRB.Settings.Tabs[1].id).show(); // Xrm.WebApi
+                $("#a_" + DRB.Settings.Tabs[2].id).hide(); // Xrm.WebApi execute
+                $("#a_" + DRB.Settings.Tabs[5].id).show(); // Portals
+                $("#a_" + DRB.Settings.Tabs[8].id).hide(); // Power Automate
+                break;
+            case "manageimagedata":
+                $("#a_" + DRB.Settings.Tabs[1].id).hide(); // Xrm.WebApi
+                $("#a_" + DRB.Settings.Tabs[2].id).hide(); // Xrm.WebApi execute
+                $("#a_" + DRB.Settings.Tabs[5].id).hide(); // Portals
+                $("#a_" + DRB.Settings.Tabs[8].id).hide(); // Power Automate
                 break;
             case "managefiledata":
-                $("#a_" + DRB.Settings.Tabs[1].id).hide();
-                $("#a_" + DRB.Settings.Tabs[2].id).hide();
-                $("#a_" + DRB.Settings.Tabs[5].id).hide();
-                $("#a_" + DRB.Settings.Tabs[8].id).hide();
+                $("#a_" + DRB.Settings.Tabs[1].id).hide(); // Xrm.WebApi
+                $("#a_" + DRB.Settings.Tabs[2].id).hide(); // Xrm.WebApi execute
+                $("#a_" + DRB.Settings.Tabs[5].id).hide(); // Portals
+                $("#a_" + DRB.Settings.Tabs[8].id).hide(); // Power Automate
                 break;
             default:
-                $("#a_" + DRB.Settings.Tabs[2].id).hide();
-                $("#a_" + DRB.Settings.Tabs[5].id).hide();
-                $("#a_" + DRB.Settings.Tabs[8].id).hide();
+                $("#a_" + DRB.Settings.Tabs[1].id).show(); // Xrm.WebApi
+                $("#a_" + DRB.Settings.Tabs[2].id).hide(); // Xrm.WebApi execute
+                $("#a_" + DRB.Settings.Tabs[5].id).hide(); // Portals
+                $("#a_" + DRB.Settings.Tabs[8].id).hide(); // Power Automate
                 break;
         }
 
@@ -3905,9 +3893,10 @@ DRB.Logic.BindRequestType = function (id) {
         if (!DRB.Utilities.HasValue(nodeConfiguration.dataverseExecute)) { nodeConfiguration.dataverseExecute = ""; } // Dataverse Execute
         if (!DRB.Utilities.HasValue(nodeConfiguration.dataverseOperationType)) { nodeConfiguration.dataverseOperationType = 0; } // Dataverse Execute
         if (!DRB.Utilities.HasValue(nodeConfiguration.dataverseParameters)) { nodeConfiguration.dataverseParameters = []; } // Dataverse Execute
-        if (!DRB.Utilities.HasValue(nodeConfiguration.fileField)) { nodeConfiguration.fileField = null; } // Manage File Data
-        if (!DRB.Utilities.HasValue(nodeConfiguration.fileOperation)) { nodeConfiguration.fileOperation = ""; } // Manage File Data
-        if (!DRB.Utilities.HasValue(nodeConfiguration.fileName)) { nodeConfiguration.fileName = ""; } // Manage File Data
+        if (!DRB.Utilities.HasValue(nodeConfiguration.fileField)) { nodeConfiguration.fileField = null; } // Manage File Data, Manage Image Data
+        if (!DRB.Utilities.HasValue(nodeConfiguration.fileOperation)) { nodeConfiguration.fileOperation = ""; } // Manage File Data, Manage Image Data
+        if (!DRB.Utilities.HasValue(nodeConfiguration.fileName)) { nodeConfiguration.fileName = ""; } // Manage File Data, Manage Image Data
+        if (!DRB.Utilities.HasValue(nodeConfiguration.fileFullSize)) { nodeConfiguration.fileFullSize = false; } // Manage Image Data
 
         // Check the selected Request Type
         switch (requestTypeValue) {
@@ -4000,12 +3989,21 @@ DRB.Logic.BindRequestType = function (id) {
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
                 DRB.Logic.ExecuteWorkflow.Start();
                 break;
+
             case "managefiledata": // Manage File Data
                 var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId",
                     "primaryEntity", "primaryId", "fileField", "fileOperation", "fileName"];
 
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
-                DRB.Logic.ManageFileData.Start();
+                DRB.Logic.ManageFileImageData.Start(requestTypeValue);
+                break;
+
+            case "manageimagedata": // Manage Image Data
+                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId",
+                    "primaryEntity", "primaryId", "fileField", "fileOperation", "fileName", "fileFullSize"];
+
+                DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
+                DRB.Logic.ManageFileImageData.Start(requestTypeValue);
                 break;
         }
 
@@ -7662,36 +7660,57 @@ DRB.GenerateCode.ExecuteWorkflow = function () {
 }
 
 /**
- * Generate Code - Manage File Data
+ * Generate Code - Manage File Image Data
  */
-DRB.GenerateCode.ManageFileData = function () {
+DRB.GenerateCode.ManageFileImageData = function (requestType) {
     var settings = DRB.Metadata.CurrentNode.data.configuration;
 
     var codejQuery = [];
     var codeXMLHttpRequest = [];
+    var codePortals = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity)) {
         // Don't generate the code if a table is not selected
         var errorMessage = "// Select a Table first";
         codejQuery.push(errorMessage);
         codeXMLHttpRequest.push(errorMessage);
-        DRB.GenerateCode.SetCodeEditors(null, null, codejQuery, codeXMLHttpRequest, null);
+        codePortals.push(errorMessage);
+        DRB.GenerateCode.SetCodeEditors(null, null, codejQuery, codeXMLHttpRequest, codePortals);
         return;
+    }
+
+    var currentType = "";
+    var defaultFileName = "";
+    var fileFullSize = false;
+    switch (requestType) {
+        case "managefiledata": currentType = "File";
+            defaultFileName = "file.bin";
+            fileFullSize = true;
+            break;
+        case "manageimagedata": currentType = "Image";
+            defaultFileName = "file.jpg";
+            if (settings.fileFullSize === true) { fileFullSize = true; }
+            break;
     }
 
     var entityCriteria = settings.primaryId;
     var field = "";
     if (DRB.Utilities.HasValue(settings.fileField)) { field = settings.fileField.logicalName; }
     var mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")";
+    var portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")";
     switch (settings.fileOperation) {
         case "retrieve":
             mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field + "/$value";
+            portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field + "/$value";
+            if (requestType === "manageimagedata" && fileFullSize === true) { mainUrl += "?size=full"; portalsUrl += "?size=full"; }
             break;
         case "upload":
             mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field + "?x-ms-file-name=";
+            portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field + "?x-ms-file-name=";
             break;
         case "delete":
             mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field;
+            portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field;
             break;
     }
 
@@ -7699,10 +7718,43 @@ DRB.GenerateCode.ManageFileData = function () {
     var requestHeaders = DRB.GenerateCode.GetRequestHeaders(settings);
     switch (settings.fileOperation) {
         case "retrieve":
+
+            var fullSizeCodejQuery = [];
+            fullSizeCodejQuery.push('');
+            fullSizeCodejQuery.push('// NOTE: the following code decodes the file name from the header');
+            fullSizeCodejQuery.push('var contentDisposition = xhr.getResponseHeader("content-disposition");');
+
+            var fullSizeCodeXMLHttpRequest = [];
+            fullSizeCodeXMLHttpRequest.push('');
+            fullSizeCodeXMLHttpRequest.push('// NOTE: the following code decodes the file name from the header');
+            fullSizeCodeXMLHttpRequest.push('var contentDisposition = req.getResponseHeader("content-disposition");');
+
+            var fullSizeCode = [];
+            fullSizeCode.push('try {');
+            fullSizeCode.push('\tvar strToCheck = "filename=";');
+            fullSizeCode.push('\tvar mimeEncodingCheck = "\\"=?utf-8?B?";');
+            fullSizeCode.push('\tif (contentDisposition.indexOf(strToCheck) > 0) {');
+            fullSizeCode.push('\t\tvar parseFileName = contentDisposition.substring(contentDisposition.indexOf(strToCheck) + strToCheck.length);');
+            fullSizeCode.push('\t\tif (parseFileName.indexOf(mimeEncodingCheck) === -1) { fileName = parseFileName; }');
+            fullSizeCode.push('\t\telse {');
+            fullSizeCode.push('\t\t\tvar parseFileNameBase64 = parseFileName.substring(parseFileName.indexOf(mimeEncodingCheck) + mimeEncodingCheck.length, parseFileName.length - 3);');
+            fullSizeCode.push('\t\t\tfileName = decodeURIComponent(atob(parseFileNameBase64).split("").map(function (c) { return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2); }).join(""));');
+            fullSizeCode.push('\t\t}');
+            fullSizeCode.push('\t}');
+            fullSizeCode.push('} catch {}');
+
+            var downloadFileCode = [];
+            downloadFileCode.push('// NOTE: Uncomment the following lines to download the file');
+            downloadFileCode.push('// var saveFile = new Blob([fileContent], { type: "application/octet-stream" });');
+            downloadFileCode.push('// var customLink = document.createElement("a");');
+            downloadFileCode.push('// customLink.href = URL.createObjectURL(saveFile);');
+            downloadFileCode.push('// customLink.download = fileName;');
+            downloadFileCode.push('// customLink.click();');
+
             codejQuery.push('$.ajax({');
             codejQuery.push('\ttype: "GET",');
             codejQuery.push('\tcontentType: "application/json; charset=utf-8",');
-            codejQuery.push('\tdatatype: "json",');
+            codejQuery.push('\txhr: function() { var xhr = new XMLHttpRequest(); xhr.responseType = "blob"; return xhr; },');
             codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '",');
             codejQuery.push('\tbeforeSend: function (req) {');
             requestHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
@@ -7710,13 +7762,15 @@ DRB.GenerateCode.ManageFileData = function () {
             codejQuery.push('\tasync: ' + settings.async + ',');
             codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
             codejQuery.push('\t\tvar fileContent = data;');
-            codejQuery.push('\t\tconsole.log("File retrieved");');
-            codejQuery.push('\t\t// Uncomment the following lines to download the file');
-            codejQuery.push('\t\t// var saveFile = new Blob([fileContent], { type: "application/octet-stream" });');
-            codejQuery.push('\t\t// var customLink = document.createElement("a");');
-            codejQuery.push('\t\t// customLink.href = URL.createObjectURL(saveFile);');
-            codejQuery.push('\t\t// customLink.download = "file.bin";');
-            codejQuery.push('\t\t// customLink.click();');
+            codejQuery.push('\t\tvar fileName = "' + defaultFileName + '"; // default name');
+            if (fileFullSize === true) {
+                fullSizeCodejQuery.forEach(function (line) { codejQuery.push('\t\t' + line); });
+                fullSizeCode.forEach(function (line) { codejQuery.push('\t\t' + line); });
+            }
+            codejQuery.push('');
+            codejQuery.push('\t\tconsole.log("' + currentType + ' retrieved. Name: " + fileName);');
+            codejQuery.push('');
+            downloadFileCode.forEach(function (line) { codejQuery.push('\t\t' + line); });
             codejQuery.push('\t},');
             codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
             codejQuery.push('\t\tconsole.log(xhr.responseText);');
@@ -7728,24 +7782,49 @@ DRB.GenerateCode.ManageFileData = function () {
             codeXMLHttpRequest.push('var req = new XMLHttpRequest();');
             codeXMLHttpRequest.push('req.open("GET", Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", ' + settings.async + ');');
             codeXMLHttpRequest.push(requestHeaders.join('\n'));
+            codeXMLHttpRequest.push('req.responseType = "blob";');
             codeXMLHttpRequest.push('req.onreadystatechange = function () {');
             codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
             codeXMLHttpRequest.push('\t\treq.onreadystatechange = null;');
             codeXMLHttpRequest.push('\t\tif (this.status === 200) {');
             codeXMLHttpRequest.push('\t\t\tvar fileContent = this.response;');
-            codeXMLHttpRequest.push('\t\t\tconsole.log("File retrieved");');
-            codeXMLHttpRequest.push('\t\t\t// Uncomment the following lines to download the file');
-            codeXMLHttpRequest.push('\t\t\t// var saveFile = new Blob([fileContent], { type: "application/octet-stream" });');
-            codeXMLHttpRequest.push('\t\t\t// var customLink = document.createElement("a");');
-            codeXMLHttpRequest.push('\t\t\t// customLink.href = URL.createObjectURL(saveFile);');
-            codeXMLHttpRequest.push('\t\t\t// customLink.download = "file.bin";');
-            codeXMLHttpRequest.push('\t\t\t// customLink.click();');
+            codeXMLHttpRequest.push('\t\t\tvar fileName = "' + defaultFileName + '"; // default name');
+            if (fileFullSize === true) {
+                fullSizeCodeXMLHttpRequest.forEach(function (line) { codeXMLHttpRequest.push('\t\t\t' + line); });
+                fullSizeCode.forEach(function (line) { codeXMLHttpRequest.push('\t\t\t' + line); });
+            }
+            codeXMLHttpRequest.push('');
+            codeXMLHttpRequest.push('\t\t\tconsole.log("' + currentType + ' retrieved. Name: " + fileName);');
+            codeXMLHttpRequest.push('');
+            downloadFileCode.forEach(function (line) { codeXMLHttpRequest.push('\t\t\t' + line); });
             codeXMLHttpRequest.push('\t\t} else {');
             codeXMLHttpRequest.push('\t\t\tconsole.log(this.responseText);');
             codeXMLHttpRequest.push('\t\t}');
             codeXMLHttpRequest.push('\t}');
             codeXMLHttpRequest.push('};');
             codeXMLHttpRequest.push('req.send();');
+            // #endregion
+
+            // #region Portals
+            codePortals = DRB.GenerateCode.GetPortalsWarnings(settings);
+            codePortals.push('webapi.safeAjax({');
+            codePortals.push('\ttype: "GET",');
+            codePortals.push('\turl: "' + portalsUrl + '",');
+            codePortals.push('\tcontentType: "application/json",');
+            codePortals.push('\txhr: function() { var xhr = new XMLHttpRequest(); xhr.responseType = "blob"; return xhr; },');
+            codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
+            codePortals.push('\t\tvar fileContent = data;');
+            codePortals.push('\t\tvar fileName = "' + defaultFileName + '"; // default name');
+            if (fileFullSize === true) {
+                fullSizeCodejQuery.forEach(function (line) { codePortals.push('\t\t' + line); });
+                fullSizeCode.forEach(function (line) { codePortals.push('\t\t' + line); });
+            }
+            codePortals.push('');
+            codePortals.push('\t\tconsole.log("' + currentType + ' retrieved. Name: " + fileName);');
+            codePortals.push('');
+            downloadFileCode.forEach(function (line) { codePortals.push('\t\t' + line); });
+            codePortals.push('\t}');
+            codePortals.push('});');
             // #endregion
             break;
 
@@ -7771,7 +7850,7 @@ DRB.GenerateCode.ManageFileData = function () {
             codejQuery.push('\t},');
             codejQuery.push('\tasync: ' + settings.async + ',');
             codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
-            codejQuery.push('\t\tconsole.log("File uploaded");');
+            codejQuery.push('\t\tconsole.log("' + currentType + ' uploaded");');
             codejQuery.push('\t},');
             codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
             codejQuery.push('\t\tconsole.log(xhr.responseText);');
@@ -7789,13 +7868,27 @@ DRB.GenerateCode.ManageFileData = function () {
             codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
             codeXMLHttpRequest.push('\t\treq.onreadystatechange = null;');
             codeXMLHttpRequest.push('\t\tif (this.status === 204) {');
-            codeXMLHttpRequest.push('\t\t\tconsole.log("File uploaded");');
+            codeXMLHttpRequest.push('\t\t\tconsole.log("' + currentType + ' uploaded");');
             codeXMLHttpRequest.push('\t\t} else {');
             codeXMLHttpRequest.push('\t\t\tconsole.log(this.responseText);');
             codeXMLHttpRequest.push('\t\t}');
             codeXMLHttpRequest.push('\t}');
             codeXMLHttpRequest.push('};');
             codeXMLHttpRequest.push('req.send(fileContent);');
+            // #endregion
+
+            // #region Portals
+            codePortals = DRB.GenerateCode.GetPortalsWarnings(settings);
+            uploadCode.forEach(function (line) { codePortals.push(line); });
+            codePortals.push('webapi.safeAjax({');
+            codePortals.push('\ttype: "PATCH",');
+            codePortals.push('\turl: "' + portalsUrl + '" + fileName,');
+            codePortals.push('\tdata: fileContent,');
+            codePortals.push('\tcontentType: "application/octet-stream",'); // Binary upload
+            codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
+            codePortals.push('\t\tconsole.log("' + currentType + ' uploaded");');
+            codePortals.push('\t}');
+            codePortals.push('});');
             // #endregion
             break;
 
@@ -7811,7 +7904,7 @@ DRB.GenerateCode.ManageFileData = function () {
             codejQuery.push('\t},');
             codejQuery.push('\tasync: ' + settings.async + ',');
             codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
-            codejQuery.push('\t\tconsole.log("File deleted");');
+            codejQuery.push('\t\tconsole.log("' + currentType + ' deleted");');
             codejQuery.push('\t},');
             codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
             codejQuery.push('\t\tconsole.log(xhr.responseText);');
@@ -7827,7 +7920,7 @@ DRB.GenerateCode.ManageFileData = function () {
             codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
             codeXMLHttpRequest.push('\t\treq.onreadystatechange = null;');
             codeXMLHttpRequest.push('\t\tif (this.status === 204 || this.status === 1223) {');
-            codeXMLHttpRequest.push('\t\t\tconsole.log("File deleted");');
+            codeXMLHttpRequest.push('\t\t\tconsole.log("' + currentType + ' deleted");');
             codeXMLHttpRequest.push('\t\t} else {');
             codeXMLHttpRequest.push('\t\t\tconsole.log(this.responseText);');
             codeXMLHttpRequest.push('\t\t}');
@@ -7835,9 +7928,21 @@ DRB.GenerateCode.ManageFileData = function () {
             codeXMLHttpRequest.push('};');
             codeXMLHttpRequest.push('req.send();');
             // #endregion
+
+            // #region Portals
+            codePortals = DRB.GenerateCode.GetPortalsWarnings(settings);
+            codePortals.push('webapi.safeAjax({');
+            codePortals.push('\ttype: "DELETE",');
+            codePortals.push('\turl: "' + portalsUrl + '",');
+            codePortals.push('\tcontentType: "application/json",');
+            codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
+            codePortals.push('\t\tconsole.log("' + currentType + ' deleted");');
+            codePortals.push('\t}');
+            codePortals.push('});');
+            // #endregion
             break;
     }
-    DRB.GenerateCode.SetCodeEditors(null, null, codejQuery, codeXMLHttpRequest, null);
+    DRB.GenerateCode.SetCodeEditors(null, null, codejQuery, codeXMLHttpRequest, codePortals);
 }
 
 /**
@@ -7957,7 +8062,12 @@ DRB.GenerateCode.Start = function () {
         case "retrievenextlink": DRB.GenerateCode.RetrieveNextLink(); break;
         case "predefinedquery": DRB.GenerateCode.PredefinedQuery(); break;
         case "executeworkflow": DRB.GenerateCode.ExecuteWorkflow(); break;
-        case "managefiledata": DRB.GenerateCode.ManageFileData(); break;
+
+        // Manage File Data and Manage Image Data share the same code
+        case "managefiledata":
+        case "manageimagedata":
+            DRB.GenerateCode.ManageFileImageData(requestType);
+            break;
 
         // Custom API, Custom Action, Action, Function share the same code
         case "executecustomapi":
@@ -8548,9 +8658,9 @@ DRB.GeneratePostman.ExecuteWorkflow = function (settings) {
 }
 
 /**
- * Generate Postman - Manage File Data
+ * Generate Postman - Manage File Image Data
  */
-DRB.GeneratePostman.ManageFileData = function (settings) {
+DRB.GeneratePostman.ManageFileImageData = function (settings, requestType) {
     var url = "";
     var body = "";
     var isBinary = false;
@@ -8565,6 +8675,7 @@ DRB.GeneratePostman.ManageFileData = function (settings) {
             case "retrieve":
                 operation = "GET";
                 url = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field + "/$value";
+                if (requestType === "manageimagedata" && settings.fileFullSize === true) { url += "?size=full"; }
                 break;
             case "upload":
                 operation = "PATCH";
@@ -8595,7 +8706,12 @@ DRB.GeneratePostman.Start = function (requestType, settings) {
         case "retrievenextlink": return DRB.GeneratePostman.RetrieveNextLink(settings); break;
         case "predefinedquery": return DRB.GeneratePostman.PredefinedQuery(settings); break;
         case "executeworkflow": return DRB.GeneratePostman.ExecuteWorkflow(settings); break;
-        case "managefiledata": return DRB.GeneratePostman.ManageFileData(settings); break;
+
+        // Manage File Data and Manage Image Data share the same code
+        case "managefiledata":
+        case "manageimagedata":
+            return DRB.GeneratePostman.ManageFileImageData(settings, requestType);
+            break;
 
         // Custom API, Custom Action, Action, Function share the same code
         case "executecustomapi":
@@ -13310,23 +13426,37 @@ DRB.Logic.ExecuteWorkflow.Start = function () {
 }
 // #endregion  
  
-// #region DRB.Logic.ManageFileData
+// #region DRB.Logic.ManageFileImageData
 /**
- * Manage File Data - After Table Loaded
+ * Manage File Image Data - After Table Loaded
  * @param {DRB.Models.Table} table Table
 */
-DRB.Logic.ManageFileData.AfterTableLoaded = function (table) {
+DRB.Logic.ManageFileImageData.AfterTableLoaded = function (table) {
     DRB.Logic.FillCurrentMetadata(table); // Fill Current Metadata
 
-    var fileColumns = [];
+    var selectedColumns = [];
+    var fileColumnDropdownName = "";
+    var columnAttributeType = "";
+
+    if (DRB.Metadata.ManageDataType === "managefiledata") {
+        columnAttributeType = "File";
+        fileColumnDropdownName = DRB.DOM.FileColumn.Dropdown.Name;
+    }
+
+    if (DRB.Metadata.ManageDataType === "manageimagedata") {
+        columnAttributeType = "Image";
+        fileColumnDropdownName = DRB.DOM.ImageColumn.Dropdown.Name;
+    }
+
     DRB.Metadata.CurrentColumns.forEach(function (currentColumn) {
-        if (currentColumn.AttributeType === "File") { fileColumns.push(currentColumn); }
+        if (currentColumn.AttributeType === columnAttributeType) { selectedColumns.push(currentColumn); }
     });
-    if (fileColumns.length === 0) {
-        DRB.UI.ResetDropdown(DRB.DOM.FileColumn.Dropdown.Id, DRB.DOM.FileColumn.Dropdown.Name);
+
+    if (selectedColumns.length === 0) {
+        DRB.UI.ResetDropdown(DRB.DOM.FileColumn.Dropdown.Id, fileColumnDropdownName);
         DRB.Metadata.CurrentNode.data.configuration.fileField = null;
     } else {
-        DRB.UI.FillDropdown(DRB.DOM.FileColumn.Dropdown.Id, DRB.DOM.FileColumn.Dropdown.Name, new DRB.Models.Records(fileColumns).ToDropdown());
+        DRB.UI.FillDropdown(DRB.DOM.FileColumn.Dropdown.Id, fileColumnDropdownName, new DRB.Models.Records(selectedColumns).ToDropdown());
         if (DRB.Utilities.HasValue(DRB.Metadata.CurrentNode.data.configuration.fileField)) {
             $("#" + DRB.DOM.FileColumn.Dropdown.Id).val(DRB.Metadata.CurrentNode.data.configuration.fileField.logicalName).change();
         }
@@ -13337,27 +13467,64 @@ DRB.Logic.ManageFileData.AfterTableLoaded = function (table) {
 }
 
 /**
- * Manage File Data - Bind File Column
+ * Manage File Image Data - Bind File Column
  * @param {string} id Id
 */
-DRB.Logic.ManageFileData.BindFileColumn = function (id) {
+DRB.Logic.ManageFileImageData.BindFileColumn = function (id) {
     $("#" + id).on("change", function (e) {
         var columnName = $(this).val();
         var column = DRB.Utilities.GetRecordById(DRB.Metadata.CurrentColumns, columnName);
         if (DRB.Utilities.HasValue(column)) {
             DRB.Metadata.CurrentNode.data.configuration.fileField = { logicalName: column.LogicalName, schemaName: column.SchemaName, label: column.Name, type: column.AttributeType, oDataName: column.ODataName };
+            if (DRB.Metadata.ManageDataType === "manageimagedata") {
+                if (column.AdditionalProperties.CanStoreFullImage !== true) {
+                    $("#" + DRB.DOM.FileFullSize.CheckBox.Id).prop('checked', false).change();
+                    $("#" + DRB.DOM.FileFullSize.CheckBox.Id).prop("disabled", "true");
+                } else {
+                    $("#" + DRB.DOM.FileFullSize.CheckBox.Id).prop("disabled", "");
+                }
+            }
+        } else {
+            DRB.Metadata.CurrentNode.data.configuration.fileField = null;
+            if (DRB.Metadata.ManageDataType === "manageimagedata") { $("#" + DRB.DOM.FileFullSize.CheckBox.Id).prop('checked', false).change(); }
         }
     });
 }
 
 /**
- * Manage File Data - Bind File Operation
+ * Manage File Image Data - Bind File Operation
  * @param {string} id Id
 */
-DRB.Logic.ManageFileData.BindFileOperation = function (id) {
+DRB.Logic.ManageFileImageData.BindFileOperation = function (id) {
     $("#" + id).on("change", function (e) {
         var operation = $(this).val();
-        DRB.Metadata.CurrentNode.data.configuration.fileOperation = operation;       
+        DRB.Metadata.CurrentNode.data.configuration.fileOperation = operation;
+
+        switch (operation) {
+            case "retrieve":
+                $("#" + DRB.DOM.FileName.Div.Id).hide();
+                $("#" + DRB.DOM.FileName.Input.Id).val("");
+                if (DRB.Metadata.ManageDataType === "manageimagedata") { $("#" + DRB.DOM.FileFullSize.Div.Id).show(); }
+                break;
+
+            case "upload":
+                $("#" + DRB.DOM.FileName.Div.Id).show();
+                if (DRB.Metadata.ManageDataType === "manageimagedata") {
+                    $("#" + DRB.DOM.FileFullSize.Div.Id).hide();
+                    $("#" + DRB.DOM.FileFullSize.CheckBox.Id).prop('checked', false).change();
+                }
+                break;
+
+            case "delete":
+                $("#" + DRB.DOM.FileName.Div.Id).hide();
+                $("#" + DRB.DOM.FileName.Input.Id).val("");
+                if (DRB.Metadata.ManageDataType === "manageimagedata") {
+                    $("#" + DRB.DOM.FileFullSize.Div.Id).hide();
+                    $("#" + DRB.DOM.FileFullSize.CheckBox.Id).prop('checked', false).change();
+                }
+                break;
+        }
+
         if (operation === "upload") { $("#" + DRB.DOM.FileName.Div.Id).show(); }
         else {
             $("#" + DRB.DOM.FileName.Div.Id).hide();
@@ -13367,10 +13534,10 @@ DRB.Logic.ManageFileData.BindFileOperation = function (id) {
 }
 
 /**
- * Manage File Data - Bind File Name
+ * Manage File Image Data - Bind File Name
  * @param {string} id Id
 */
-DRB.Logic.ManageFileData.BindFileName = function (id) {
+DRB.Logic.ManageFileImageData.BindFileName = function (id) {
     $("#" + id).on("change", function (e) {
         var fileName = $(this).val();
         DRB.Metadata.CurrentNode.data.configuration.fileName = fileName;
@@ -13378,10 +13545,21 @@ DRB.Logic.ManageFileData.BindFileName = function (id) {
 }
 
 /**
- * Manage File Data - Bind Table
+ * Manage File Image Data - Bind File Full Size
  * @param {string} id Id
 */
-DRB.Logic.ManageFileData.BindTable = function (id) {
+DRB.Logic.ManageFileImageData.BindFileFullSize = function (id) {
+    $("#" + id).on("change", function (e) {
+        var fullSizeValue = $(this).is(':checked');
+        DRB.Metadata.CurrentNode.data.configuration.fileFullSize = fullSizeValue;
+    });
+}
+
+/**
+ * Manage File Image Data - Bind Table
+ * @param {string} id Id
+*/
+DRB.Logic.ManageFileImageData.BindTable = function (id) {
     $("#" + id).on("change", function (e) {
         var tableLogicalName = $(this).val();
         var table = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, tableLogicalName);
@@ -13395,13 +13573,13 @@ DRB.Logic.ManageFileData.BindTable = function (id) {
                     DRB.Common.RetrieveTablesDetails([tableLogicalName])
                         .done(function () {
                             DRB.Common.SetTables(arguments, DRB.Metadata.Tables);
-                            DRB.Logic.ManageFileData.AfterTableLoaded(table);
+                            DRB.Logic.ManageFileImageData.AfterTableLoaded(table);
                             DRB.UI.HideLoading();
                         })
                         .fail(function (xhr) { DRB.UI.ShowError("DRB.Common.RetrieveTablesDetails Error", DRB.Common.GetErrorMessage(xhr)); });
                 }, DRB.Settings.TimeoutDelay);
             } else {
-                DRB.Logic.ManageFileData.AfterTableLoaded(table);
+                DRB.Logic.ManageFileImageData.AfterTableLoaded(table);
             }
         }
     });
@@ -13410,7 +13588,8 @@ DRB.Logic.ManageFileData.BindTable = function (id) {
 /**
  * Manage File Data - Start
  */
-DRB.Logic.ManageFileData.Start = function () {
+DRB.Logic.ManageFileImageData.Start = function (requestType) {
+    DRB.Metadata.ManageDataType = requestType;
     // create DOM and bindings
     DRB.CustomUI.AddVersion();
     DRB.CustomUI.AddProcess();
@@ -13423,16 +13602,28 @@ DRB.Logic.ManageFileData.Start = function () {
     $("#" + DRB.DOM.ConfigureContent.Id).append(DRB.UI.CreateSpan(DRB.DOM.Table.Span.Id, DRB.DOM.Table.Span.Name));
     $("#" + DRB.DOM.ConfigureContent.Id).append(DRB.UI.CreateDropdown(DRB.DOM.Table.Dropdown.Id));
     DRB.UI.FillDropdown(DRB.DOM.Table.Dropdown.Id, DRB.DOM.Table.Dropdown.Name, new DRB.Models.Records(DRB.Metadata.Tables).ToDropdown());
-    DRB.Logic.ManageFileData.BindTable(DRB.DOM.Table.Dropdown.Id);
+    DRB.Logic.ManageFileImageData.BindTable(DRB.DOM.Table.Dropdown.Id);
     // #endregion
 
     // #region File Column
     var divFileColumn = DRB.UI.CreateEmptyDiv(DRB.DOM.FileColumn.Div.Id, DRB.DOM.FileColumn.Div.Class);
-    divFileColumn.append(DRB.UI.CreateSpan(DRB.DOM.FileColumn.Span.Id, DRB.DOM.FileColumn.Span.Name));
+    var fileColumnSpanName = "";
+    var fileColumnDropdownName = "";
+    switch (requestType) {
+        case "managefiledata":
+            fileColumnSpanName = DRB.DOM.FileColumn.Span.Name;
+            fileColumnDropdownName = DRB.DOM.FileColumn.Dropdown.Name;
+            break;
+        case "manageimagedata":
+            fileColumnSpanName = DRB.DOM.ImageColumn.Span.Name;
+            fileColumnDropdownName = DRB.DOM.ImageColumn.Dropdown.Name;
+            break;
+    }
+    divFileColumn.append(DRB.UI.CreateSpan(DRB.DOM.FileColumn.Span.Id, fileColumnSpanName));
     divFileColumn.append(DRB.UI.CreateDropdown(DRB.DOM.FileColumn.Dropdown.Id));
     $("#" + DRB.DOM.ConfigureContent.Id).append(divFileColumn);
-    DRB.UI.ResetDropdown(DRB.DOM.FileColumn.Dropdown.Id, DRB.DOM.FileColumn.Dropdown.Name);
-    DRB.Logic.ManageFileData.BindFileColumn(DRB.DOM.FileColumn.Dropdown.Id);
+    DRB.UI.ResetDropdown(DRB.DOM.FileColumn.Dropdown.Id, fileColumnDropdownName);
+    DRB.Logic.ManageFileImageData.BindFileColumn(DRB.DOM.FileColumn.Dropdown.Id);
     // #endregion
 
     DRB.CustomUI.AddSpacer();
@@ -13443,8 +13634,19 @@ DRB.Logic.ManageFileData.Start = function () {
     $("#" + DRB.DOM.ConfigureContent.Id).append(DRB.UI.CreateSpan(DRB.DOM.FileOperation.Span.Id, DRB.DOM.FileOperation.Span.Name));
     $("#" + DRB.DOM.ConfigureContent.Id).append(DRB.UI.CreateDropdown(DRB.DOM.FileOperation.Dropdown.Id));
     DRB.UI.FillDropdown(DRB.DOM.FileOperation.Dropdown.Id, DRB.DOM.FileOperation.Dropdown.Name, new DRB.Models.Records(DRB.Settings.OptionsManageFile).ToDropdown());
-    DRB.Logic.ManageFileData.BindFileOperation(DRB.DOM.FileOperation.Dropdown.Id);
+    DRB.Logic.ManageFileImageData.BindFileOperation(DRB.DOM.FileOperation.Dropdown.Id);
     // #endregion
+
+    if (requestType === "manageimagedata") {
+        var divFileFullSize = DRB.UI.CreateEmptyDiv(DRB.DOM.FileFullSize.Div.Id, DRB.DOM.FileFullSize.Div.Class);
+        divFileFullSize.append(DRB.UI.CreateCheckbox(DRB.DOM.FileFullSize.CheckBox.Id, "", "", false));
+        divFileFullSize.append(DRB.UI.CreateSpan(DRB.DOM.FileFullSize.Span.Id, DRB.DOM.FileFullSize.Span.Name));
+        $("#" + DRB.DOM.ConfigureContent.Id).append(divFileFullSize);
+        DRB.Logic.ManageFileImageData.BindFileFullSize(DRB.DOM.FileFullSize.CheckBox.Id);
+        $("#" + DRB.DOM.FileFullSize.Div.Id).hide();
+        // #endregion
+    }
+    // #region Full Size
 
     DRB.CustomUI.AddSpacer();
 
@@ -13454,7 +13656,7 @@ DRB.Logic.ManageFileData.Start = function () {
     divFileName.append(DRB.UI.CreateInputString(DRB.DOM.FileName.Input.Id, 100, DRB.DOM.FileName.Span.Name));
     $("#" + DRB.DOM.ConfigureContent.Id).append(divFileName);
     DRB.Common.BindFileName(DRB.DOM.FileName.Input.Id);
-    DRB.Logic.ManageFileData.BindFileName(DRB.DOM.FileName.Input.Id);
+    DRB.Logic.ManageFileImageData.BindFileName(DRB.DOM.FileName.Input.Id);
     $("#" + DRB.DOM.FileName.Div.Id).hide();
     // #endregion
 
@@ -13482,6 +13684,13 @@ DRB.Logic.ManageFileData.Start = function () {
     // File Name 
     if (DRB.Utilities.HasValue(DRB.Metadata.CurrentNode.data.configuration.fileName)) {
         $("#" + DRB.DOM.FileName.Input.Id).val(DRB.Metadata.CurrentNode.data.configuration.fileName).change();
+    }
+
+    // File Full Size
+    if (requestType === "manageimagedata") {
+        if (DRB.Utilities.HasValue(DRB.Metadata.CurrentNode.data.configuration.fileFullSize)) {
+            $("#" + DRB.DOM.FileFullSize.CheckBox.Id).prop('checked', DRB.Metadata.CurrentNode.data.configuration.fileFullSize).change();
+        }
     }
     // #endregion
 }
@@ -13894,7 +14103,8 @@ DRB.SetDefaultSettings = function () {
     { Id: "executeaction", Name: "Execute Action" },
     { Id: "executefunction", Name: "Execute Function" },
     { Id: "executeworkflow", Name: "Execute Workflow" },
-    { Id: "managefiledata", Name: "Manage File Data" }];
+    { Id: "managefiledata", Name: "Manage File Data" },
+    { Id: "manageimagedata", Name: "Manage Image Data" }];
     DRB.Settings.RequestTypes = [];
     requests.forEach(function (request) { DRB.Settings.RequestTypes.push(new DRB.Models.IdValue(request.Id, request.Name)); });
     // #endregion
@@ -13984,6 +14194,7 @@ DRB.SetDefaultSettings = function () {
     var optNextFiscalPeriod = new DRB.Models.IdValue("NextFiscalPeriod", "Next Fiscal Period");
     var optLastFiscalPeriod = new DRB.Models.IdValue("LastFiscalPeriod", "Last Fiscal Period");
     var optThisFiscalPeriod = new DRB.Models.IdValue("ThisFiscalPeriod", "This Fiscal Period");
+
     // Datetime operators (required value)
     var optNextXHours = new DRB.Models.IdValue("NextXHours", "Next X Hours");
     var optLastXHours = new DRB.Models.IdValue("LastXHours", "Last X Hours");
@@ -14224,7 +14435,7 @@ DRB.DefineOperations = function () {
     container.append(DRB.UI.CreateSpan(DRB.DOM.RequestType.Span.Id, DRB.DOM.RequestType.Span.Name));
     container.append(DRB.UI.CreateSimpleDropdown(DRB.DOM.RequestType.Dropdown.Id));
     container.append(DRB.UI.CreateSpacer());
-    DRB.UI.FillDropdown(DRB.DOM.RequestType.Dropdown.Id, DRB.DOM.RequestType.Dropdown.Name, new DRB.Models.Records(DRB.Settings.RequestTypes).ToDropdown(), false, false, false, 15);
+    DRB.UI.FillDropdown(DRB.DOM.RequestType.Dropdown.Id, DRB.DOM.RequestType.Dropdown.Name, new DRB.Models.Records(DRB.Settings.RequestTypes).ToDropdown(), false, false, false, 16);
     DRB.Logic.BindRequestType(DRB.DOM.RequestType.Dropdown.Id);
     // #endregion
 
@@ -14378,6 +14589,11 @@ DRB.ShowNotice = function () {
  * Main function called by the Index
  */
 DRB.Initialize = async function () {
+    // DRB Version
+    var drbVersion = "1.0.0.15";
+    document.title = document.title + " " + drbVersion;
+    $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
+
     // localStorage
     DRB.Settings.LocalStorageAvailable = DRB.Utilities.LocalStorageAvailable();
 
@@ -14402,7 +14618,7 @@ DRB.Initialize = async function () {
 
     // #region JWT
     DRB.Settings.JWTContext = false;
-    if (DRB.Settings.LocalStorageAvailable === true) {
+    if (DRB.Xrm.IsXTBMode() === false && DRB.Settings.LocalStorageAvailable === true) {
         try {
             if (localStorage.getItem("DRB_JWT") !== null) {
                 var removeToken = true;

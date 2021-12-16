@@ -253,44 +253,54 @@ DRB.Logic.BindRequestType = function (id) {
         // hide or show Tab "Xrm.WebApi execute" (Tab number 2) based on the request type
         // hide or show Tab "Portals" (Tab number 5) based on the request type
         // hide or show Tab "Power Automate" (Tab number 8) based on the request type
+
+        // Tabs 3 (jQuery), 4 (XMLHttpRequest), 6 (Editor), 7 (Results) are always visible
+
         switch (requestTypeValue) {
             case "retrievesingle":
-                $("#a_" + DRB.Settings.Tabs[1].id).show();
-                $("#a_" + DRB.Settings.Tabs[2].id).show();
-                $("#a_" + DRB.Settings.Tabs[5].id).show();
-                $("#a_" + DRB.Settings.Tabs[8].id).show();
+                $("#a_" + DRB.Settings.Tabs[1].id).show(); // Xrm.WebApi
+                $("#a_" + DRB.Settings.Tabs[2].id).show(); // Xrm.WebApi execute
+                $("#a_" + DRB.Settings.Tabs[5].id).show(); // Portals
+                $("#a_" + DRB.Settings.Tabs[8].id).show(); // Power Automate
                 break;
             case "retrievemultiple":
-                $("#a_" + DRB.Settings.Tabs[1].id).show();
-                $("#a_" + DRB.Settings.Tabs[2].id).hide();
-                $("#a_" + DRB.Settings.Tabs[5].id).show();
-                $("#a_" + DRB.Settings.Tabs[8].id).show();
+                $("#a_" + DRB.Settings.Tabs[1].id).show(); // Xrm.WebApi
+                $("#a_" + DRB.Settings.Tabs[2].id).hide(); // Xrm.WebApi execute
+                $("#a_" + DRB.Settings.Tabs[5].id).show(); // Portals
+                $("#a_" + DRB.Settings.Tabs[8].id).show(); // Power Automate
                 break;
             case "create":
             case "update":
             case "delete":
-                $("#a_" + DRB.Settings.Tabs[1].id).show();
-                $("#a_" + DRB.Settings.Tabs[2].id).show();
-                $("#a_" + DRB.Settings.Tabs[5].id).show();
-                $("#a_" + DRB.Settings.Tabs[8].id).hide();
+                $("#a_" + DRB.Settings.Tabs[1].id).show(); // Xrm.WebApi
+                $("#a_" + DRB.Settings.Tabs[2].id).show(); // Xrm.WebApi execute
+                $("#a_" + DRB.Settings.Tabs[5].id).show(); // Portals
+                $("#a_" + DRB.Settings.Tabs[8].id).hide(); // Power Automate
                 break;
             case "associate":
             case "disassociate":
-                $("#a_" + DRB.Settings.Tabs[1].id).show();
-                $("#a_" + DRB.Settings.Tabs[2].id).hide();
-                $("#a_" + DRB.Settings.Tabs[5].id).show();
-                $("#a_" + DRB.Settings.Tabs[8].id).hide();
+                $("#a_" + DRB.Settings.Tabs[1].id).show(); // Xrm.WebApi
+                $("#a_" + DRB.Settings.Tabs[2].id).hide(); // Xrm.WebApi execute
+                $("#a_" + DRB.Settings.Tabs[5].id).show(); // Portals
+                $("#a_" + DRB.Settings.Tabs[8].id).hide(); // Power Automate
+                break;
+            case "manageimagedata":
+                $("#a_" + DRB.Settings.Tabs[1].id).hide(); // Xrm.WebApi
+                $("#a_" + DRB.Settings.Tabs[2].id).hide(); // Xrm.WebApi execute
+                $("#a_" + DRB.Settings.Tabs[5].id).hide(); // Portals
+                $("#a_" + DRB.Settings.Tabs[8].id).hide(); // Power Automate
                 break;
             case "managefiledata":
-                $("#a_" + DRB.Settings.Tabs[1].id).hide();
-                $("#a_" + DRB.Settings.Tabs[2].id).hide();
-                $("#a_" + DRB.Settings.Tabs[5].id).hide();
-                $("#a_" + DRB.Settings.Tabs[8].id).hide();
+                $("#a_" + DRB.Settings.Tabs[1].id).hide(); // Xrm.WebApi
+                $("#a_" + DRB.Settings.Tabs[2].id).hide(); // Xrm.WebApi execute
+                $("#a_" + DRB.Settings.Tabs[5].id).hide(); // Portals
+                $("#a_" + DRB.Settings.Tabs[8].id).hide(); // Power Automate
                 break;
             default:
-                $("#a_" + DRB.Settings.Tabs[2].id).hide();
-                $("#a_" + DRB.Settings.Tabs[5].id).hide();
-                $("#a_" + DRB.Settings.Tabs[8].id).hide();
+                $("#a_" + DRB.Settings.Tabs[1].id).show(); // Xrm.WebApi
+                $("#a_" + DRB.Settings.Tabs[2].id).hide(); // Xrm.WebApi execute
+                $("#a_" + DRB.Settings.Tabs[5].id).hide(); // Portals
+                $("#a_" + DRB.Settings.Tabs[8].id).hide(); // Power Automate
                 break;
         }
 
@@ -338,9 +348,10 @@ DRB.Logic.BindRequestType = function (id) {
         if (!DRB.Utilities.HasValue(nodeConfiguration.dataverseExecute)) { nodeConfiguration.dataverseExecute = ""; } // Dataverse Execute
         if (!DRB.Utilities.HasValue(nodeConfiguration.dataverseOperationType)) { nodeConfiguration.dataverseOperationType = 0; } // Dataverse Execute
         if (!DRB.Utilities.HasValue(nodeConfiguration.dataverseParameters)) { nodeConfiguration.dataverseParameters = []; } // Dataverse Execute
-        if (!DRB.Utilities.HasValue(nodeConfiguration.fileField)) { nodeConfiguration.fileField = null; } // Manage File Data
-        if (!DRB.Utilities.HasValue(nodeConfiguration.fileOperation)) { nodeConfiguration.fileOperation = ""; } // Manage File Data
-        if (!DRB.Utilities.HasValue(nodeConfiguration.fileName)) { nodeConfiguration.fileName = ""; } // Manage File Data
+        if (!DRB.Utilities.HasValue(nodeConfiguration.fileField)) { nodeConfiguration.fileField = null; } // Manage File Data, Manage Image Data
+        if (!DRB.Utilities.HasValue(nodeConfiguration.fileOperation)) { nodeConfiguration.fileOperation = ""; } // Manage File Data, Manage Image Data
+        if (!DRB.Utilities.HasValue(nodeConfiguration.fileName)) { nodeConfiguration.fileName = ""; } // Manage File Data, Manage Image Data
+        if (!DRB.Utilities.HasValue(nodeConfiguration.fileFullSize)) { nodeConfiguration.fileFullSize = false; } // Manage Image Data
 
         // Check the selected Request Type
         switch (requestTypeValue) {
@@ -433,12 +444,21 @@ DRB.Logic.BindRequestType = function (id) {
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
                 DRB.Logic.ExecuteWorkflow.Start();
                 break;
+
             case "managefiledata": // Manage File Data
                 var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId",
                     "primaryEntity", "primaryId", "fileField", "fileOperation", "fileName"];
 
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
-                DRB.Logic.ManageFileData.Start();
+                DRB.Logic.ManageFileImageData.Start(requestTypeValue);
+                break;
+
+            case "manageimagedata": // Manage Image Data
+                var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId",
+                    "primaryEntity", "primaryId", "fileField", "fileOperation", "fileName", "fileFullSize"];
+
+                DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
+                DRB.Logic.ManageFileImageData.Start(requestTypeValue);
                 break;
         }
 

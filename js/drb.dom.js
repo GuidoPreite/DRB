@@ -1,6 +1,7 @@
 // #region DRB.DOM
 // Main Content
 DRB.DOM.MainContent = { Id: "main_content" }; // defined also inside index.htm
+DRB.DOM.VersionSpan = { Id: "span_drbversion" }; // defined also inside index.htm
 DRB.DOM.ContextSpan = { Id: "span_context" }; // defined also inside index.htm
 
 // jsTree
@@ -83,6 +84,11 @@ DRB.DOM.FileColumn.Div = { Id: "div_filecolumn", Class: "sameline" };
 DRB.DOM.FileColumn.Span = { Id: "span_filecolumn", Name: "File Column" };
 DRB.DOM.FileColumn.Dropdown = { Id: "cbx_filecolumn", Name: "Select File Column" };
 
+// Image Column
+DRB.DOM.ImageColumn = {};
+DRB.DOM.ImageColumn.Span = { Name: "Image Column" };
+DRB.DOM.ImageColumn.Dropdown = { Name: "Select Image Column" };
+
 // File Operation
 DRB.DOM.FileOperation = {};
 DRB.DOM.FileOperation.Span = { Id: "span_fileoperation", Name: "Operation" };
@@ -93,6 +99,12 @@ DRB.DOM.FileName = {};
 DRB.DOM.FileName.Div = { Id: "div_filename" };
 DRB.DOM.FileName.Span = { Id: "span_filename", Name: "File Name" };
 DRB.DOM.FileName.Input = { Id: "txt_filename" };
+
+// File Full Size
+DRB.DOM.FileFullSize = {};
+DRB.DOM.FileFullSize.Div = { Id: "div_filefullsize", Class: "sameline" };
+DRB.DOM.FileFullSize.Span = { Id: "span_filefullsize", Name: "&nbsp;Full Size" };
+DRB.DOM.FileFullSize.CheckBox = { Id: "chk_filefullsize" };
 
 // Relationships
 DRB.DOM.DivRelationship = { Id: "div_relationships" };

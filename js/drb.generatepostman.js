@@ -576,9 +576,9 @@ DRB.GeneratePostman.ExecuteWorkflow = function (settings) {
 }
 
 /**
- * Generate Postman - Manage File Data
+ * Generate Postman - Manage File Image Data
  */
-DRB.GeneratePostman.ManageFileData = function (settings) {
+DRB.GeneratePostman.ManageFileImageData = function (settings, requestType) {
     var url = "";
     var body = "";
     var isBinary = false;
@@ -593,6 +593,7 @@ DRB.GeneratePostman.ManageFileData = function (settings) {
             case "retrieve":
                 operation = "GET";
                 url = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field + "/$value";
+                if (requestType === "manageimagedata" && settings.fileFullSize === true) { url += "?size=full"; }
                 break;
             case "upload":
                 operation = "PATCH";
@@ -623,7 +624,12 @@ DRB.GeneratePostman.Start = function (requestType, settings) {
         case "retrievenextlink": return DRB.GeneratePostman.RetrieveNextLink(settings); break;
         case "predefinedquery": return DRB.GeneratePostman.PredefinedQuery(settings); break;
         case "executeworkflow": return DRB.GeneratePostman.ExecuteWorkflow(settings); break;
-        case "managefiledata": return DRB.GeneratePostman.ManageFileData(settings); break;
+
+        // Manage File Data and Manage Image Data share the same code
+        case "managefiledata":
+        case "manageimagedata":
+            return DRB.GeneratePostman.ManageFileImageData(settings, requestType);
+            break;
 
         // Custom API, Custom Action, Action, Function share the same code
         case "executecustomapi":

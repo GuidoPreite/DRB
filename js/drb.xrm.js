@@ -5,15 +5,6 @@
 DRB.Xrm.GetXrmObject = function () {
     if (typeof parent !== "undefined") { return parent.Xrm; } else { return undefined; }
 }
-/**
- * Xrm - Get Context
- */
-DRB.Xrm.GetContext = function () {
-    if (DRB.Xrm.IsXTBMode() === true) { return "<small>" + DRB.Settings.XTBUrl + "</small>"; }
-    if (DRB.Xrm.IsJWTMode() === true) { return "<small>" + DRB.Settings.JWTUrl + "</small>"; }
-    if (DRB.Xrm.IsInstanceMode() === true) { return ""; }
-    if (DRB.Xrm.IsDemoMode() === true) { return "(Demo)"; }
-}
 
 /**
  * Xrm - Is XTB Mode
@@ -33,8 +24,7 @@ DRB.Xrm.IsJWTMode = function () {
  * Xrm - Is Demo Mode
  */
 DRB.Xrm.IsDemoMode = function () {
-    if (DRB.Xrm.IsXTBMode()) { return false; }
-    if (DRB.Xrm.IsJWTMode()) { return false; }
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode()) { return false; }
     return typeof DRB.Xrm.GetXrmObject() === "undefined";
 }
 
@@ -42,9 +32,7 @@ DRB.Xrm.IsDemoMode = function () {
  * Xrm - Is Instance Mode
  */
 DRB.Xrm.IsInstanceMode = function () {
-    if (DRB.Xrm.IsXTBMode()) { return false; }
-    if (DRB.Xrm.IsJWTMode()) { return false; }
-    if (DRB.Xrm.IsDemoMode()) { return false; }
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDemoMode()) { return false; }
     return typeof DRB.Xrm.GetXrmObject() !== "undefined";
 }
 
@@ -56,6 +44,15 @@ DRB.Xrm.GetClientUrl = function () {
     if (DRB.Xrm.IsJWTMode()) { return DRB.Settings.JWTUrl; }
     if (DRB.Xrm.IsInstanceMode()) { return DRB.Xrm.GetXrmObject().Utility.getGlobalContext().getClientUrl(); }
     if (DRB.Xrm.IsDemoMode()) { return "https://democall"; }
+}
+
+/**
+ * Xrm - Get Context
+ */
+DRB.Xrm.GetContext = function () {
+    var context = "Demo";
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsInstanceMode()) { context = DRB.Xrm.GetClientUrl(); }
+    return "<small>(" + context + ")</small>";
 }
 
 /**
@@ -89,7 +86,7 @@ DRB.Xrm.GetVersion = function () {
 DRB.Xrm.Retrieve = function (entitySetName, filters) {
     var retrieveUrl = encodeURI(DRB.Xrm.GetClientUrl() + "/api/data/v9.0/" + entitySetName + "?" + filters);
 
-    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode()) {
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsInstanceMode()) {
         var token = "";
         if (DRB.Xrm.IsXTBMode()) { token = DRB.Settings.XTBToken; }
         if (DRB.Xrm.IsJWTMode()) { token = DRB.Settings.JWTToken; }
@@ -103,23 +100,7 @@ DRB.Xrm.Retrieve = function (entitySetName, filters) {
                 xhr.setRequestHeader("OData-Version", "4.0");
                 xhr.setRequestHeader("Accept", "application/json");
                 xhr.setRequestHeader("Prefer", "odata.include-annotations=\"*\"");
-                xhr.setRequestHeader("Authorization", "Bearer " + token);
-            },
-            url: retrieveUrl
-        });
-    }
-
-    if (DRB.Xrm.IsInstanceMode()) {
-        return $.ajax({
-            type: "GET",
-            contentType: "application/json; charset=utf-8",
-            datatype: "json",
-            async: true,
-            beforeSend: function (xhr) {
-                xhr.setRequestHeader("OData-MaxVersion", "4.0");
-                xhr.setRequestHeader("OData-Version", "4.0");
-                xhr.setRequestHeader("Accept", "application/json");
-                xhr.setRequestHeader("Prefer", "odata.include-annotations=\"*\"");
+                if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode()) { xhr.setRequestHeader("Authorization", "Bearer " + token); }
             },
             url: retrieveUrl
         });
@@ -151,7 +132,7 @@ DRB.Xrm.RetrieveBatch = function (queries) {
     data.push("--" + batchDescription + "--");
     var payload = data.join("\r\n");
 
-    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode()) {
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsInstanceMode()) {
         var token = "";
         if (DRB.Xrm.IsXTBMode()) { token = DRB.Settings.XTBToken; }
         if (DRB.Xrm.IsJWTMode()) { token = DRB.Settings.JWTToken; }
@@ -164,22 +145,7 @@ DRB.Xrm.RetrieveBatch = function (queries) {
                 xhr.setRequestHeader("OData-MaxVersion", "4.0");
                 xhr.setRequestHeader("OData-Version", "4.0");
                 xhr.setRequestHeader("Accept", "application/json");
-                xhr.setRequestHeader("Authorization", "Bearer " + token);
-            },
-            url: DRB.Xrm.GetClientUrl() + "/api/data/v9.0/$batch"
-        });
-    }
-
-    if (DRB.Xrm.IsInstanceMode()) {
-        return $.ajax({
-            method: "POST",
-            data: payload,
-            async: true,
-            beforeSend: function (xhr) {
-                xhr.setRequestHeader("Content-Type", "multipart/mixed;boundary=" + batchDescription);
-                xhr.setRequestHeader("OData-MaxVersion", "4.0");
-                xhr.setRequestHeader("OData-Version", "4.0");
-                xhr.setRequestHeader("Accept", "application/json");
+                if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode()) { xhr.setRequestHeader("Authorization", "Bearer " + token); }
             },
             url: DRB.Xrm.GetClientUrl() + "/api/data/v9.0/$batch"
         });
@@ -207,7 +173,7 @@ DRB.Xrm.RetrieveBatches = function (batchedQueries) {
  * Get $metadata content (XML)
  */
 DRB.Xrm.RetrieveMetadata = function () {
-    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode()) {
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsInstanceMode()) {
         var token = "";
         if (DRB.Xrm.IsXTBMode()) { token = DRB.Settings.XTBToken; }
         if (DRB.Xrm.IsJWTMode()) { token = DRB.Settings.JWTToken; }
@@ -215,16 +181,9 @@ DRB.Xrm.RetrieveMetadata = function () {
             type: "GET",
             datatype: "xml",
             async: true,
-            beforeSend: function (xhr) { xhr.setRequestHeader("Authorization", "Bearer " + token); },
-            url: DRB.Xrm.GetMetadataUrl()
-        });
-    }
-
-    if (DRB.Xrm.IsInstanceMode()) {
-        return $.ajax({
-            type: "GET",
-            datatype: "xml",
-            async: true,
+            beforeSend: function (xhr) {
+                if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode()) { xhr.setRequestHeader("Authorization", "Bearer " + token); }
+            },
             url: DRB.Xrm.GetMetadataUrl()
         });
     }
