@@ -505,7 +505,7 @@ DRB.ShowNotice = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.15";
+    var drbVersion = "1.0.0.16";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 
