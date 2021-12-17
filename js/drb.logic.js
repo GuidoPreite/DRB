@@ -577,7 +577,7 @@ DRB.Logic.FillRelationshipsColumns = function () {
                 }
 
                 targetTable.Columns.forEach(function (targetColumn) {
-                    relationship.Columns.push(new DRB.Models.RelationshipColumn(relationship.SchemaName, relationship.Type, relationship.NavigationProperty, relationship.NavigationAttribute, relationship.NavigationAttributeName, relationship.TargetTable, targetTable.Name, targetColumn.LogicalName, targetColumn.Name, targetColumn.SchemaName, targetColumn.AttributeType, targetColumn.IsPrimaryIdAttribute, targetColumn.IsPrimaryNameAttribute, targetColumn.RequiredLevel, targetColumn.IsValidForRead, targetColumn.IsValidForCreate, targetColumn.IsValidForUpdate));
+                    relationship.Columns.push(new DRB.Models.RelationshipColumn(relationship.SchemaName, relationship.Type, relationship.NavigationProperty, relationship.NavigationAttribute, relationship.NavigationAttributeName, relationship.TargetTable, targetTable.Name, targetColumn.LogicalName, targetColumn.Name, targetColumn.SchemaName, targetColumn.AttributeType, targetColumn.IsPrimaryIdAttribute, targetColumn.IsPrimaryNameAttribute, targetColumn.RequiredLevel, targetColumn.IsValidForRead, targetColumn.IsValidForCreate, targetColumn.IsValidForUpdate, targetColumn.AdditionalProperties));
                 });
             }
         });

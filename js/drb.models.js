@@ -155,7 +155,7 @@ DRB.Models.SimpleRelationship = function (schemaName, type, sourceTable, targetT
 DRB.Models.RelationshipColumn = function (relationshipSchemaName, relationshipType, relationshipNavigationProperty,
     relationshipNavigationAttribute, relationshipNavigationAttributeName, targetTableLogicalName, targetTableName,
     columnLogicalName, columnName, columnSchemaName, columnAttributeType, columnIsPrimaryIdAttribute, columnIsPrimaryNameAttribute,
-    columnRequiredLevel, columnIsValidForRead, columnIsValidForCreate, columnIsValidForUpdate) {
+    columnRequiredLevel, columnIsValidForRead, columnIsValidForCreate, columnIsValidForUpdate, columnAdditionalProperties) {
     this.Id = relationshipSchemaName + "|" + columnLogicalName;
     this.RelationshipSchemaName = relationshipSchemaName;
     this.RelationshipType = relationshipType;
@@ -174,6 +174,7 @@ DRB.Models.RelationshipColumn = function (relationshipSchemaName, relationshipTy
     this.ColumnIsValidForRead = columnIsValidForRead;
     this.ColumnIsValidForCreate = columnIsValidForCreate;
     this.ColumnIsValidForUpdate = columnIsValidForUpdate;
+    this.ColumnAdditionalProperties = columnAdditionalProperties;
 
     this.ToDropdownOption = function () {
         var subText = this.ColumnLogicalName + " (" + this.ColumnAttributeType + ")";
@@ -263,7 +264,7 @@ DRB.Models.Column = function (logicalName, name, schemaName, attributeType, isPr
         if (this.RequiredLevel === "Recommended") { subText += " +"; }
         if (this.RequiredLevel === "ApplicationRequired" || this.RequiredLevel === "SystemRequired") { subText += " *"; }
         if (this.IsPrimaryNameAttribute === true) { subText += " (Primary Column)"; }
-        if (this.AttributeType === "Image" && this.AdditionalProperties.CanStoreFullImage === true) { subText += " (Can Store Full Image)";  }
+        if (this.AttributeType === "Image" && this.AdditionalProperties.CanStoreFullImage === true) { subText += " (Can Store Full Image)"; }
         return new DRB.Models.DropdownOption(this.Id, this.Name, subText);
     }
 }

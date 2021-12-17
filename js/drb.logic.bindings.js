@@ -380,7 +380,7 @@ DRB.Logic.BindSelectRelationship = function (id, metadataRelationship, domSelect
 
             var columns = [];
             selectedRelationship.Columns.forEach(function (rc) {
-                var rcColumn = new DRB.Models.Column(rc.ColumnLogicalName, rc.Name, rc.ColumnSchemaName, rc.ColumnAttributeType, rc.ColumnIsPrimaryIdAttribute, rc.ColumnIsPrimaryNameAttribute, rc.ColumnRequiredLevel, rc.ColumnIsValidForRead, rc.ColumnIsValidForCreate, rc.ColumnIsValidForUpdate, null);
+                var rcColumn = new DRB.Models.Column(rc.ColumnLogicalName, rc.Name, rc.ColumnSchemaName, rc.ColumnAttributeType, rc.ColumnIsPrimaryIdAttribute, rc.ColumnIsPrimaryNameAttribute, rc.ColumnRequiredLevel, rc.ColumnIsValidForRead, rc.ColumnIsValidForCreate, rc.ColumnIsValidForUpdate, rc.ColumnAdditionalProperties);
                 rcColumn.Id = rc.Id;
                 columns.push(rcColumn);
             });
@@ -432,7 +432,7 @@ DRB.Logic.BindSelectRelationshipColumns = function (id, relationshipType, relati
                             var targetColumns = targetTable.Columns;
                             targetColumns.forEach(function (targetColumn) {
                                 if (targetColumn.LogicalName === rlColumnSplit[1]) {
-                                    relationshipRecords.push(new DRB.Models.RelationshipColumn(relationship.SchemaName, relationship.Type, relationship.NavigationProperty, relationship.NavigationAttribute, relationship.NavigationAttributeName, relationship.TargetTable, targetTable.Name, targetColumn.LogicalName, targetColumn.Name, targetColumn.SchemaName, targetColumn.AttributeType, targetColumn.IsPrimaryIdAttribute, targetColumn.IsPrimaryNameAttribute, targetColumn.RequiredLevel, targetColumn.IsValidForRead, targetColumn.IsValidForCreate, targetColumn.IsValidForUpdate));
+                                    relationshipRecords.push(new DRB.Models.RelationshipColumn(relationship.SchemaName, relationship.Type, relationship.NavigationProperty, relationship.NavigationAttribute, relationship.NavigationAttributeName, relationship.TargetTable, targetTable.Name, targetColumn.LogicalName, targetColumn.Name, targetColumn.SchemaName, targetColumn.AttributeType, targetColumn.IsPrimaryIdAttribute, targetColumn.IsPrimaryNameAttribute, targetColumn.RequiredLevel, targetColumn.IsValidForRead, targetColumn.IsValidForCreate, targetColumn.IsValidForUpdate, targetColumn.AdditionalProperties));
                                 }
                             });
                         }
