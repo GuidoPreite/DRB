@@ -14591,7 +14591,7 @@ DRB.ShowNotice = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.17";
+    var drbVersion = "1.0.0.18";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 
@@ -14612,6 +14612,7 @@ DRB.Initialize = async function () {
         DRB.Settings.XTBUrl = await xtbSettings.Url;
         DRB.Settings.XTBVersion = await xtbSettings.Version;
         if (DRB.Utilities.HasValue(DRB.Settings.XTBToken) && DRB.Utilities.HasValue(DRB.Settings.XTBUrl) && DRB.Utilities.HasValue(DRB.Settings.XTBVersion)) {
+            DRB.Settings.XTBUrl = DRB.Settings.XTBUrl.replace(/\/$/, ""); // clean url from trailing slash
             DRB.Settings.XTBContext = true;
         }
     }
@@ -14627,23 +14628,21 @@ DRB.Initialize = async function () {
                 var parsedToken = DRB.Common.ParseJWT(token);
                 if (DRB.Utilities.HasValue(parsedToken)) {
                     var jwtUrl = parsedToken.aud;
-                    if (jwtUrl.length > 0 && jwtUrl.substr(-1) === '/') { jwtUrl = jwtUrl.substr(0, str.length - 1); }
                     var jwtExpireDate = parsedToken.exp * 1000;
                     var now = new Date().getTime();
-                    if (jwtExpireDate > now) {
-                        if (DRB.Utilities.HasValue(jwtUrl)) {
-                            DRB.UI.ShowLoading("Checking JWT Settings...");
-                            try {
-                                await DRB.Xrm.GetServerVersion(jwtUrl, token).done(function (data) {
-                                    DRB.Settings.JWTToken = token;
-                                    DRB.Settings.JWTUrl = jwtUrl;
-                                    DRB.Settings.JWTVersion = data.Version;
-                                    DRB.Settings.JWTContext = true;
-                                    removeToken = false;
-                                });
-                            } catch { }
-                            DRB.UI.HideLoading();
-                        }
+                    if (DRB.Utilities.HasValue(jwtUrl) && jwtExpireDate > now) {
+                        jwtUrl = jwtUrl.replace(/\/$/, ""); // clean url from trailing slash
+                        DRB.UI.ShowLoading("Checking JWT Settings...");
+                        try {
+                            await DRB.Xrm.GetServerVersion(jwtUrl, token).done(function (data) {
+                                DRB.Settings.JWTToken = token;
+                                DRB.Settings.JWTUrl = jwtUrl;
+                                DRB.Settings.JWTVersion = data.Version;
+                                DRB.Settings.JWTContext = true;
+                                removeToken = false;
+                            });
+                        } catch { }
+                        DRB.UI.HideLoading();
                     }
                 }
                 if (removeToken === true) { localStorage.removeItem("DRB_JWT"); }
