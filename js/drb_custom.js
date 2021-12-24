@@ -1253,6 +1253,12 @@ DRB.Models.Column = function (logicalName, name, schemaName, attributeType, isPr
             this.IsValidForFilter = false;
             this.IsValidForOrder = false;
             break;
+
+        case "ManagedProperty":
+            this.OptionValues = [];
+            this.OptionValues.push(new DRB.Models.OptionSetValue(false, "False"));
+            this.OptionValues.push(new DRB.Models.OptionSetValue(true, "True"));
+            break;
     }
 
     this.ToDropdownOption = function () {
@@ -5182,8 +5188,10 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                         if (operatorFound === false) {
                             // default syntax: fieldname operator value
                             var clearedValue = "";
+                            var fieldName = filterField.oDataName;
+
                             if (DRB.Utilities.HasValue(filterField.value)) { clearedValue = filterField.value; }
-                            if (filterField.type === "String" || filterField.type === "Memo") {
+                            if (filterField.type === "EntityName" || filterField.type === "String" || filterField.type === "Memo") {
                                 clearedValue = clearedValue.replace(/"/g, '\\"');
                                 clearedValue = "'" + clearedValue + "'";
                             }
@@ -5201,7 +5209,13 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                                     clearedValue = filterField.value.id;
                                 }
                             }
-                            partialQuery += filterField.oDataName + " " + filterField.operator + " " + clearedValue;
+
+                            if (filterField.type === "ManagedProperty") {
+                                fieldName = filterField.oDataName + "/Value";
+                            }
+
+                            partialQuery += fieldName + " " + filterField.operator + " " + clearedValue;
+
                         }
                     }
                 }
@@ -5290,7 +5304,13 @@ DRB.GenerateCode.GetFilterFields = function (settings) {
 DRB.GenerateCode.GetOrderFields = function (settings) {
     var orderFields = '';
     settings.orderFields.forEach(function (field) {
-        if (JSON.stringify(field) !== JSON.stringify({})) { orderFields += field.oDataName + ' ' + field.value + ','; }
+        if (JSON.stringify(field) !== JSON.stringify({})) {
+            if (field.type === "ManagedProperty") {
+                orderFields += field.oDataName + '/Value ' + field.value + ',';
+            } else {
+                orderFields += field.oDataName + ' ' + field.value + ',';
+            }
+        }
     });
 
     if (orderFields !== '') {
@@ -5827,6 +5847,7 @@ DRB.GenerateCode.GetCodeEntity = function (settings) {
 
         switch (field.type) {
             case "Uniqueidentifier":
+            case "EntityName":
             case "String":
             case "Memo":
                 var clearedValue = field.value;
@@ -5836,6 +5857,11 @@ DRB.GenerateCode.GetCodeEntity = function (settings) {
                 }
                 if (!DRB.Utilities.HasValue(clearedValue)) { codeEntity.push('record.' + field.logicalName + ' = null; // ' + renamedFieldType); }
                 else { codeEntity.push('record.' + field.logicalName + ' = "' + clearedValue + '"; // ' + renamedFieldType); }
+                break;
+            case "ManagedProperty":
+                var clearedValue = field.value;
+                if (!DRB.Utilities.HasValue(clearedValue)) { clearedValue = null; }
+                codeEntity.push('record.' + field.logicalName + ' = { Value: ' + clearedValue + ' }; // ' + renamedFieldType);
                 break;
             case "BigInt":
             case "Integer":
@@ -8179,6 +8205,7 @@ DRB.GeneratePostman.GetUpsertBody = function (settings) {
     settings.setFields.forEach(function (field) {
         switch (field.type) {
             case "Uniqueidentifier":
+            case "EntityName":
             case "String":
             case "Memo":
                 var clearedValue = field.value;
@@ -8189,6 +8216,13 @@ DRB.GeneratePostman.GetUpsertBody = function (settings) {
                 if (!DRB.Utilities.HasValue(clearedValue)) { upsertBody.push('\t"' + field.logicalName + '": null,'); }
                 else { upsertBody.push('\t"' + field.logicalName + '": "' + clearedValue + '",'); }
                 break;
+
+            case "ManagedProperty":
+                var clearedValue = field.value;
+                if (!DRB.Utilities.HasValue(clearedValue)) { clearedValue = null; }
+                upsertBody.push('\t"' + field.logicalName + '": { Value: ' + clearedValue + ' },');
+                break;
+
             case "BigInt":
             case "Integer":
             case "Decimal":
@@ -9654,6 +9688,11 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
                         }
                         break;
 
+                    case "EntityName":
+                        divValue.append(DRB.UI.CreateInputString("txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath));
+                        DRB.Logic.BindFilterColumnValue("txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
+                        break;
+
                     case "String":
                         divValue.append(DRB.UI.CreateInputString("txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath, column.AdditionalProperties.MaxLength, "Max Length: " + column.AdditionalProperties.MaxLength));
                         DRB.Logic.BindFilterColumnValue("txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
@@ -9679,6 +9718,7 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
                         DRB.Logic.BindFilterColumnValue("txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
                         break;
 
+                    case "ManagedProperty":
                     case "Boolean":
                     case "Picklist":
                     case "State":
@@ -10422,6 +10462,7 @@ DRB.Logic.RetrieveMultiple.AddFilterColumns = function (domObject, metadataPath)
         var controlPrefixLookup = "cbx2_";
         switch (field.type) {
             case "Uniqueidentifier":
+            case "EntityName":
             case "String":
             case "Memo":
             case "Integer":
@@ -10432,6 +10473,7 @@ DRB.Logic.RetrieveMultiple.AddFilterColumns = function (domObject, metadataPath)
                 controlPrefix = "txt_";
                 break;
 
+            case "ManagedProperty":
             case "Boolean":
             case "Picklist":
             case "State":
@@ -10990,6 +11032,11 @@ DRB.Logic.BindSetColumn = function (id, columnType, domObject, metadataPath) {
                     DRB.Logic.BindSetColumnValue("txt_" + DRB.DOM[domObject].ControlValue.Id + uniqueIndex, domObject, metadataPath);
                     break;
 
+                case "EntityName":
+                    divValue.append(DRB.UI.CreateInputString("txt_" + DRB.DOM[domObject].ControlValue.Id + uniqueIndex));
+                    DRB.Logic.BindSetColumnValue("txt_" + DRB.DOM[domObject].ControlValue.Id + uniqueIndex, domObject, metadataPath);
+                    break;
+
                 case "String":
                     divValue.append(DRB.UI.CreateInputString("txt_" + DRB.DOM[domObject].ControlValue.Id + uniqueIndex, column.AdditionalProperties.MaxLength, "Max Length: " + column.AdditionalProperties.MaxLength));
                     DRB.Logic.BindSetColumnValue("txt_" + DRB.DOM[domObject].ControlValue.Id + uniqueIndex, domObject, metadataPath);
@@ -11015,6 +11062,7 @@ DRB.Logic.BindSetColumn = function (id, columnType, domObject, metadataPath) {
                     DRB.Logic.BindSetColumnValue("txt_" + DRB.DOM[domObject].ControlValue.Id + uniqueIndex, domObject, metadataPath);
                     break;
 
+                case "ManagedProperty":
                 case "Boolean":
                 case "Picklist":
                 case "State":
@@ -11177,6 +11225,7 @@ DRB.Logic.AfterSetTableLoaded = function (table, columnType, domObject, metadata
         $("#" + DRB.DOM[domObject].Dropdown.Id + uniqueIndex).val(field.logicalName).change();
 
         switch (field.type) {
+            case "EntityName":
             case "String":
             case "Memo":
                 $("#txt_" + DRB.DOM[domObject].ControlValue.Id + uniqueIndex).val(field.value).change();
@@ -11191,6 +11240,7 @@ DRB.Logic.AfterSetTableLoaded = function (table, columnType, domObject, metadata
                 $("#txt_" + DRB.DOM[domObject].ControlValue.Id + uniqueIndex).val(field.value).trigger("input").change();
                 break;
 
+            case "ManagedProperty":
             case "Boolean":
             case "Picklist":
             case "State":
@@ -14591,7 +14641,7 @@ DRB.ShowNotice = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.18";
+    var drbVersion = "1.0.0.19";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 

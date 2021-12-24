@@ -148,6 +148,11 @@ DRB.Logic.BindSetColumn = function (id, columnType, domObject, metadataPath) {
                     DRB.Logic.BindSetColumnValue("txt_" + DRB.DOM[domObject].ControlValue.Id + uniqueIndex, domObject, metadataPath);
                     break;
 
+                case "EntityName":
+                    divValue.append(DRB.UI.CreateInputString("txt_" + DRB.DOM[domObject].ControlValue.Id + uniqueIndex));
+                    DRB.Logic.BindSetColumnValue("txt_" + DRB.DOM[domObject].ControlValue.Id + uniqueIndex, domObject, metadataPath);
+                    break;
+
                 case "String":
                     divValue.append(DRB.UI.CreateInputString("txt_" + DRB.DOM[domObject].ControlValue.Id + uniqueIndex, column.AdditionalProperties.MaxLength, "Max Length: " + column.AdditionalProperties.MaxLength));
                     DRB.Logic.BindSetColumnValue("txt_" + DRB.DOM[domObject].ControlValue.Id + uniqueIndex, domObject, metadataPath);
@@ -173,6 +178,7 @@ DRB.Logic.BindSetColumn = function (id, columnType, domObject, metadataPath) {
                     DRB.Logic.BindSetColumnValue("txt_" + DRB.DOM[domObject].ControlValue.Id + uniqueIndex, domObject, metadataPath);
                     break;
 
+                case "ManagedProperty":
                 case "Boolean":
                 case "Picklist":
                 case "State":
@@ -335,6 +341,7 @@ DRB.Logic.AfterSetTableLoaded = function (table, columnType, domObject, metadata
         $("#" + DRB.DOM[domObject].Dropdown.Id + uniqueIndex).val(field.logicalName).change();
 
         switch (field.type) {
+            case "EntityName":
             case "String":
             case "Memo":
                 $("#txt_" + DRB.DOM[domObject].ControlValue.Id + uniqueIndex).val(field.value).change();
@@ -349,6 +356,7 @@ DRB.Logic.AfterSetTableLoaded = function (table, columnType, domObject, metadata
                 $("#txt_" + DRB.DOM[domObject].ControlValue.Id + uniqueIndex).val(field.value).trigger("input").change();
                 break;
 
+            case "ManagedProperty":
             case "Boolean":
             case "Picklist":
             case "State":

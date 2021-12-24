@@ -96,6 +96,7 @@ DRB.GeneratePostman.GetUpsertBody = function (settings) {
     settings.setFields.forEach(function (field) {
         switch (field.type) {
             case "Uniqueidentifier":
+            case "EntityName":
             case "String":
             case "Memo":
                 var clearedValue = field.value;
@@ -106,6 +107,13 @@ DRB.GeneratePostman.GetUpsertBody = function (settings) {
                 if (!DRB.Utilities.HasValue(clearedValue)) { upsertBody.push('\t"' + field.logicalName + '": null,'); }
                 else { upsertBody.push('\t"' + field.logicalName + '": "' + clearedValue + '",'); }
                 break;
+
+            case "ManagedProperty":
+                var clearedValue = field.value;
+                if (!DRB.Utilities.HasValue(clearedValue)) { clearedValue = null; }
+                upsertBody.push('\t"' + field.logicalName + '": { Value: ' + clearedValue + ' },');
+                break;
+
             case "BigInt":
             case "Integer":
             case "Decimal":

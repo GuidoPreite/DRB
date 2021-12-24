@@ -171,6 +171,11 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
                         }
                         break;
 
+                    case "EntityName":
+                        divValue.append(DRB.UI.CreateInputString("txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath));
+                        DRB.Logic.BindFilterColumnValue("txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
+                        break;
+
                     case "String":
                         divValue.append(DRB.UI.CreateInputString("txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath, column.AdditionalProperties.MaxLength, "Max Length: " + column.AdditionalProperties.MaxLength));
                         DRB.Logic.BindFilterColumnValue("txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
@@ -196,6 +201,7 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
                         DRB.Logic.BindFilterColumnValue("txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
                         break;
 
+                    case "ManagedProperty":
                     case "Boolean":
                     case "Picklist":
                     case "State":

@@ -240,6 +240,12 @@ DRB.Models.Column = function (logicalName, name, schemaName, attributeType, isPr
             this.IsValidForFilter = false;
             this.IsValidForOrder = false;
             break;
+
+        case "ManagedProperty":
+            this.OptionValues = [];
+            this.OptionValues.push(new DRB.Models.OptionSetValue(false, "False"));
+            this.OptionValues.push(new DRB.Models.OptionSetValue(true, "True"));
+            break;
     }
 
     this.ToDropdownOption = function () {

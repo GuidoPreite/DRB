@@ -395,6 +395,7 @@ DRB.Logic.RetrieveMultiple.AddFilterColumns = function (domObject, metadataPath)
         var controlPrefixLookup = "cbx2_";
         switch (field.type) {
             case "Uniqueidentifier":
+            case "EntityName":
             case "String":
             case "Memo":
             case "Integer":
@@ -405,6 +406,7 @@ DRB.Logic.RetrieveMultiple.AddFilterColumns = function (domObject, metadataPath)
                 controlPrefix = "txt_";
                 break;
 
+            case "ManagedProperty":
             case "Boolean":
             case "Picklist":
             case "State":

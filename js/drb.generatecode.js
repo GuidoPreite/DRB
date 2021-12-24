@@ -335,8 +335,10 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                         if (operatorFound === false) {
                             // default syntax: fieldname operator value
                             var clearedValue = "";
+                            var fieldName = filterField.oDataName;
+
                             if (DRB.Utilities.HasValue(filterField.value)) { clearedValue = filterField.value; }
-                            if (filterField.type === "String" || filterField.type === "Memo") {
+                            if (filterField.type === "EntityName" || filterField.type === "String" || filterField.type === "Memo") {
                                 clearedValue = clearedValue.replace(/"/g, '\\"');
                                 clearedValue = "'" + clearedValue + "'";
                             }
@@ -354,7 +356,13 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                                     clearedValue = filterField.value.id;
                                 }
                             }
-                            partialQuery += filterField.oDataName + " " + filterField.operator + " " + clearedValue;
+
+                            if (filterField.type === "ManagedProperty") {
+                                fieldName = filterField.oDataName + "/Value";
+                            }
+
+                            partialQuery += fieldName + " " + filterField.operator + " " + clearedValue;
+
                         }
                     }
                 }
@@ -443,7 +451,13 @@ DRB.GenerateCode.GetFilterFields = function (settings) {
 DRB.GenerateCode.GetOrderFields = function (settings) {
     var orderFields = '';
     settings.orderFields.forEach(function (field) {
-        if (JSON.stringify(field) !== JSON.stringify({})) { orderFields += field.oDataName + ' ' + field.value + ','; }
+        if (JSON.stringify(field) !== JSON.stringify({})) {
+            if (field.type === "ManagedProperty") {
+                orderFields += field.oDataName + '/Value ' + field.value + ',';
+            } else {
+                orderFields += field.oDataName + ' ' + field.value + ',';
+            }
+        }
     });
 
     if (orderFields !== '') {
@@ -980,6 +994,7 @@ DRB.GenerateCode.GetCodeEntity = function (settings) {
 
         switch (field.type) {
             case "Uniqueidentifier":
+            case "EntityName":
             case "String":
             case "Memo":
                 var clearedValue = field.value;
@@ -989,6 +1004,11 @@ DRB.GenerateCode.GetCodeEntity = function (settings) {
                 }
                 if (!DRB.Utilities.HasValue(clearedValue)) { codeEntity.push('record.' + field.logicalName + ' = null; // ' + renamedFieldType); }
                 else { codeEntity.push('record.' + field.logicalName + ' = "' + clearedValue + '"; // ' + renamedFieldType); }
+                break;
+            case "ManagedProperty":
+                var clearedValue = field.value;
+                if (!DRB.Utilities.HasValue(clearedValue)) { clearedValue = null; }
+                codeEntity.push('record.' + field.logicalName + ' = { Value: ' + clearedValue + ' }; // ' + renamedFieldType);
                 break;
             case "BigInt":
             case "Integer":
