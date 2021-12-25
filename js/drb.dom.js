@@ -106,6 +106,16 @@ DRB.DOM.FileFullSize.Div = { Id: "div_filefullsize", Class: "sameline" };
 DRB.DOM.FileFullSize.Span = { Id: "span_filefullsize", Name: "&nbsp;Full Size" };
 DRB.DOM.FileFullSize.CheckBox = { Id: "chk_filefullsize" };
 
+// Image Buttons
+DRB.DOM.FileContent = {};
+DRB.DOM.FileContent.Div = { Id: "div_filecontent" };
+DRB.DOM.FileContent.LoadInput = { Id: "inp_loadfile_" };
+DRB.DOM.FileContent.LoadButton = { Id: "btn_loadfile_", Name: "Load", Class: "btn-outline-secondary" };
+DRB.DOM.FileContent.ShowButton = { Id: "btn_showfile_", Name: "Show", Class: "btn-outline-secondary" };
+DRB.DOM.FileContent.DownloadButton = { Id: "btn_downloadfile_", Name: "Download", Class: "btn-outline-secondary" };
+DRB.DOM.FileContent.RemoveButton = { Id: "btn_removefile_", Name: "Remove", Class: "btn-outline-secondary" };
+
+
 // Relationships
 DRB.DOM.DivRelationship = { Id: "div_relationships" };
 DRB.DOM.Relationship = {};

@@ -2843,12 +2843,33 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
     var codeXMLHttpRequest = [];
     var codePortals = [];
 
-    if (!DRB.Utilities.HasValue(settings.primaryEntity)) {
-        // Don't generate the code if a table is not selected
-        var errorMessage = "// Select a Table first";
-        codejQuery.push(errorMessage);
-        codeXMLHttpRequest.push(errorMessage);
-        codePortals.push(errorMessage);
+    if (!DRB.Utilities.HasValue(settings.primaryEntity) || !DRB.Utilities.HasValue(settings.fileField) || !DRB.Utilities.HasValue(settings.fileOperation)) {
+        var errorMessage = "";
+
+        if (!DRB.Utilities.HasValue(settings.primaryEntity)) {
+            // Don't generate the code if a table is not selected
+            errorMessage = "// Select a Table first";
+            codejQuery.push(errorMessage);
+            codeXMLHttpRequest.push(errorMessage);
+            codePortals.push(errorMessage);
+        }
+
+        if (!DRB.Utilities.HasValue(settings.fileField)) {
+            // Don't generate the code if a table is not selected
+            errorMessage = "// Select a Column first";
+            codejQuery.push(errorMessage);
+            codeXMLHttpRequest.push(errorMessage);
+            codePortals.push(errorMessage);
+        }
+
+        if (!DRB.Utilities.HasValue(settings.fileOperation)) {
+            // Don't generate the code if a table is not selected
+            errorMessage = "// Select an Operation first";
+            codejQuery.push(errorMessage);
+            codeXMLHttpRequest.push(errorMessage);
+            codePortals.push(errorMessage);
+        }
+
         DRB.GenerateCode.SetCodeEditors(null, null, codejQuery, codeXMLHttpRequest, codePortals);
         return;
     }
@@ -2947,7 +2968,7 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             downloadFileCode.forEach(function (line) { codejQuery.push('\t\t' + line); });
             codejQuery.push('\t},');
             codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
-            codejQuery.push('\t\tconsole.log(xhr.responseText);');
+            codejQuery.push('\t\tconsole.log("Error retrieving the ' + currentType + '");');
             codejQuery.push('\t}');
             codejQuery.push('});');
             // #endregion
@@ -2972,7 +2993,7 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             codeXMLHttpRequest.push('');
             downloadFileCode.forEach(function (line) { codeXMLHttpRequest.push('\t\t\t' + line); });
             codeXMLHttpRequest.push('\t\t} else {');
-            codeXMLHttpRequest.push('\t\t\tconsole.log(this.responseText);');
+            codeXMLHttpRequest.push('\t\t\tconsole.log("Error retrieving the ' + currentType + ');');
             codeXMLHttpRequest.push('\t\t}');
             codeXMLHttpRequest.push('\t}');
             codeXMLHttpRequest.push('};');
@@ -3003,13 +3024,19 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             break;
 
         case "upload":
-            var warningFileContent = ' // Binary content';
-            var escapedFileName = settings.fileName;
-            var warningFileName = ' // The following characters are not allowed inside a file name: \\ / : * ? " < > |';
-
             var uploadCode = [];
-            uploadCode.push('var fileContent = "";' + warningFileContent);
-            uploadCode.push('var fileName = encodeURIComponent("' + escapedFileName + '");' + warningFileName);
+            uploadCode.push('var fileName = encodeURIComponent("' + settings.fileName + '"); // The following characters are not allowed inside a file name: \\ / : * ? " < > |');
+            uploadCode.push('');
+            uploadCode.push('// NOTE: the following code converts a Base 64 encoded string to binary data');
+            var fileContent = settings.fileContent;
+            if (!DRB.Utilities.HasValue(fileContent)) { fileContent = ""; }
+            uploadCode.push('var base64Content = "' + fileContent + '";');
+            uploadCode.push('var byteCharacters = atob(base64Content);');
+            uploadCode.push('var byteNumbers = new Array(byteCharacters.length);');
+            uploadCode.push('for (var i = 0; i < byteCharacters.length; i++) {');
+            uploadCode.push('\tbyteNumbers[i] = byteCharacters.charCodeAt(i);');
+            uploadCode.push('}');
+            uploadCode.push('var fileContent = new Uint8Array(byteNumbers);');
             uploadCode.push('');
 
             // #region jQuery
@@ -3019,9 +3046,7 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             codejQuery.push('\tcontentType: "application/octet-stream",'); // Binary upload
             codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '" + fileName,');
             codejQuery.push('\tdata: fileContent,');
-            codejQuery.push('\tbeforeSend: function (req) {');
-            requestHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
-            codejQuery.push('\t},');
+            codejQuery.push('\tprocessData: false,');
             codejQuery.push('\tasync: ' + settings.async + ',');
             codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
             codejQuery.push('\t\tconsole.log("' + currentType + ' uploaded");');
@@ -3036,7 +3061,6 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             uploadCode.forEach(function (line) { codeXMLHttpRequest.push(line); });
             codeXMLHttpRequest.push('var req = new XMLHttpRequest();');
             codeXMLHttpRequest.push('req.open("PATCH", Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '" + fileName, ' + settings.async + ');');
-            codeXMLHttpRequest.push(requestHeaders.join('\n'));
             codeXMLHttpRequest.push('req.setRequestHeader("Content-Type", "application/octet-stream");'); // Binary upload
             codeXMLHttpRequest.push('req.onreadystatechange = function () {');
             codeXMLHttpRequest.push('\tif (this.readyState === 4) {');

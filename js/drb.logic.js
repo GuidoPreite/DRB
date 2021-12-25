@@ -351,6 +351,7 @@ DRB.Logic.BindRequestType = function (id) {
         if (!DRB.Utilities.HasValue(nodeConfiguration.fileField)) { nodeConfiguration.fileField = null; } // Manage File Data, Manage Image Data
         if (!DRB.Utilities.HasValue(nodeConfiguration.fileOperation)) { nodeConfiguration.fileOperation = ""; } // Manage File Data, Manage Image Data
         if (!DRB.Utilities.HasValue(nodeConfiguration.fileName)) { nodeConfiguration.fileName = ""; } // Manage File Data, Manage Image Data
+        if (!DRB.Utilities.HasValue(nodeConfiguration.fileContent)) { nodeConfiguration.fileContent = null; } // Manage File Data, Manage Image Data
         if (!DRB.Utilities.HasValue(nodeConfiguration.fileFullSize)) { nodeConfiguration.fileFullSize = false; } // Manage Image Data
 
         // Check the selected Request Type
@@ -447,7 +448,7 @@ DRB.Logic.BindRequestType = function (id) {
 
             case "managefiledata": // Manage File Data
                 var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId",
-                    "primaryEntity", "primaryId", "fileField", "fileOperation", "fileName"];
+                    "primaryEntity", "primaryId", "fileField", "fileOperation", "fileName", "fileContent"];
 
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
                 DRB.Logic.ManageFileImageData.Start(requestTypeValue);
@@ -455,7 +456,7 @@ DRB.Logic.BindRequestType = function (id) {
 
             case "manageimagedata": // Manage Image Data
                 var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId",
-                    "primaryEntity", "primaryId", "fileField", "fileOperation", "fileName", "fileFullSize"];
+                    "primaryEntity", "primaryId", "fileField", "fileOperation", "fileName", "fileContent", "fileFullSize"];
 
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
                 DRB.Logic.ManageFileImageData.Start(requestTypeValue);

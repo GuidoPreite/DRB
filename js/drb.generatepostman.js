@@ -595,7 +595,8 @@ DRB.GeneratePostman.ManageFileImageData = function (settings, requestType) {
         var entityCriteria = settings.primaryId;
         var field = "";
         if (DRB.Utilities.HasValue(settings.fileField)) { field = settings.fileField.logicalName; }
-        var fileName = encodeURIComponent(settings.fileName);
+        var fileName = "file.bin";
+        if (DRB.Utilities.HasValue(settings.fileName)) { fileName = encodeURIComponent(settings.fileName); }
 
         switch (settings.fileOperation) {
             case "retrieve":
