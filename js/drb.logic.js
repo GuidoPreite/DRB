@@ -38,6 +38,7 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
     preCode.push('\tajaxOptions.beforeSend = function (req) {');
     preCode.push('\t\treq.setRequestHeader("OData-MaxVersion", "4.0");');
     preCode.push('\t\treq.setRequestHeader("OData-Version", "4.0");');
+    preCode.push('\t\treq.setRequestHeader("Content-Type", "application/json; charset=utf-8");');
     preCode.push('\t\treq.setRequestHeader("Accept", "application/json");');
     if (DRB.Xrm.IsXTBMode()) {
         preCode.push('\t\treq.setRequestHeader("Authorization", "Bearer " + DRB.Settings.XTBToken);');
@@ -45,7 +46,6 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
     if (DRB.Xrm.IsJWTMode()) {
         preCode.push('\t\treq.setRequestHeader("Authorization", "Bearer " + DRB.Settings.JWTToken);');
     }
-
 
     preCode.push('\t};');
     preCode.push('\t}');
@@ -69,13 +69,17 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
 
     if (DRB.Xrm.IsXTBMode()) {
         codeValue = codeValue.replace(/Xrm.Utility.getGlobalContext\(\).getClientUrl\(\)/gi, "DRB.Xrm.GetClientUrl()");
+        codeValue = codeValue.replace(/headers: {/gi, 'headers: { "Authorization": "Bearer " + DRB.Settings.XTBToken,');
         codeValue = codeValue.replace(/req.setRequestHeader\("OData-MaxVersion", "4.0"\);/gi, 'req.setRequestHeader("OData-MaxVersion", "4.0"); req.setRequestHeader("Authorization", "Bearer " + DRB.Settings.XTBToken);');
     }
 
     if (DRB.Xrm.IsJWTMode()) {
         codeValue = codeValue.replace(/Xrm.Utility.getGlobalContext\(\).getClientUrl\(\)/gi, "DRB.Xrm.GetClientUrl()");
+        codeValue = codeValue.replace(/headers: {/gi, 'headers: { "Authorization": "Bearer " + DRB.Settings.JWTToken,');
         codeValue = codeValue.replace(/req.setRequestHeader\("OData-MaxVersion", "4.0"\);/gi, 'req.setRequestHeader("OData-MaxVersion", "4.0"); req.setRequestHeader("Authorization", "Bearer " + DRB.Settings.JWTToken);');
     }
+
+    console.log(codeValue);
 
     DRB.UI.ShowLoading("Executing code...");
     setTimeout(function () {
@@ -100,6 +104,7 @@ DRB.Logic.MoveCodeToMainEditor = function (sectionName) {
         case "code_xrmwebapiexecute": codeValue = DRB.Settings.XrmWebApiExecuteEditor.session.getValue(); break;
         case "code_jquery": codeValue = DRB.Settings.jQueryEditor.session.getValue(); break;
         case "code_xmlhttprequest": codeValue = DRB.Settings.XMLHttpRequestEditor.session.getValue(); break;
+        case "code_fetchapi": codeValue = DRB.Settings.FetchAPIEditor.session.getValue(); break;
         case "code_portals": codeValue = DRB.Settings.PortalsEditor.session.getValue(); break;
     }
     DRB.Settings.MainEditor.session.setValue(codeValue);
@@ -118,6 +123,7 @@ DRB.Logic.CopyCodeFromEditor = function (sectionName) {
         case "code_xrmwebapiexecute": codeValue = DRB.Settings.XrmWebApiEditor.session.getValue(); break;
         case "code_jquery": codeValue = DRB.Settings.jQueryEditor.session.getValue(); break;
         case "code_xmlhttprequest": codeValue = DRB.Settings.XMLHttpRequestEditor.session.getValue(); break;
+        case "code_fetchapi": codeValue = DRB.Settings.FetchAPIEditor.session.getValue(); break;
         case "code_portals": codeValue = DRB.Settings.PortalsEditor.session.getValue(); break;
         case "code_editor": codeValue = DRB.Settings.MainEditor.session.getValue(); break;
         case "code_results": codeValue = DRB.Settings.ResultsEditor.session.getValue(); contentText = "Results"; break;
@@ -251,56 +257,56 @@ DRB.Logic.BindRequestType = function (id) {
 
         // hide or show Tab "Xrm.WebApi" (Tab number 1) based on the request type
         // hide or show Tab "Xrm.WebApi execute" (Tab number 2) based on the request type
-        // hide or show Tab "Portals" (Tab number 5) based on the request type
-        // hide or show Tab "Power Automate" (Tab number 8) based on the request type
+        // hide or show Tab "Portals" (Tab number 6) based on the request type
+        // hide or show Tab "Power Automate" (Tab number 9) based on the request type
 
-        // Tabs 3 (jQuery), 4 (XMLHttpRequest), 6 (Editor), 7 (Results) are always visible
+        // Tabs 3 (jQuery), 4 (XMLHttpRequest), 5 (XMLHttpRequest), 7 (Editor), 8 (Results) are always visible
 
         switch (requestTypeValue) {
             case "retrievesingle":
                 $("#a_" + DRB.Settings.Tabs[1].id).show(); // Xrm.WebApi
                 $("#a_" + DRB.Settings.Tabs[2].id).show(); // Xrm.WebApi execute
-                $("#a_" + DRB.Settings.Tabs[5].id).show(); // Portals
-                $("#a_" + DRB.Settings.Tabs[8].id).show(); // Power Automate
+                $("#a_" + DRB.Settings.Tabs[6].id).show(); // Portals
+                $("#a_" + DRB.Settings.Tabs[9].id).show(); // Power Automate
                 break;
             case "retrievemultiple":
                 $("#a_" + DRB.Settings.Tabs[1].id).show(); // Xrm.WebApi
                 $("#a_" + DRB.Settings.Tabs[2].id).hide(); // Xrm.WebApi execute
-                $("#a_" + DRB.Settings.Tabs[5].id).show(); // Portals
-                $("#a_" + DRB.Settings.Tabs[8].id).show(); // Power Automate
+                $("#a_" + DRB.Settings.Tabs[6].id).show(); // Portals
+                $("#a_" + DRB.Settings.Tabs[9].id).show(); // Power Automate
                 break;
             case "create":
             case "update":
             case "delete":
                 $("#a_" + DRB.Settings.Tabs[1].id).show(); // Xrm.WebApi
                 $("#a_" + DRB.Settings.Tabs[2].id).show(); // Xrm.WebApi execute
-                $("#a_" + DRB.Settings.Tabs[5].id).show(); // Portals
-                $("#a_" + DRB.Settings.Tabs[8].id).hide(); // Power Automate
+                $("#a_" + DRB.Settings.Tabs[6].id).show(); // Portals
+                $("#a_" + DRB.Settings.Tabs[9].id).hide(); // Power Automate
                 break;
             case "associate":
             case "disassociate":
                 $("#a_" + DRB.Settings.Tabs[1].id).show(); // Xrm.WebApi
                 $("#a_" + DRB.Settings.Tabs[2].id).hide(); // Xrm.WebApi execute
-                $("#a_" + DRB.Settings.Tabs[5].id).show(); // Portals
-                $("#a_" + DRB.Settings.Tabs[8].id).hide(); // Power Automate
+                $("#a_" + DRB.Settings.Tabs[6].id).show(); // Portals
+                $("#a_" + DRB.Settings.Tabs[9].id).hide(); // Power Automate
                 break;
             case "manageimagedata":
                 $("#a_" + DRB.Settings.Tabs[1].id).hide(); // Xrm.WebApi
                 $("#a_" + DRB.Settings.Tabs[2].id).hide(); // Xrm.WebApi execute
-                $("#a_" + DRB.Settings.Tabs[5].id).hide(); // Portals
-                $("#a_" + DRB.Settings.Tabs[8].id).hide(); // Power Automate
+                $("#a_" + DRB.Settings.Tabs[6].id).hide(); // Portals
+                $("#a_" + DRB.Settings.Tabs[9].id).hide(); // Power Automate
                 break;
             case "managefiledata":
                 $("#a_" + DRB.Settings.Tabs[1].id).hide(); // Xrm.WebApi
                 $("#a_" + DRB.Settings.Tabs[2].id).hide(); // Xrm.WebApi execute
-                $("#a_" + DRB.Settings.Tabs[5].id).hide(); // Portals
-                $("#a_" + DRB.Settings.Tabs[8].id).hide(); // Power Automate
+                $("#a_" + DRB.Settings.Tabs[6].id).hide(); // Portals
+                $("#a_" + DRB.Settings.Tabs[9].id).hide(); // Power Automate
                 break;
             default:
                 $("#a_" + DRB.Settings.Tabs[1].id).show(); // Xrm.WebApi
                 $("#a_" + DRB.Settings.Tabs[2].id).hide(); // Xrm.WebApi execute
-                $("#a_" + DRB.Settings.Tabs[5].id).hide(); // Portals
-                $("#a_" + DRB.Settings.Tabs[8].id).hide(); // Power Automate
+                $("#a_" + DRB.Settings.Tabs[6].id).hide(); // Portals
+                $("#a_" + DRB.Settings.Tabs[9].id).hide(); // Power Automate
                 break;
         }
 

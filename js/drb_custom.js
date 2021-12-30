@@ -1959,34 +1959,36 @@ DRB.UI.CreateInputGuid = function (id) {
 }
 
 DRB.UI.CreateInputString = function (id, maxLength, placeholder) {
-    if (!DRB.Utilities.HasValue(maxLength)) { maxLength = 100; };
-    if (!DRB.Utilities.HasValue(placeholder)) { placeholder = "Text" };
-    return $("<input>", { id: id, class: "form-control", style: "width: 340px; height: 28px; margin-left: 10px; display: inline;", type: "text", autocomplete: "off", maxlength: maxLength, title: placeholder, placeholder: placeholder });
+    var inputProperties = { id: id, class: "form-control", style: "width: 340px; height: 28px; margin-left: 10px; display: inline;", type: "text", autocomplete: "off", placeholder: "Text" };
+    if (DRB.Utilities.HasValue(maxLength)) { inputProperties.maxLength = maxLength; }
+    if (DRB.Utilities.HasValue(placeholder)) { inputProperties.placeholder = placeholder; }
+    return $("<input>", inputProperties);
 }
 
 DRB.UI.CreateInputLongString = function (id, maxLength, placeholder) {
-    if (!DRB.Utilities.HasValue(maxLength)) { maxLength = 100; };
-    if (!DRB.Utilities.HasValue(placeholder)) { placeholder = "Text" };
-    return $("<input>", { id: id, class: "form-control", style: "width: 540px; height: 28px; margin-left: 10px; display: inline;", type: "text", autocomplete: "off", maxlength: maxLength, title: placeholder, placeholder: placeholder });
+    var inputProperties = { id: id, class: "form-control", style: "width: 540px; height: 28px; margin-left: 10px; display: inline;", type: "text", autocomplete: "off", placeholder: "Text" };
+    if (DRB.Utilities.HasValue(maxLength)) { inputProperties.maxLength = maxLength; }
+    if (DRB.Utilities.HasValue(placeholder)) { inputProperties.placeholder = placeholder; }
+    return $("<input>", inputProperties);
 }
 
-DRB.UI.CreateInputStringPowerAutomate = function (id, placeholder) {
+DRB.UI.CreateInputStringPowerAutomate = function (id) {
     return $("<input>", { id: id, readonly: "readonly", class: "form-control", style: "width: 600px; height: 28px; margin-left: 10px; display: inline;", type: "text", autocomplete: "off" });
 }
 
 DRB.UI.CreateInputDateTime = function (id, behavior, placeholder) {
-    if (!DRB.Utilities.HasValue(placeholder)) { placeholder = "Date Time" };
+    if (!DRB.Utilities.HasValue(placeholder)) { placeholder = "Date Time"; }
     return $("<input>", { id: id, readonly: "readonly", "data-datetimebehavior": behavior, class: "form-control", style: "width: 340px; height: 28px; margin-left: 10px; display: inline;", type: "text", autocomplete: "off", title: placeholder, placeholder: placeholder });
 }
 
 DRB.UI.CreateInputMemo = function (id, maxLength, placeholder) {
-    if (!DRB.Utilities.HasValue(maxLength)) { maxLength = 100; };
-    if (!DRB.Utilities.HasValue(placeholder)) { placeholder = "Multiline Text" };
+    if (!DRB.Utilities.HasValue(maxLength)) { maxLength = 100; }
+    if (!DRB.Utilities.HasValue(placeholder)) { placeholder = "Multiline Text"; }
     return $("<textarea>", { id: id, class: "form-control", style: "width: 340px; height: 34px; margin-left: 10px; display: inline;", type: "text", autocomplete: "off", maxlength: maxLength, title: placeholder, placeholder: placeholder });
 }
 
 DRB.UI.CreateInputNumber = function (id, placeholder) {
-    if (!DRB.Utilities.HasValue(placeholder)) { placeholder = "Integer" };
+    if (!DRB.Utilities.HasValue(placeholder)) { placeholder = "Integer"; }
     return $("<input>", { id: id, class: "form-control", style: "width: 340px; height: 28px; margin-left: 10px; display: inline;", type: "text", autocomplete: "off", title: placeholder, placeholder: placeholder });
 }
 
@@ -3557,7 +3559,22 @@ DRB.Common.ParseJWT = function (token) {
     } catch (e) {
         return null;
     }
-};
+}
+
+/**
+ * Common - Refresh XTB Token
+ * @param {string} token Token
+ */
+DRB.Common.RefreshXTBToken = function (token) {
+    try {
+        if (!DRB.Xrm.IsXTBMode()) { console.log("This method id available only with XTB Mode"); return; }
+        if (!DRB.Utilities.HasValue(token)) { console.log("Received XTB token is not defined"); return; }
+        DRB.Settings.XTBToken = token;
+        console.log("Refreshed token from XTB");
+    } catch (e) {
+        console.log("Failed to refresh token from XTB");
+    }
+}
 // #endregion  
  
 // #region DRB.Logic
@@ -3600,6 +3617,7 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
     preCode.push('\tajaxOptions.beforeSend = function (req) {');
     preCode.push('\t\treq.setRequestHeader("OData-MaxVersion", "4.0");');
     preCode.push('\t\treq.setRequestHeader("OData-Version", "4.0");');
+    preCode.push('\t\treq.setRequestHeader("Content-Type", "application/json; charset=utf-8");');
     preCode.push('\t\treq.setRequestHeader("Accept", "application/json");');
     if (DRB.Xrm.IsXTBMode()) {
         preCode.push('\t\treq.setRequestHeader("Authorization", "Bearer " + DRB.Settings.XTBToken);');
@@ -3607,7 +3625,6 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
     if (DRB.Xrm.IsJWTMode()) {
         preCode.push('\t\treq.setRequestHeader("Authorization", "Bearer " + DRB.Settings.JWTToken);');
     }
-
 
     preCode.push('\t};');
     preCode.push('\t}');
@@ -3631,13 +3648,17 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
 
     if (DRB.Xrm.IsXTBMode()) {
         codeValue = codeValue.replace(/Xrm.Utility.getGlobalContext\(\).getClientUrl\(\)/gi, "DRB.Xrm.GetClientUrl()");
+        codeValue = codeValue.replace(/headers: {/gi, 'headers: { "Authorization": "Bearer " + DRB.Settings.XTBToken,');
         codeValue = codeValue.replace(/req.setRequestHeader\("OData-MaxVersion", "4.0"\);/gi, 'req.setRequestHeader("OData-MaxVersion", "4.0"); req.setRequestHeader("Authorization", "Bearer " + DRB.Settings.XTBToken);');
     }
 
     if (DRB.Xrm.IsJWTMode()) {
         codeValue = codeValue.replace(/Xrm.Utility.getGlobalContext\(\).getClientUrl\(\)/gi, "DRB.Xrm.GetClientUrl()");
+        codeValue = codeValue.replace(/headers: {/gi, 'headers: { "Authorization": "Bearer " + DRB.Settings.JWTToken,');
         codeValue = codeValue.replace(/req.setRequestHeader\("OData-MaxVersion", "4.0"\);/gi, 'req.setRequestHeader("OData-MaxVersion", "4.0"); req.setRequestHeader("Authorization", "Bearer " + DRB.Settings.JWTToken);');
     }
+
+    console.log(codeValue);
 
     DRB.UI.ShowLoading("Executing code...");
     setTimeout(function () {
@@ -3662,6 +3683,7 @@ DRB.Logic.MoveCodeToMainEditor = function (sectionName) {
         case "code_xrmwebapiexecute": codeValue = DRB.Settings.XrmWebApiExecuteEditor.session.getValue(); break;
         case "code_jquery": codeValue = DRB.Settings.jQueryEditor.session.getValue(); break;
         case "code_xmlhttprequest": codeValue = DRB.Settings.XMLHttpRequestEditor.session.getValue(); break;
+        case "code_fetchapi": codeValue = DRB.Settings.FetchAPIEditor.session.getValue(); break;
         case "code_portals": codeValue = DRB.Settings.PortalsEditor.session.getValue(); break;
     }
     DRB.Settings.MainEditor.session.setValue(codeValue);
@@ -3680,6 +3702,7 @@ DRB.Logic.CopyCodeFromEditor = function (sectionName) {
         case "code_xrmwebapiexecute": codeValue = DRB.Settings.XrmWebApiEditor.session.getValue(); break;
         case "code_jquery": codeValue = DRB.Settings.jQueryEditor.session.getValue(); break;
         case "code_xmlhttprequest": codeValue = DRB.Settings.XMLHttpRequestEditor.session.getValue(); break;
+        case "code_fetchapi": codeValue = DRB.Settings.FetchAPIEditor.session.getValue(); break;
         case "code_portals": codeValue = DRB.Settings.PortalsEditor.session.getValue(); break;
         case "code_editor": codeValue = DRB.Settings.MainEditor.session.getValue(); break;
         case "code_results": codeValue = DRB.Settings.ResultsEditor.session.getValue(); contentText = "Results"; break;
@@ -3813,56 +3836,56 @@ DRB.Logic.BindRequestType = function (id) {
 
         // hide or show Tab "Xrm.WebApi" (Tab number 1) based on the request type
         // hide or show Tab "Xrm.WebApi execute" (Tab number 2) based on the request type
-        // hide or show Tab "Portals" (Tab number 5) based on the request type
-        // hide or show Tab "Power Automate" (Tab number 8) based on the request type
+        // hide or show Tab "Portals" (Tab number 6) based on the request type
+        // hide or show Tab "Power Automate" (Tab number 9) based on the request type
 
-        // Tabs 3 (jQuery), 4 (XMLHttpRequest), 6 (Editor), 7 (Results) are always visible
+        // Tabs 3 (jQuery), 4 (XMLHttpRequest), 5 (XMLHttpRequest), 7 (Editor), 8 (Results) are always visible
 
         switch (requestTypeValue) {
             case "retrievesingle":
                 $("#a_" + DRB.Settings.Tabs[1].id).show(); // Xrm.WebApi
                 $("#a_" + DRB.Settings.Tabs[2].id).show(); // Xrm.WebApi execute
-                $("#a_" + DRB.Settings.Tabs[5].id).show(); // Portals
-                $("#a_" + DRB.Settings.Tabs[8].id).show(); // Power Automate
+                $("#a_" + DRB.Settings.Tabs[6].id).show(); // Portals
+                $("#a_" + DRB.Settings.Tabs[9].id).show(); // Power Automate
                 break;
             case "retrievemultiple":
                 $("#a_" + DRB.Settings.Tabs[1].id).show(); // Xrm.WebApi
                 $("#a_" + DRB.Settings.Tabs[2].id).hide(); // Xrm.WebApi execute
-                $("#a_" + DRB.Settings.Tabs[5].id).show(); // Portals
-                $("#a_" + DRB.Settings.Tabs[8].id).show(); // Power Automate
+                $("#a_" + DRB.Settings.Tabs[6].id).show(); // Portals
+                $("#a_" + DRB.Settings.Tabs[9].id).show(); // Power Automate
                 break;
             case "create":
             case "update":
             case "delete":
                 $("#a_" + DRB.Settings.Tabs[1].id).show(); // Xrm.WebApi
                 $("#a_" + DRB.Settings.Tabs[2].id).show(); // Xrm.WebApi execute
-                $("#a_" + DRB.Settings.Tabs[5].id).show(); // Portals
-                $("#a_" + DRB.Settings.Tabs[8].id).hide(); // Power Automate
+                $("#a_" + DRB.Settings.Tabs[6].id).show(); // Portals
+                $("#a_" + DRB.Settings.Tabs[9].id).hide(); // Power Automate
                 break;
             case "associate":
             case "disassociate":
                 $("#a_" + DRB.Settings.Tabs[1].id).show(); // Xrm.WebApi
                 $("#a_" + DRB.Settings.Tabs[2].id).hide(); // Xrm.WebApi execute
-                $("#a_" + DRB.Settings.Tabs[5].id).show(); // Portals
-                $("#a_" + DRB.Settings.Tabs[8].id).hide(); // Power Automate
+                $("#a_" + DRB.Settings.Tabs[6].id).show(); // Portals
+                $("#a_" + DRB.Settings.Tabs[9].id).hide(); // Power Automate
                 break;
             case "manageimagedata":
                 $("#a_" + DRB.Settings.Tabs[1].id).hide(); // Xrm.WebApi
                 $("#a_" + DRB.Settings.Tabs[2].id).hide(); // Xrm.WebApi execute
-                $("#a_" + DRB.Settings.Tabs[5].id).hide(); // Portals
-                $("#a_" + DRB.Settings.Tabs[8].id).hide(); // Power Automate
+                $("#a_" + DRB.Settings.Tabs[6].id).hide(); // Portals
+                $("#a_" + DRB.Settings.Tabs[9].id).hide(); // Power Automate
                 break;
             case "managefiledata":
                 $("#a_" + DRB.Settings.Tabs[1].id).hide(); // Xrm.WebApi
                 $("#a_" + DRB.Settings.Tabs[2].id).hide(); // Xrm.WebApi execute
-                $("#a_" + DRB.Settings.Tabs[5].id).hide(); // Portals
-                $("#a_" + DRB.Settings.Tabs[8].id).hide(); // Power Automate
+                $("#a_" + DRB.Settings.Tabs[6].id).hide(); // Portals
+                $("#a_" + DRB.Settings.Tabs[9].id).hide(); // Power Automate
                 break;
             default:
                 $("#a_" + DRB.Settings.Tabs[1].id).show(); // Xrm.WebApi
                 $("#a_" + DRB.Settings.Tabs[2].id).hide(); // Xrm.WebApi execute
-                $("#a_" + DRB.Settings.Tabs[5].id).hide(); // Portals
-                $("#a_" + DRB.Settings.Tabs[8].id).hide(); // Power Automate
+                $("#a_" + DRB.Settings.Tabs[6].id).hide(); // Portals
+                $("#a_" + DRB.Settings.Tabs[9].id).hide(); // Power Automate
                 break;
         }
 
@@ -4869,13 +4892,15 @@ DRB.Logic.ClickSelectRelationshipColumns = function (relationshipType) {
  * @param {string[]} codeXrmWebApiExecute Code Xrm.WebApi Execute
  * @param {string[]} codejQuery Code jQuery
  * @param {string[]} codeXMLHttpRequest Code XMLHttpRequest
+ * @param {string[]} codeFetchAPI Code Fetch API
  * @param {string[]} codePortals Code Portals
  */
-DRB.GenerateCode.SetCodeEditors = function (codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codePortals) {
+DRB.GenerateCode.SetCodeEditors = function (codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals) {
     if (!DRB.Utilities.HasValue(codeXrmWebApi)) { codeXrmWebApi = []; }
     if (!DRB.Utilities.HasValue(codeXrmWebApiExecute)) { codeXrmWebApiExecute = []; } // Xrm.WebApi execute is available only for Retrieve Single, Create, Update, Delete
     if (!DRB.Utilities.HasValue(codejQuery)) { codejQuery = []; }
     if (!DRB.Utilities.HasValue(codeXMLHttpRequest)) { codeXMLHttpRequest = []; }
+    if (!DRB.Utilities.HasValue(codeFetchAPI)) { codeFetchAPI = []; }
     if (!DRB.Utilities.HasValue(codePortals)) { codePortals = []; } // Portals is available only for Retrieve Single, Retrieve Multiple, Create, Update, Delete, Associate, Disassociate
 
     // Insert the code inside the editors
@@ -4883,6 +4908,7 @@ DRB.GenerateCode.SetCodeEditors = function (codeXrmWebApi, codeXrmWebApiExecute,
     DRB.Settings.XrmWebApiExecuteEditor.session.setValue(codeXrmWebApiExecute.join('\n'));
     DRB.Settings.jQueryEditor.session.setValue(codejQuery.join('\n'));
     DRB.Settings.XMLHttpRequestEditor.session.setValue(codeXMLHttpRequest.join('\n'));
+    DRB.Settings.FetchAPIEditor.session.setValue(codeFetchAPI.join('\n'));
     DRB.Settings.PortalsEditor.session.setValue(codePortals.join('\n'));
 }
 
@@ -5375,40 +5401,42 @@ DRB.GenerateCode.GetAlternateKeys = function (settings) {
 }
 
 /**
- * Generate Code - Get Request Headers
+ * Generate Code - Get Request Header Values
  * @param {any} settings Configuration
+ * @param {bool} isBinary Is Binary
  */
-DRB.GenerateCode.GetRequestHeaders = function (settings) {
-    // Request Headers
-    var headers = [];
-    headers.push('req.setRequestHeader("OData-MaxVersion", "4.0");');
-    headers.push('req.setRequestHeader("OData-Version", "4.0");');
-    headers.push('req.setRequestHeader("Accept", "application/json");');
+DRB.GenerateCode.GetRequestHeaderValues = function (settings, isBinary) {
+    // Default Headers
+    var headers = {};
+    headers["OData-MaxVersion"] = "4.0";
+    headers["OData-Version"] = "4.0";
+    if (isBinary === true) { headers["Content-Type"] = "application/octet-stream"; }
+    else { headers["Content-Type"] = "application/json; charset=utf-8"; }
+    headers["Accept"] = "application/json";
 
     // Formatted Values and Return Record
     if (settings.hasOwnProperty("formattedValues")) {
         if (!settings.hasOwnProperty("returnRecord") && !settings.hasOwnProperty("topCount")) {
-            if (settings.formattedValues === true) { headers.push('req.setRequestHeader("Prefer", "odata.include-annotations=\\"*\\"");'); }
+            if (settings.formattedValues === true) { headers["Prefer"] = "odata.include-annotations=*"; }
         }
         else {
             if (settings.hasOwnProperty("returnRecord")) {
-                if (settings.formattedValues === true && settings.returnRecord !== true) { headers.push('req.setRequestHeader("Prefer", "odata.include-annotations=\\"*\\"");'); }
-                if (settings.formattedValues !== true && settings.returnRecord === true) { headers.push('req.setRequestHeader("Prefer", "return=representation");'); }
-                if (settings.formattedValues === true && settings.returnRecord === true) { headers.push('req.setRequestHeader("Prefer", "odata.include-annotations=\\"*\\",return=representation");'); }
+                if (settings.formattedValues === true && settings.returnRecord !== true) { headers["Prefer"] = "odata.include-annotations=*"; }
+                if (settings.formattedValues !== true && settings.returnRecord === true) { headers["Prefer"] = "return=representation"; }
+                if (settings.formattedValues === true && settings.returnRecord === true) { headers["Prefer"] = "odata.include-annotations=*,return=representation"; }
             }
             if (settings.hasOwnProperty("topCount")) {
                 var hasTopCount = DRB.Utilities.HasValue(settings.topCount);
-                if (settings.formattedValues === true && hasTopCount !== true) { headers.push('req.setRequestHeader("Prefer", "odata.include-annotations=\\"*\\"");'); }
-                if (settings.formattedValues !== true && hasTopCount === true) { headers.push('req.setRequestHeader("Prefer", "odata.maxpagesize=' + settings.topCount + '");'); }
-                if (settings.formattedValues === true && hasTopCount === true) { headers.push('req.setRequestHeader("Prefer", "odata.include-annotations=\\"*\\",odata.maxpagesize=' + settings.topCount + '");'); }
+                if (settings.formattedValues === true && hasTopCount !== true) { headers["Prefer"] = "odata.include-annotations=*"; }
+                if (settings.formattedValues !== true && hasTopCount === true) { headers["Prefer"] = "odata.maxpagesize=" + settings.topCount; }
+                if (settings.formattedValues === true && hasTopCount === true) { headers["Prefer"] = "odata.include-annotations=*,odata.maxpagesize=" + settings.topCount; }
             }
         }
     }
 
     // Token Header
     if (settings.hasOwnProperty("tokenHeader") && settings.tokenHeader === true) {
-        headers.push('var token = ""; // Set token value');
-        headers.push('req.setRequestHeader("Authorization", "Bearer " + token);');
+        headers["Authorization"] = "Bearer ";
     }
 
     // Impersonate
@@ -5422,24 +5450,68 @@ DRB.GenerateCode.GetRequestHeaders = function (settings) {
             }
         }
         if (DRB.Utilities.HasValue(settings.impersonateId)) { impersonateId = settings.impersonateId; }
-        headers.push('req.setRequestHeader("' + impersonateHeader + '", "' + impersonateId + '");');
+        headers[impersonateHeader] = impersonateId;
     }
 
     // Detect Changes
-    if (settings.hasOwnProperty("detectChanges") && settings.detectChanges === true) { headers.push('req.setRequestHeader("If-None-Match", "W\\\/\\"000000\\""); // Change 000000 to your value'); }
+    if (settings.hasOwnProperty("detectChanges") && settings.detectChanges === true) { headers["If-None-Match"] = "W/\\\"000000\\\""; }
 
     // Detect Duplicates
-    if (settings.hasOwnProperty("detectDuplicates") && settings.detectDuplicates === true) { headers.push('req.setRequestHeader("MSCRM.SuppressDuplicateDetection", "false");'); }
+    if (settings.hasOwnProperty("detectDuplicates") && settings.detectDuplicates === true) { headers["MSCRM.SuppressDuplicateDetection"] = "false"; }
 
     // Prevent
     if (settings.hasOwnProperty("prevent")) {
-        if (settings.prevent === "create") { headers.push('req.setRequestHeader("If-Match", "*");'); }
-        if (settings.prevent === "update") { headers.push('req.setRequestHeader("If-None-Match", "*");'); }
+        if (settings.prevent === "create") { headers["If-Match"] = "*"; }
+        if (settings.prevent === "update") { headers["If-None-Match"] = "*"; }
     }
     return headers;
 }
 
+/**
+ * Generate Code - Get jQuery Request Headers
+ * @param {any} settings Configuration
+ * @param {bool} isBinary Is Binary
+ */
+DRB.GenerateCode.GetJQueryRequestHeaders = function (settings, isBinary) {
+    // Request Headers
+    var headers = [];
+    var headerValues = DRB.GenerateCode.GetRequestHeaderValues(settings, isBinary);
+    Object.keys(headerValues).forEach(function (key) {
+        headers.push('"' + key + '": "' + headerValues[key] + '",');
+        if (key === "Authorization") { headers[headers.length - 1] = headers[headers.length - 1] + " // Set token value"; }
+        if (key === "If-None-Match" && headerValues[key] === "W/\\\"000000\\\"") { headers[headers.length - 1] = headers[headers.length - 1] + " // Change 000000 to your value"; }
+    });
+    if (headers[headers.length - 1].slice(-1) === ',') {
+        headers[headers.length - 1] = headers[headers.length - 1].slice(0, -1); // remove the last ","
+    } else {
+        var lastCommaPos = headers[headers.length - 1].lastIndexOf("/") - 3;
+        if (lastCommaPos >= 0 && headers[headers.length - 1].charAt(lastCommaPos) === ",") {
+            headers[headers.length - 1] = headers[headers.length - 1].substring(0, lastCommaPos) + headers[headers.length - 1].substring(lastCommaPos + 1);
+        }
+    }
+    return headers;
+}
 
+/**
+ * Generate Code - Get XHR Request Headers
+ * @param {any} settings Configuration
+ * @param {bool} isBinary Is Binary
+ */
+DRB.GenerateCode.GetXHRRequestHeaders = function (settings, isBinary) {
+    var headers = [];
+    var headerValues = DRB.GenerateCode.GetRequestHeaderValues(settings, isBinary);
+    Object.keys(headerValues).forEach(function (key) {
+        headers.push('req.setRequestHeader("' + key + '", "' + headerValues[key] + '");');
+        if (key === "Authorization") { headers[headers.length - 1] = headers[headers.length - 1] + " // Set token value"; }
+        if (key === "If-None-Match" && headerValues[key] === "W/\\\"000000\\\"") { headers[headers.length - 1] = headers[headers.length - 1] + " // Change 000000 to your value"; }
+    });
+    return headers;
+}
+
+/**
+ * Generate Code - Convert Field Type
+ * @param {string} fieldType Field Type
+ */
 DRB.GenerateCode.ConvertFieldType = function (fieldType) {
     var renamedFieldType = fieldType;
     switch (fieldType) {
@@ -5961,6 +6033,22 @@ DRB.GenerateCode.GetXrmWebApiWarnings = function (settings, includeExpandWarning
 }
 
 /**
+ * Generate Code - Get Fetch API Warnings
+ * @param {any} settings Configuration
+ */
+DRB.GenerateCode.GetFetchAPIWarnings = function (settings) {
+    var code = [];
+    var warnings = [];
+    if (settings.hasOwnProperty("async") && settings.async === false) { warnings.push("// WARNING: Fetch API doesn't support Synchronous mode"); }
+    if (warnings.length > 0) {
+        warnings.push("// THE CODE HAS BEEN GENERATED CONSIDERING THESE WARNINGS");
+        code.push(warnings.join('\n'));
+        code.push('');
+    }
+    return code;
+}
+
+/**
  * Generate Code - Get Portals Warnings
  * @param {any} settings Configuration
  */
@@ -6022,6 +6110,7 @@ DRB.GenerateCode.RetrieveSingle = function () {
     var codeXrmWebApiExecute = [];
     var codejQuery = [];
     var codeXMLHttpRequest = [];
+    var codeFetchAPI = [];
     var codePortals = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity)) {
@@ -6031,9 +6120,10 @@ DRB.GenerateCode.RetrieveSingle = function () {
         codeXrmWebApiExecute.push(errorMessage);
         codejQuery.push(errorMessage);
         codeXMLHttpRequest.push(errorMessage);
+        codeFetchAPI.push(errorMessage);
         codePortals.push(errorMessage);
 
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codePortals);
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
         return;
     }
 
@@ -6047,8 +6137,8 @@ DRB.GenerateCode.RetrieveSingle = function () {
     var portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")" + urlFields;
 
     // Request Headers
-    var requestHeaders = DRB.GenerateCode.GetRequestHeaders(settings);
-
+    var jQueryHeaders = DRB.GenerateCode.GetJQueryRequestHeaders(settings);
+    var xhrHeaders = DRB.GenerateCode.GetXHRRequestHeaders(settings);
     // Code Fields
     var getCodeFields = DRB.GenerateCode.GetCodeFields(settings);
     var codeFields = getCodeFields[0];
@@ -6122,12 +6212,8 @@ DRB.GenerateCode.RetrieveSingle = function () {
     codejQuery.push('\tcontentType: "application/json; charset=utf-8",');
     codejQuery.push('\tdatatype: "json",');
     codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '",');
-    codejQuery.push('\tbeforeSend: function (req) {');
-
-    var requestHeadersJQuery = [];
-    requestHeaders.forEach(function (reqHeader) { requestHeadersJQuery.push('\t\t' + reqHeader); });
-    codejQuery.push(requestHeadersJQuery.join('\n'));
-
+    codejQuery.push('\theaders: {');
+    jQueryHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
     codejQuery.push('\t},');
     codejQuery.push('\tasync: ' + settings.async + ',');
     codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
@@ -6136,22 +6222,21 @@ DRB.GenerateCode.RetrieveSingle = function () {
         codejQueryIndent += '\t';
         codejQuery.push('\t\tif (xhr.status === 304) {');
         codejQuery.push('\t\t\t// Handle data not changed');
+        codejQuery.push('\t\t\tconsole.log("Record not changed");');
         codejQuery.push('\t\t} else {');
     }
 
     codejQuery.push(codejQueryIndent + 'var result = data;');
     codejQuery.push(codejQueryIndent + 'console.log(result);');
-    var codeFieldsJQuery = [];
     if (settings.formattedValues === true) {
-        codeFieldsFormatted.forEach(function (codeField) { codeFieldsJQuery.push(codejQueryIndent + codeField); });
+        codeFieldsFormatted.forEach(function (codeField) { codejQuery.push(codejQueryIndent + codeField); });
     } else {
-        codeFields.forEach(function (codeField) { codeFieldsJQuery.push(codejQueryIndent + codeField); });
+        codeFields.forEach(function (codeField) { codejQuery.push(codejQueryIndent + codeField); });
     }
-    codejQuery.push(codeFieldsJQuery.join('\n'));
     if (settings.detectChanges === true) { codejQuery.push('\t\t}'); }
     codejQuery.push('\t},');
     codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
-    codejQuery.push('\t\tconsole.log(xhr.responseText);');
+    codejQuery.push('\t\tconsole.log(xhr);');
     codejQuery.push('\t}');
     codejQuery.push('});');
     // #endregion
@@ -6159,24 +6244,22 @@ DRB.GenerateCode.RetrieveSingle = function () {
     // #region XMLHttpRequest
     codeXMLHttpRequest.push('var req = new XMLHttpRequest();');
     codeXMLHttpRequest.push('req.open("GET", Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", ' + settings.async + ');');
-    codeXMLHttpRequest.push(requestHeaders.join('\n'));
-
+    codeXMLHttpRequest.push(xhrHeaders.join('\n'));
     codeXMLHttpRequest.push('req.onreadystatechange = function () {');
     codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
     codeXMLHttpRequest.push('\t\treq.onreadystatechange = null;');
     codeXMLHttpRequest.push('\t\tif (this.status === 200) {');
     codeXMLHttpRequest.push('\t\t\tvar result = JSON.parse(this.response);');
     codeXMLHttpRequest.push('\t\t\tconsole.log(result);');
-    var codeFieldsXmlHttp = [];
     if (settings.formattedValues === true) {
-        codeFieldsFormatted.forEach(function (codeField) { codeFieldsXmlHttp.push('\t\t\t' + codeField); });
+        codeFieldsFormatted.forEach(function (codeField) { codeXMLHttpRequest.push('\t\t\t' + codeField); });
     } else {
-        codeFields.forEach(function (codeField) { codeFieldsXmlHttp.push('\t\t\t' + codeField); });
+        codeFields.forEach(function (codeField) { codeXMLHttpRequest.push('\t\t\t' + codeField); });
     }
-    codeXMLHttpRequest.push(codeFieldsXmlHttp.join('\n'));
     if (settings.detectChanges === true) {
         codeXMLHttpRequest.push('\t\t} else if (this.status === 304) {');
         codeXMLHttpRequest.push('\t\t\t// Handle data not changed');
+        codeXMLHttpRequest.push('\t\t\tconsole.log("Record not changed");');
     }
     codeXMLHttpRequest.push('\t\t} else {');
     codeXMLHttpRequest.push('\t\t\tconsole.log(this.responseText);');
@@ -6184,6 +6267,48 @@ DRB.GenerateCode.RetrieveSingle = function () {
     codeXMLHttpRequest.push('\t}');
     codeXMLHttpRequest.push('};');
     codeXMLHttpRequest.push('req.send();');
+    // #endregion
+
+    // #region Fetch API
+    codeFetchAPI = DRB.GenerateCode.GetFetchAPIWarnings(settings);
+    codeFetchAPI.push('fetch(Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", {');
+    codeFetchAPI.push('\tmethod: "GET",');
+    codeFetchAPI.push('\theaders: {');
+    jQueryHeaders.forEach(function (reqHeader) { codeFetchAPI.push('\t\t' + reqHeader); });
+    codeFetchAPI.push('\t}');
+    codeFetchAPI.push('}).then(');
+    codeFetchAPI.push('\tfunction success(response) {');
+    codeFetchAPI.push('\t\treturn response.json().then((json) => { if (response.ok) { return [response, json]; } else { throw json.error; } });');
+    codeFetchAPI.push('\t}');
+    codeFetchAPI.push(').then(function (responseObjects) {');
+    codeFetchAPI.push('\tvar response = responseObjects[0];');
+    codeFetchAPI.push('\tvar responseBody = responseObjects[1];');
+
+    if (settings.detectChanges === true) {
+        codeFetchAPI.push('\tif (response.status === 304) {');
+        codeFetchAPI.push('\t\t// Handle data not changed');
+        codeFetchAPI.push('\t\tconsole.log("Record not changed");');
+        codeFetchAPI.push('\t} else {');
+        codeFetchAPI.push('\t\tvar result = responseBody;');
+        codeFetchAPI.push('\t\tconsole.log(result);');
+        if (settings.formattedValues === true) {
+            codeFieldsFormatted.forEach(function (codeField) { codeFetchAPI.push('\t\t' + codeField); });
+        } else {
+            codeFields.forEach(function (codeField) { codeFetchAPI.push('\t\t' + codeField); });
+        }
+        codeFetchAPI.push('\t}');
+    } else {
+        codeFetchAPI.push('\tvar result = responseBody;');
+        codeFetchAPI.push('\tconsole.log(result);');
+        if (settings.formattedValues === true) {
+            codeFieldsFormatted.forEach(function (codeField) { codeFetchAPI.push('\t' + codeField); });
+        } else {
+            codeFields.forEach(function (codeField) { codeFetchAPI.push('\t' + codeField); });
+        }
+    }
+    codeFetchAPI.push('}).catch(function (error) {');
+    codeFetchAPI.push('\tconsole.log(error.message);');
+    codeFetchAPI.push('});');
     // #endregion
 
     // #region Portals
@@ -6204,7 +6329,7 @@ DRB.GenerateCode.RetrieveSingle = function () {
     codePortals.push('});');
     // #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codePortals);
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
 }
 
 /**
@@ -6217,6 +6342,7 @@ DRB.GenerateCode.RetrieveMultiple = function () {
     var codeXrmWebApi = [];
     var codejQuery = [];
     var codeXMLHttpRequest = [];
+    var codeFetchAPI = [];
     var codePortals = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity)) {
@@ -6225,9 +6351,10 @@ DRB.GenerateCode.RetrieveMultiple = function () {
         codeXrmWebApi.push(errorMessage);
         codejQuery.push(errorMessage);
         codeXMLHttpRequest.push(errorMessage);
+        codeFetchAPI.push(errorMessage);
         codePortals.push(errorMessage);
 
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codePortals);
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
         return;
     }
 
@@ -6246,8 +6373,8 @@ DRB.GenerateCode.RetrieveMultiple = function () {
     }
 
     // Request Headers
-    var requestHeaders = DRB.GenerateCode.GetRequestHeaders(settings);
-
+    var jQueryHeaders = DRB.GenerateCode.GetJQueryRequestHeaders(settings);
+    var xhrHeaders = DRB.GenerateCode.GetXHRRequestHeaders(settings);
     // Code Fields
     var getCodeFields = DRB.GenerateCode.GetCodeFields(settings);
     var codeFields = getCodeFields[0];
@@ -6295,37 +6422,27 @@ DRB.GenerateCode.RetrieveMultiple = function () {
     // jQuery
     codejQuery.push('$.ajax({');
     codejQuery.push('\ttype: "GET",');
-    codejQuery.push('\tcontentType: "application/json; charset=utf-8",');
-    codejQuery.push('\tdatatype: "json",');
     codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '",');
-    codejQuery.push('\tbeforeSend: function (req) {');
-
-    var requestHeadersJQuery = [];
-    requestHeaders.forEach(function (reqHeader) { requestHeadersJQuery.push('\t\t' + reqHeader); });
-    codejQuery.push(requestHeadersJQuery.join('\n'));
-
-    codejQuery.push('\t},');
     codejQuery.push('\tasync: ' + settings.async + ',');
+    codejQuery.push('\theaders: {');
+    jQueryHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
+    codejQuery.push('\t},');
     codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
-
     codejQuery.push('\t\tvar results = data;');
     codejQuery.push('\t\tconsole.log(results);');
     if (settings.retrieveCount === true) { codejQuery.push('\t\tvar odata_count = results["@odata.count"];'); }
     if (DRB.Utilities.HasValue(settings.topCount)) { codejQuery.push('\t\tvar odata_nextlink = results["@odata.nextLink"];'); }
     codejQuery.push('\t\tfor (var i = 0; i < results.value.length; i++) {');
     codejQuery.push('\t\t\tvar result = results.value[i];');
-    var codeFieldsJQuery = [];
     if (settings.formattedValues === true) {
-        codeFieldsFormatted.forEach(function (codeField) { codeFieldsJQuery.push('\t\t\t' + codeField); });
+        codeFieldsFormatted.forEach(function (codeField) { codejQuery.push('\t\t\t' + codeField); });
     } else {
-        codeFields.forEach(function (codeField) { codeFieldsJQuery.push('\t\t\t' + codeField); });
+        codeFields.forEach(function (codeField) { codejQuery.push('\t\t\t' + codeField); });
     }
-    codejQuery.push(codeFieldsJQuery.join('\n'));
-
     codejQuery.push('\t\t}');
     codejQuery.push('\t},');
     codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
-    codejQuery.push('\t\tconsole.log(xhr.responseText);');
+    codejQuery.push('\t\tconsole.log(xhr);');
     codejQuery.push('\t}');
     codejQuery.push('});');
     // End jQuery
@@ -6333,8 +6450,7 @@ DRB.GenerateCode.RetrieveMultiple = function () {
     // XMLHttpRequest
     codeXMLHttpRequest.push('var req = new XMLHttpRequest();');
     codeXMLHttpRequest.push('req.open("GET", Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", ' + settings.async + ');');
-    codeXMLHttpRequest.push(requestHeaders.join('\n'));
-
+    codeXMLHttpRequest.push(xhrHeaders.join('\n'));
     codeXMLHttpRequest.push('req.onreadystatechange = function () {');
     codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
     codeXMLHttpRequest.push('\t\treq.onreadystatechange = null;');
@@ -6345,13 +6461,11 @@ DRB.GenerateCode.RetrieveMultiple = function () {
     if (DRB.Utilities.HasValue(settings.topCount)) { codeXMLHttpRequest.push('\t\t\tvar odata_nextlink = results["@odata.nextLink"];'); }
     codeXMLHttpRequest.push('\t\t\tfor (var i = 0; i < results.value.length; i++) {');
     codeXMLHttpRequest.push('\t\t\t\tvar result = results.value[i];');
-    var codeFieldsXmlHttp = [];
     if (settings.formattedValues === true) {
-        codeFieldsFormatted.forEach(function (codeField) { codeFieldsXmlHttp.push('\t\t\t\t' + codeField); });
+        codeFieldsFormatted.forEach(function (codeField) { codeXMLHttpRequest.push('\t\t\t\t' + codeField); });
     } else {
-        codeFields.forEach(function (codeField) { codeFieldsXmlHttp.push('\t\t\t\t' + codeField); });
+        codeFields.forEach(function (codeField) { codeXMLHttpRequest.push('\t\t\t\t' + codeField); });
     }
-    codeXMLHttpRequest.push(codeFieldsXmlHttp.join('\n'));
     codeXMLHttpRequest.push('\t\t\t}');
     codeXMLHttpRequest.push('\t\t} else {');
     codeXMLHttpRequest.push('\t\t\tconsole.log(this.responseText);');
@@ -6360,6 +6474,37 @@ DRB.GenerateCode.RetrieveMultiple = function () {
     codeXMLHttpRequest.push('};');
     codeXMLHttpRequest.push('req.send();');
     // End XMLHttpRequest
+
+    // #region Fetch API
+    codeFetchAPI = DRB.GenerateCode.GetFetchAPIWarnings(settings);
+    codeFetchAPI.push('fetch(Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", {');
+    codeFetchAPI.push('\tmethod: "GET",');
+    codeFetchAPI.push('\theaders: {');
+    jQueryHeaders.forEach(function (reqHeader) { codeFetchAPI.push('\t\t' + reqHeader); });
+    codeFetchAPI.push('\t}');
+    codeFetchAPI.push('}).then(');
+    codeFetchAPI.push('\tfunction success(response) {');
+    codeFetchAPI.push('\t\treturn response.json().then((json) => { if (response.ok) { return [response, json]; } else { throw json.error; } });');
+    codeFetchAPI.push('\t}');
+    codeFetchAPI.push(').then(function (responseObjects) {');
+    codeFetchAPI.push('\tvar response = responseObjects[0];');
+    codeFetchAPI.push('\tvar responseBody = responseObjects[1];');
+    codeFetchAPI.push('\tvar results = responseBody;');
+    codeFetchAPI.push('\tconsole.log(results);');
+    if (settings.retrieveCount === true) { codeFetchAPI.push('\tvar odata_count = results["@odata.count"];'); }
+    if (DRB.Utilities.HasValue(settings.topCount)) { codeFetchAPI.push('\tvar odata_nextlink = results["@odata.nextLink"];'); }
+    codeFetchAPI.push('\tfor (var i = 0; i < results.value.length; i++) {');
+    codeFetchAPI.push('\t\tvar result = results.value[i];');
+    if (settings.formattedValues === true) {
+        codeFieldsFormatted.forEach(function (codeField) { codeFetchAPI.push('\t\t' + codeField); });
+    } else {
+        codeFields.forEach(function (codeField) { codeFetchAPI.push('\t\t' + codeField); });
+    }
+    codeFetchAPI.push('\t}');
+    codeFetchAPI.push('}).catch(function (error) {');
+    codeFetchAPI.push('\tconsole.log(error.message);');
+    codeFetchAPI.push('});');
+    // #endregion
 
     // #region Portals
     codePortals = DRB.GenerateCode.GetPortalsWarnings(settings);
@@ -6381,7 +6526,7 @@ DRB.GenerateCode.RetrieveMultiple = function () {
     codePortals.push('});');
     // #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codePortals);
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
 }
 
 /**
@@ -6395,6 +6540,7 @@ DRB.GenerateCode.Create = function () {
     var codeXrmWebApiExecute = [];
     var codejQuery = [];
     var codeXMLHttpRequest = [];
+    var codeFetchAPI = [];
     var codePortals = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity)) {
@@ -6404,9 +6550,10 @@ DRB.GenerateCode.Create = function () {
         codeXrmWebApiExecute.push(errorMessage);
         codejQuery.push(errorMessage);
         codeXMLHttpRequest.push(errorMessage);
+        codeFetchAPI.push(errorMessage);
         codePortals.push(errorMessage);
 
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codePortals);
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
         return;
     }
 
@@ -6425,19 +6572,17 @@ DRB.GenerateCode.Create = function () {
     var portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + urlFields;
 
     // Request Headers
-    var requestHeaders = DRB.GenerateCode.GetRequestHeaders(settings);
-
+    var jQueryHeaders = DRB.GenerateCode.GetJQueryRequestHeaders(settings);
+    var xhrHeaders = DRB.GenerateCode.GetXHRRequestHeaders(settings);
     // Code Entity
     var codeEntity = DRB.GenerateCode.GetCodeEntity(settings);
 
-    // Xrm.WebApi
+    // #region Xrm.WebApi
     codeXrmWebApi = DRB.GenerateCode.GetXrmWebApiWarnings(settings);
     codeXrmWebApi.push('// NOTE: createRecord is available in offline mode, if you need this functionality change the call to Xrm.WebApi.offline.createRecord');
     codeXrmWebApi.push('// https://docs.microsoft.com/en-us/powerapps/developer/model-driven-apps/clientapi/reference/xrm-webapi/offline');
 
-    // add Code Entity
     codeEntity.forEach(function (line) { codeXrmWebApi.push(line); });
-
     codeXrmWebApi.push('Xrm.WebApi.online.createRecord("' + settings.primaryEntity.logicalName + '", record).then(');
     codeXrmWebApi.push('\tfunction success(result) {');
     codeXrmWebApi.push('\t\tvar newId = result.id;');
@@ -6447,10 +6592,9 @@ DRB.GenerateCode.Create = function () {
     codeXrmWebApi.push('\t\tconsole.log(error.message);');
     codeXrmWebApi.push('\t}');
     codeXrmWebApi.push(');');
-    // End Xrm.WebApi
+    // #endregion
 
-
-    // Xrm.WebApi.execute
+    // #region Xrm.WebApi.execute
     codeXrmWebApiExecute = DRB.GenerateCode.GetXrmWebApiWarnings(settings);
     codeXrmWebApiExecute.push('// NOTE: you can use Xrm.WebApi.online.execute if this request needs to be part of an executeMultiple collection');
     codeXrmWebApiExecute.push('// https://docs.microsoft.com/en-us/powerapps/developer/model-driven-apps/clientapi/reference/xrm-webapi/online/executemultiple');
@@ -6473,39 +6617,25 @@ DRB.GenerateCode.Create = function () {
     codeXrmWebApiExecute.push(').catch(function (error) {');
     codeXrmWebApiExecute.push('\tconsole.log(error.message);');
     codeXrmWebApiExecute.push('});');
-    // End Xrm.WebApi.execute
+    // #endregion
 
-
-    // jQuery
-    // add Code Entity
+    // #region jQuery
     codeEntity.forEach(function (line) { codejQuery.push(line); });
-
     codejQuery.push('$.ajax({');
     codejQuery.push('\ttype: "POST",');
-    codejQuery.push('\tcontentType: "application/json; charset=utf-8",');
-    codejQuery.push('\tdatatype: "json",');
     codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '",');
-    codejQuery.push('\tdata: JSON.stringify(record),');
-    codejQuery.push('\tbeforeSend: function (req) {');
-
-    var requestHeadersJQuery = [];
-    requestHeaders.forEach(function (reqHeader) { requestHeadersJQuery.push('\t\t' + reqHeader); });
-    codejQuery.push(requestHeadersJQuery.join('\n'));
-
-    codejQuery.push('\t},');
     codejQuery.push('\tasync: ' + settings.async + ',');
+    codejQuery.push('\theaders: {');
+    jQueryHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
+    codejQuery.push('\t},');
+    codejQuery.push('\tdata: JSON.stringify(record),');
     codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
 
     if (settings.returnRecord === true) {
         codejQuery.push('\t\tvar result = data;');
         codejQuery.push('\t\tconsole.log(result);');
-        var codeFieldsJQuery = [];
-        if (settings.formattedValues === true) {
-            codeFieldsFormatted.forEach(function (codeField) { codeFieldsJQuery.push('\t\t' + codeField); });
-        } else {
-            codeFields.forEach(function (codeField) { codeFieldsJQuery.push('\t\t' + codeField); });
-        }
-        codejQuery.push(codeFieldsJQuery.join('\n'));
+        if (settings.formattedValues === true) { codeFieldsFormatted.forEach(function (codeField) { codejQuery.push('\t\t' + codeField); }); }
+        else { codeFields.forEach(function (codeField) { codejQuery.push('\t\t' + codeField); }); }
     } else {
         codejQuery.push('\t\tvar uri = xhr.getResponseHeader("OData-EntityId");');
         codejQuery.push('\t\tvar regExp = /\\(([^)]+)\\)/;');
@@ -6515,18 +6645,16 @@ DRB.GenerateCode.Create = function () {
     }
     codejQuery.push('\t},');
     codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
-    codejQuery.push('\t\tconsole.log(xhr.responseText);');
+    codejQuery.push('\t\tconsole.log(xhr);');
     codejQuery.push('\t}');
     codejQuery.push('});');
-    // End jQuery
+    // #endregion
 
-    // XMLHttpRequest
+    // #region XMLHttpRequest
     codeEntity.forEach(function (line) { codeXMLHttpRequest.push(line); });
-
     codeXMLHttpRequest.push('var req = new XMLHttpRequest();');
     codeXMLHttpRequest.push('req.open("POST", Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", ' + settings.async + ');');
-    codeXMLHttpRequest.push(requestHeaders.join('\n'));
-    codeXMLHttpRequest.push('req.setRequestHeader("Content-Type", "application/json; charset=utf-8");'); // request is POST, add this additional header only for XMLHttpRequest
+    codeXMLHttpRequest.push(xhrHeaders.join('\n'));
     codeXMLHttpRequest.push('req.onreadystatechange = function () {');
     codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
     codeXMLHttpRequest.push('\t\treq.onreadystatechange = null;');
@@ -6535,13 +6663,8 @@ DRB.GenerateCode.Create = function () {
         codeXMLHttpRequest.push('\t\tif (this.status === 201) {');
         codeXMLHttpRequest.push('\t\t\tvar result = JSON.parse(this.response);');
         codeXMLHttpRequest.push('\t\t\tconsole.log(result);');
-        var codeFieldsXMLHttpRequest = [];
-        if (settings.formattedValues === true) {
-            codeFieldsFormatted.forEach(function (codeField) { codeFieldsXMLHttpRequest.push('\t\t\t' + codeField); });
-        } else {
-            codeFields.forEach(function (codeField) { codeFieldsXMLHttpRequest.push('\t\t\t' + codeField); });
-        }
-        codeXMLHttpRequest.push(codeFieldsXMLHttpRequest.join('\n'));
+        if (settings.formattedValues === true) { codeFieldsFormatted.forEach(function (codeField) { codeXMLHttpRequest.push('\t\t\t' + codeField); }); }
+        else { codeFields.forEach(function (codeField) { codeXMLHttpRequest.push('\t\t\t' + codeField); }); }
     } else {
         codeXMLHttpRequest.push('\t\tif (this.status === 204) {');
         codeXMLHttpRequest.push('\t\t\tvar uri = req.getResponseHeader("OData-EntityId");');
@@ -6557,7 +6680,53 @@ DRB.GenerateCode.Create = function () {
     codeXMLHttpRequest.push('\t}');
     codeXMLHttpRequest.push('};');
     codeXMLHttpRequest.push('req.send(JSON.stringify(record));');
-    // End XMLHttpRequest
+    // #endregion
+
+    // #region Fetch API
+    codeFetchAPI = DRB.GenerateCode.GetFetchAPIWarnings(settings);
+    codeEntity.forEach(function (line) { codeFetchAPI.push(line); });
+    codeFetchAPI.push('fetch(Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", {');
+    codeFetchAPI.push('\tmethod: "POST",');
+    codeFetchAPI.push('\theaders: {');
+    jQueryHeaders.forEach(function (reqHeader) { codeFetchAPI.push('\t\t' + reqHeader); });
+    codeFetchAPI.push('\t},');
+    codeFetchAPI.push('\tbody: JSON.stringify(record)');
+    codeFetchAPI.push('}).then(');
+    codeFetchAPI.push('\tfunction success(response) {');
+    if (settings.returnRecord === true) {
+        codeFetchAPI.push('\t\treturn response.json().then((json) => { if (response.ok) { return [response, json]; } else { throw json.error; } });');
+        codeFetchAPI.push('\t}');
+        codeFetchAPI.push(').then(function (responseObjects) {');
+        codeFetchAPI.push('\tvar response = responseObjects[0];');
+        codeFetchAPI.push('\tvar responseBody = responseObjects[1];');
+        codeFetchAPI.push('\tvar result = responseBody;');
+        codeFetchAPI.push('\tconsole.log(result);');
+
+        if (settings.formattedValues === true) {
+            codeFieldsFormatted.forEach(function (codeField) { codeFetchAPI.push('\t' + codeField); });
+        } else {
+            codeFields.forEach(function (codeField) { codeFetchAPI.push('\t' + codeField); });
+        }
+
+        codeFetchAPI.push('}).catch(function (error) {');
+        codeFetchAPI.push('\tconsole.log(error.message);');
+        codeFetchAPI.push('});');
+    } else {
+        codeFetchAPI.push('\t\tif (response.ok) {');
+        codeFetchAPI.push('\t\t\tvar uri = response.headers.get("OData-EntityId");');
+        codeFetchAPI.push('\t\t\tvar regExp = /\\(([^)]+)\\)/;');
+        codeFetchAPI.push('\t\t\tvar matches = regExp.exec(uri);');
+        codeFetchAPI.push('\t\t\tvar newId = matches[1];');
+        codeFetchAPI.push('\t\t\tconsole.log(newId);');
+        codeFetchAPI.push('\t\t} else {');
+        codeFetchAPI.push('\t\t\treturn response.json().then((json) => { throw json.error; });');
+        codeFetchAPI.push('\t\t}');
+        codeFetchAPI.push('\t}');
+        codeFetchAPI.push(').catch(function (error) {');
+        codeFetchAPI.push('\tconsole.log(error.message);');
+        codeFetchAPI.push('});');
+    }
+    // #endregion
 
     // #region Portals
     codePortals = DRB.GenerateCode.GetPortalsWarnings(settings);
@@ -6574,7 +6743,7 @@ DRB.GenerateCode.Create = function () {
     codePortals.push('});');
     // #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codePortals);
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
 }
 
 /**
@@ -6588,6 +6757,7 @@ DRB.GenerateCode.Update = function () {
     var codeXrmWebApiExecute = [];
     var codejQuery = [];
     var codeXMLHttpRequest = [];
+    var codeFetchAPI = [];
     var codePortals = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity)) {
@@ -6597,9 +6767,10 @@ DRB.GenerateCode.Update = function () {
         codeXrmWebApiExecute.push(errorMessage);
         codejQuery.push(errorMessage);
         codeXMLHttpRequest.push(errorMessage);
+        codeFetchAPI.push(errorMessage);
         codePortals.push(errorMessage);
 
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codePortals);
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
         return;
     }
     var urlFields = '';
@@ -6619,17 +6790,16 @@ DRB.GenerateCode.Update = function () {
     var portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")" + urlFields;
 
     // Request Headers
-    var requestHeaders = DRB.GenerateCode.GetRequestHeaders(settings);
-
+    var jQueryHeaders = DRB.GenerateCode.GetJQueryRequestHeaders(settings);
+    var xhrHeaders = DRB.GenerateCode.GetXHRRequestHeaders(settings);
     // Code Entity
     var codeEntity = DRB.GenerateCode.GetCodeEntity(settings);
 
-    // Xrm.WebApi
+    // #region Xrm.WebApi
     codeXrmWebApi = DRB.GenerateCode.GetXrmWebApiWarnings(settings);
     codeXrmWebApi.push('// NOTE: updateRecord is available in offline mode, if you need this functionality change the call to Xrm.WebApi.offline.updateRecord');
     codeXrmWebApi.push('// https://docs.microsoft.com/en-us/powerapps/developer/model-driven-apps/clientapi/reference/xrm-webapi/offline');
 
-    // add Code Entity
     codeEntity.forEach(function (line) { codeXrmWebApi.push(line); });
     var entityCriteriaXrmWebApi = entityCriteria;
     if (settings.useAlternateKey === true) { entityCriteriaXrmWebApi = ""; }
@@ -6642,13 +6812,13 @@ DRB.GenerateCode.Update = function () {
     codeXrmWebApi.push('\t\tconsole.log(error.message);');
     codeXrmWebApi.push('\t}');
     codeXrmWebApi.push(');');
-    // End Xrm.WebApi
+    // #endregion
 
-    // Xrm.WebApi.execute
+    // #region Xrm.WebApi.execute
     codeXrmWebApiExecute = DRB.GenerateCode.GetXrmWebApiWarnings(settings);
     codeXrmWebApiExecute.push('// NOTE: you can use Xrm.WebApi.online.execute if this request needs to be part of an executeMultiple collection');
     codeXrmWebApiExecute.push('// https://docs.microsoft.com/en-us/powerapps/developer/model-driven-apps/clientapi/reference/xrm-webapi/online/executemultiple');
-    // add Code Entity
+
     codeEntity.forEach(function (line) { codeXrmWebApiExecute.push(line); });
     codeXrmWebApiExecute.push('var updateRequest = {');
     codeXrmWebApiExecute.push('\tetn: "' + settings.primaryEntity.logicalName + '",');
@@ -6657,40 +6827,28 @@ DRB.GenerateCode.Update = function () {
     codeXrmWebApiExecute.push('\tgetMetadata: function () { return { boundParameter: null, parameterTypes: {}, operationType: 2, operationName: "Update" }; }');
     codeXrmWebApiExecute.push('};');
     codeXrmWebApiExecute.push('');
-
     codeXrmWebApiExecute.push('Xrm.WebApi.online.execute(updateRequest).then(');
     codeXrmWebApiExecute.push('\tfunction success(response) {');
     codeXrmWebApiExecute.push('\t\tif (response.ok) {');
     codeXrmWebApiExecute.push('\t\t\tconsole.log("Record updated");');
     codeXrmWebApiExecute.push('\t\t}');
     codeXrmWebApiExecute.push('\t}');
-
     codeXrmWebApiExecute.push(').catch(function (error) {');
     codeXrmWebApiExecute.push('\tconsole.log(error.message);');
     codeXrmWebApiExecute.push('});');
-    // End Xrm.WebApi.execute
+    // #endregion
 
-
-
-
-    // jQuery
-    // add Code Entity
+    // #region jQuery
     codeEntity.forEach(function (line) { codejQuery.push(line); });
 
     codejQuery.push('$.ajax({');
     codejQuery.push('\ttype: "PATCH",');
-    codejQuery.push('\tcontentType: "application/json; charset=utf-8",');
-    codejQuery.push('\tdatatype: "json",');
     codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '",');
-    codejQuery.push('\tdata: JSON.stringify(record),');
-    codejQuery.push('\tbeforeSend: function (req) {');
-
-    var requestHeadersJQuery = [];
-    requestHeaders.forEach(function (reqHeader) { requestHeadersJQuery.push('\t\t' + reqHeader); });
-    codejQuery.push(requestHeadersJQuery.join('\n'));
-
-    codejQuery.push('\t},');
     codejQuery.push('\tasync: ' + settings.async + ',');
+    codejQuery.push('\theaders: {');
+    jQueryHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
+    codejQuery.push('\t},');
+    codejQuery.push('\tdata: JSON.stringify(record),');
     codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
     if (settings.returnRecord === true) {
         codejQuery.push('\t\tvar result = data;');
@@ -6707,18 +6865,17 @@ DRB.GenerateCode.Update = function () {
     }
     codejQuery.push('\t},');
     codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
-    codejQuery.push('\t\tconsole.log(xhr.responseText);');
+    codejQuery.push('\t\tconsole.log(xhr);');
     codejQuery.push('\t}');
     codejQuery.push('});');
-    // End jQuery
+    // #endregion
 
-    // XMLHttpRequest
+    // #region XMLHttpRequest
     codeEntity.forEach(function (line) { codeXMLHttpRequest.push(line); });
 
     codeXMLHttpRequest.push('var req = new XMLHttpRequest();');
     codeXMLHttpRequest.push('req.open("PATCH", Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", ' + settings.async + ');');
-    codeXMLHttpRequest.push(requestHeaders.join('\n'));
-    codeXMLHttpRequest.push('req.setRequestHeader("Content-Type", "application/json; charset=utf-8");'); // request is PATCH, add this additional header only for XMLHttpRequest
+    codeXMLHttpRequest.push(xhrHeaders.join('\n'));
     codeXMLHttpRequest.push('req.onreadystatechange = function () {');
     codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
     codeXMLHttpRequest.push('\t\treq.onreadystatechange = null;');
@@ -6727,25 +6884,64 @@ DRB.GenerateCode.Update = function () {
         codeXMLHttpRequest.push('\t\tif (this.status === 200) {');
         codeXMLHttpRequest.push('\t\t\tvar result = JSON.parse(this.response);');
         codeXMLHttpRequest.push('\t\t\tconsole.log(result);');
-        var codeFieldsXMLHttpRequest = [];
         if (settings.formattedValues === true) {
-            codeFieldsFormatted.forEach(function (codeField) { codeFieldsXMLHttpRequest.push('\t\t\t' + codeField); });
+            codeFieldsFormatted.forEach(function (codeField) { codeXMLHttpRequest.push('\t\t\t' + codeField); });
         } else {
-            codeFields.forEach(function (codeField) { codeFieldsXMLHttpRequest.push('\t\t\t' + codeField); });
+            codeFields.forEach(function (codeField) { codeXMLHttpRequest.push('\t\t\t' + codeField); });
         }
-        codeXMLHttpRequest.push(codeFieldsXMLHttpRequest.join('\n'));
     } else {
         codeXMLHttpRequest.push('\t\tif (this.status === 204) {');
         codeXMLHttpRequest.push('\t\t\tconsole.log("Record updated");');
     }
-
     codeXMLHttpRequest.push('\t\t} else {');
     codeXMLHttpRequest.push('\t\t\tconsole.log(this.responseText);');
     codeXMLHttpRequest.push('\t\t}');
     codeXMLHttpRequest.push('\t}');
     codeXMLHttpRequest.push('};');
     codeXMLHttpRequest.push('req.send(JSON.stringify(record));');
-    // End XMLHttpRequest
+    // #endregion
+
+    // #region Fetch API
+    codeFetchAPI = DRB.GenerateCode.GetFetchAPIWarnings(settings);
+    codeEntity.forEach(function (line) { codeFetchAPI.push(line); });
+    codeFetchAPI.push('fetch(Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", {');
+    codeFetchAPI.push('\tmethod: "PATCH",');
+    codeFetchAPI.push('\theaders: {');
+    jQueryHeaders.forEach(function (reqHeader) { codeFetchAPI.push('\t\t' + reqHeader); });
+    codeFetchAPI.push('\t},');
+    codeFetchAPI.push('\tbody: JSON.stringify(record)');
+    codeFetchAPI.push('}).then(');
+    codeFetchAPI.push('\tfunction success(response) {');
+    if (settings.returnRecord === true) {
+        codeFetchAPI.push('\t\treturn response.json().then((json) => { if (response.ok) { return [response, json]; } else { throw json.error; } });');
+        codeFetchAPI.push('\t}');
+        codeFetchAPI.push(').then(function (responseObjects) {');
+        codeFetchAPI.push('\tvar response = responseObjects[0];');
+        codeFetchAPI.push('\tvar responseBody = responseObjects[1];');
+        codeFetchAPI.push('\tvar result = responseBody;');
+        codeFetchAPI.push('\tconsole.log(result);');
+
+        if (settings.formattedValues === true) {
+            codeFieldsFormatted.forEach(function (codeField) { codeFetchAPI.push('\t' + codeField); });
+        } else {
+            codeFields.forEach(function (codeField) { codeFetchAPI.push('\t' + codeField); });
+        }
+
+        codeFetchAPI.push('}).catch(function (error) {');
+        codeFetchAPI.push('\tconsole.log(error.message);');
+        codeFetchAPI.push('});');
+    } else {
+        codeFetchAPI.push('\t\tif (response.ok) {');
+        codeFetchAPI.push('\t\t\tconsole.log("Record updated");');
+        codeFetchAPI.push('\t\t} else {');
+        codeFetchAPI.push('\t\t\treturn response.json().then((json) => { throw json.error; });');
+        codeFetchAPI.push('\t\t}');
+        codeFetchAPI.push('\t}');
+        codeFetchAPI.push(').catch(function (error) {');
+        codeFetchAPI.push('\tconsole.log(error.message);');
+        codeFetchAPI.push('});');
+    }
+    // #endregion
 
     // #region Portals
     codePortals = DRB.GenerateCode.GetPortalsWarnings(settings);
@@ -6761,7 +6957,7 @@ DRB.GenerateCode.Update = function () {
     codePortals.push('});');
     // #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codePortals);
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
 }
 
 /**
@@ -6774,6 +6970,7 @@ DRB.GenerateCode.Delete = function () {
     var codeXrmWebApiExecute = [];
     var codejQuery = [];
     var codeXMLHttpRequest = [];
+    var codeFetchAPI = [];
     var codePortals = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity)) {
@@ -6783,9 +6980,10 @@ DRB.GenerateCode.Delete = function () {
         codeXrmWebApiExecute.push(errorMessage);
         codejQuery.push(errorMessage);
         codeXMLHttpRequest.push(errorMessage);
+        codeFetchAPI.push(errorMessage);
         codePortals.push(errorMessage);
 
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codePortals);
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
         return;
     }
 
@@ -6796,7 +6994,8 @@ DRB.GenerateCode.Delete = function () {
     var portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")";
 
     // Request Headers
-    var requestHeaders = DRB.GenerateCode.GetRequestHeaders(settings);
+    var jQueryHeaders = DRB.GenerateCode.GetJQueryRequestHeaders(settings);
+    var xhrHeaders = DRB.GenerateCode.GetXHRRequestHeaders(settings);
 
     // #region Xrm.WebApi
     codeXrmWebApi = DRB.GenerateCode.GetXrmWebApiWarnings(settings);
@@ -6837,18 +7036,16 @@ DRB.GenerateCode.Delete = function () {
     // #region jQuery
     codejQuery.push('$.ajax({');
     codejQuery.push('\ttype: "DELETE",');
-    codejQuery.push('\tcontentType: "application/json; charset=utf-8",');
-    codejQuery.push('\tdatatype: "json",');
     codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '",');
-    codejQuery.push('\tbeforeSend: function (req) {');
-    requestHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
-    codejQuery.push('\t},');
     codejQuery.push('\tasync: ' + settings.async + ',');
+    codejQuery.push('\theaders: {');
+    jQueryHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
+    codejQuery.push('\t},');
     codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
     codejQuery.push('\t\tconsole.log("Record deleted");');
     codejQuery.push('\t},');
     codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
-    codejQuery.push('\t\tconsole.log(xhr.responseText);');
+    codejQuery.push('\t\tconsole.log(xhr);');
     codejQuery.push('\t}');
     codejQuery.push('});');
     // #endregion
@@ -6856,7 +7053,7 @@ DRB.GenerateCode.Delete = function () {
     // #region XMLHttpRequest
     codeXMLHttpRequest.push('var req = new XMLHttpRequest();');
     codeXMLHttpRequest.push('req.open("DELETE", Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", ' + settings.async + ');');
-    codeXMLHttpRequest.push(requestHeaders.join('\n'));
+    codeXMLHttpRequest.push(xhrHeaders.join('\n'));
     codeXMLHttpRequest.push('req.onreadystatechange = function () {');
     codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
     codeXMLHttpRequest.push('\t\treq.onreadystatechange = null;');
@@ -6868,6 +7065,26 @@ DRB.GenerateCode.Delete = function () {
     codeXMLHttpRequest.push('\t}');
     codeXMLHttpRequest.push('};');
     codeXMLHttpRequest.push('req.send();');
+    // #endregion
+
+    // #region Fetch API
+    codeFetchAPI = DRB.GenerateCode.GetFetchAPIWarnings(settings);
+    codeFetchAPI.push('fetch(Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", {');
+    codeFetchAPI.push('\tmethod: "DELETE",');
+    codeFetchAPI.push('\theaders: {');
+    jQueryHeaders.forEach(function (reqHeader) { codeFetchAPI.push('\t\t' + reqHeader); });
+    codeFetchAPI.push('\t}');
+    codeFetchAPI.push('}).then(');
+    codeFetchAPI.push('\tfunction success(response) {');
+    codeFetchAPI.push('\t\tif (response.ok) {');
+    codeFetchAPI.push('\t\t\tconsole.log("Record deleted");');
+    codeFetchAPI.push('\t\t} else {');
+    codeFetchAPI.push('\t\t\treturn response.json().then((json) => { throw json.error; });');
+    codeFetchAPI.push('\t\t}');
+    codeFetchAPI.push('\t}');
+    codeFetchAPI.push(').catch(function (error) {');
+    codeFetchAPI.push('\tconsole.log(error.message);');
+    codeFetchAPI.push('});');
     // #endregion
 
     // #region Portals
@@ -6882,7 +7099,7 @@ DRB.GenerateCode.Delete = function () {
     codePortals.push('});');
     // #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codePortals);
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
 }
 
 /**
@@ -6895,6 +7112,7 @@ DRB.GenerateCode.Associate = function () {
     var codeXrmWebApi = [];
     var codejQuery = [];
     var codeXMLHttpRequest = [];
+    var codeFetchAPI = [];
     var codePortals = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity) || !DRB.Utilities.HasValue(settings.secondaryEntity)) {
@@ -6907,9 +7125,10 @@ DRB.GenerateCode.Associate = function () {
         codeXrmWebApi.push(errorMessage);
         codejQuery.push(errorMessage);
         codeXMLHttpRequest.push(errorMessage);
+        codeFetchAPI.push(errorMessage);
         codePortals.push(errorMessage);
 
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codePortals);
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
         return;
     }
 
@@ -6917,22 +7136,24 @@ DRB.GenerateCode.Associate = function () {
     var portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + "(" + settings.primaryId + ")/" + settings.relationship + "/$ref";
 
     // Request Headers
-    var requestHeaders = DRB.GenerateCode.GetRequestHeaders(settings);
+    var jQueryHeaders = DRB.GenerateCode.GetJQueryRequestHeaders(settings);
+    var xhrHeaders = DRB.GenerateCode.GetXHRRequestHeaders(settings);
 
-    // Xrm.WebApi
+    var codeAssociated = [];
+    codeAssociated.push('var association = {');
+    codeAssociated.push('\t"@odata.id": Xrm.Utility.getGlobalContext().getClientUrl() + "/api/data/' + settings.version + '/' + settings.secondaryEntity.entitySetName + '(' + settings.secondaryIds[0] + ')"');
+    codeAssociated.push('};');
+
+    // #region Xrm.WebApi
     codeXrmWebApi = DRB.GenerateCode.GetXrmWebApiWarnings(settings);
 
     codeXrmWebApi.push("// NOTE: Associate Request in Xrm.WebApi supports multiple children, you can add them inside the relatedEntities array");
     codeXrmWebApi.push('var associateRequest = {');
     codeXrmWebApi.push('\ttarget: { entityType: "' + settings.primaryEntity.logicalName + '", id: "' + settings.primaryId + '" },');
     codeXrmWebApi.push('\trelatedEntities: [');
-
-    var codeXrmWebApiSecondaryIds = [];
     settings.secondaryIds.forEach(function (secondaryId) {
-        codeXrmWebApiSecondaryIds.push('\t\t\t{ entityType: "' + settings.secondaryEntity.logicalName + '", id: "' + secondaryId + '" }');
+        codeXrmWebApi.push('\t\t\t{ entityType: "' + settings.secondaryEntity.logicalName + '", id: "' + secondaryId + '" }');
     });
-    codeXrmWebApi.push(codeXrmWebApiSecondaryIds.join(',\n'));
-
     codeXrmWebApi.push('\t],');
     codeXrmWebApi.push('\trelationship: "' + settings.relationship + '",');
     codeXrmWebApi.push('\tgetMetadata: function () { return { boundParameter: null, parameterTypes: {}, operationType: 2, operationName: "Associate" }; }');
@@ -6947,46 +7168,36 @@ DRB.GenerateCode.Associate = function () {
     codeXrmWebApi.push(').catch(function (error) {');
     codeXrmWebApi.push('\tconsole.log(error.message);');
     codeXrmWebApi.push('});');
+    // #endregion
 
-    var codeAssociated = [];
-    codeAssociated.push('var association = {');
-    codeAssociated.push('\t"@odata.id": Xrm.Utility.getGlobalContext().getClientUrl() + "/api/data/' + settings.version + '/' + settings.secondaryEntity.entitySetName + '(' + settings.secondaryIds[0] + ')"');
-    codeAssociated.push('};');
-
-    // jQuery
+    // #region jQuery
     codeAssociated.forEach(function (associated) { codejQuery.push(associated); });
     codejQuery.push('');
 
     codejQuery.push('$.ajax({');
     codejQuery.push('\ttype: "POST",');
-    codejQuery.push('\tcontentType: "application/json; charset=utf-8",');
-    codejQuery.push('\tdatatype: "json",');
     codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '",');
-    codejQuery.push('\tdata: JSON.stringify(association),');
-    codejQuery.push('\tbeforeSend: function (req) {');
-
-    var requestHeadersJQuery = [];
-    requestHeaders.forEach(function (reqHeader) { requestHeadersJQuery.push('\t\t' + reqHeader); });
-    codejQuery.push(requestHeadersJQuery.join('\n'));
-
-    codejQuery.push('\t},');
     codejQuery.push('\tasync: ' + settings.async + ',');
+    codejQuery.push('\theaders: {');
+    jQueryHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
+    codejQuery.push('\t},');
+    codejQuery.push('\tdata: JSON.stringify(association),');
     codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
     codejQuery.push('\t\tconsole.log("Success");');
     codejQuery.push('\t},');
     codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
-    codejQuery.push('\t\tconsole.log(textStatus);');
+    codejQuery.push('\t\tconsole.log(xhr);');
     codejQuery.push('\t}');
     codejQuery.push('});');
+    // #endregion
 
-    // XMLHttpRequest
+    // #region XMLHttpRequest
     codeAssociated.forEach(function (associated) { codeXMLHttpRequest.push(associated); });
     codeXMLHttpRequest.push('');
 
     codeXMLHttpRequest.push('var req = new XMLHttpRequest();');
     codeXMLHttpRequest.push('req.open("POST", Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", ' + settings.async + ');');
-    codeXMLHttpRequest.push(requestHeaders.join('\n'));
-    codeXMLHttpRequest.push('req.setRequestHeader("Content-Type", "application/json; charset=utf-8");'); // request is POST, add this additional header only for XMLHttpRequest
+    codeXMLHttpRequest.push(xhrHeaders.join('\n'));
     codeXMLHttpRequest.push('req.onreadystatechange = function () {');
     codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
     codeXMLHttpRequest.push('\t\treq.onreadystatechange = null;');
@@ -6998,6 +7209,31 @@ DRB.GenerateCode.Associate = function () {
     codeXMLHttpRequest.push('\t}');
     codeXMLHttpRequest.push('};');
     codeXMLHttpRequest.push('req.send(JSON.stringify(association));');
+    // #endregion
+
+    // #region Fetch API
+    codeFetchAPI = DRB.GenerateCode.GetFetchAPIWarnings(settings);
+    codeAssociated.forEach(function (associated) { codeFetchAPI.push(associated); });
+    codeFetchAPI.push('');
+
+    codeFetchAPI.push('fetch(Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", {');
+    codeFetchAPI.push('\tmethod: "POST",');
+    codeFetchAPI.push('\theaders: {');
+    jQueryHeaders.forEach(function (reqHeader) { codeFetchAPI.push('\t\t' + reqHeader); });
+    codeFetchAPI.push('\t},');
+    codeFetchAPI.push('\tbody: JSON.stringify(association)');
+    codeFetchAPI.push('}).then(');
+    codeFetchAPI.push('\tfunction success(response) {');
+    codeFetchAPI.push('\t\tif (response.ok) {');
+    codeFetchAPI.push('\t\t\tconsole.log("Success");');
+    codeFetchAPI.push('\t\t} else {');
+    codeFetchAPI.push('\t\t\treturn response.json().then((json) => { throw json.error; });');
+    codeFetchAPI.push('\t\t}');
+    codeFetchAPI.push('\t}');
+    codeFetchAPI.push(').catch(function (error) {');
+    codeFetchAPI.push('\tconsole.log(error.message);');
+    codeFetchAPI.push('});');
+    // #endregion
 
     // #region Portals
     var portalsCodeAssociated = [];
@@ -7019,7 +7255,7 @@ DRB.GenerateCode.Associate = function () {
     codePortals.push('});');
     // #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codePortals);
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
 }
 
 /**
@@ -7032,6 +7268,7 @@ DRB.GenerateCode.Disassociate = function () {
     var codeXrmWebApi = [];
     var codejQuery = [];
     var codeXMLHttpRequest = [];
+    var codeFetchAPI = [];
     var codePortals = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity) || !DRB.Utilities.HasValue(settings.secondaryEntity)) {
@@ -7043,9 +7280,10 @@ DRB.GenerateCode.Disassociate = function () {
         codeXrmWebApi.push(errorMessage);
         codejQuery.push(errorMessage);
         codeXMLHttpRequest.push(errorMessage);
+        codeFetchAPI.push(errorMessage);
         codePortals.push(errorMessage);
 
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codePortals);
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
         return;
     }
 
@@ -7053,8 +7291,8 @@ DRB.GenerateCode.Disassociate = function () {
     var portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + "(" + settings.primaryId + ")/" + settings.relationship + "(" + settings.secondaryIds[0] + ")/$ref";
 
     // Request Headers
-    var requestHeaders = DRB.GenerateCode.GetRequestHeaders(settings);
-
+    var jQueryHeaders = DRB.GenerateCode.GetJQueryRequestHeaders(settings);
+    var xhrHeaders = DRB.GenerateCode.GetXHRRequestHeaders(settings);
     // #region Xrm.WebApi
     codeXrmWebApi = DRB.GenerateCode.GetXrmWebApiWarnings(settings);
 
@@ -7079,22 +7317,16 @@ DRB.GenerateCode.Disassociate = function () {
     // #region jQuery
     codejQuery.push('$.ajax({');
     codejQuery.push('\ttype: "DELETE",');
-    codejQuery.push('\tcontentType: "application/json; charset=utf-8",');
-    codejQuery.push('\tdatatype: "json",');
     codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '",');
-    codejQuery.push('\tbeforeSend: function (req) {');
-
-    var requestHeadersJQuery = [];
-    requestHeaders.forEach(function (reqHeader) { requestHeadersJQuery.push('\t\t' + reqHeader); });
-    codejQuery.push(requestHeadersJQuery.join('\n'));
-
-    codejQuery.push('\t},');
     codejQuery.push('\tasync: ' + settings.async + ',');
+    codejQuery.push('\theaders: {');
+    jQueryHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
+    codejQuery.push('\t},');
     codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
     codejQuery.push('\t\tconsole.log("Success");');
     codejQuery.push('\t},');
     codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
-    codejQuery.push('\t\tconsole.log(textStatus);');
+    codejQuery.push('\t\tconsole.log(xhr);');
     codejQuery.push('\t}');
     codejQuery.push('});');
     // #endregion
@@ -7102,7 +7334,7 @@ DRB.GenerateCode.Disassociate = function () {
     // #region XMLHttpRequest
     codeXMLHttpRequest.push('var req = new XMLHttpRequest();');
     codeXMLHttpRequest.push('req.open("DELETE", Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", ' + settings.async + ');');
-    codeXMLHttpRequest.push(requestHeaders.join('\n'));
+    codeXMLHttpRequest.push(xhrHeaders.join('\n'));
     codeXMLHttpRequest.push('req.onreadystatechange = function () {');
     codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
     codeXMLHttpRequest.push('\t\treq.onreadystatechange = null;');
@@ -7114,6 +7346,26 @@ DRB.GenerateCode.Disassociate = function () {
     codeXMLHttpRequest.push('\t}');
     codeXMLHttpRequest.push('};');
     codeXMLHttpRequest.push('req.send();');
+    // #endregion
+
+    // #region Fetch API
+    codeFetchAPI = DRB.GenerateCode.GetFetchAPIWarnings(settings);
+    codeFetchAPI.push('fetch(Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", {');
+    codeFetchAPI.push('\tmethod: "DELETE",');
+    codeFetchAPI.push('\theaders: {');
+    jQueryHeaders.forEach(function (reqHeader) { codeFetchAPI.push('\t\t' + reqHeader); });
+    codeFetchAPI.push('\t}');
+    codeFetchAPI.push('}).then(');
+    codeFetchAPI.push('\tfunction success(response) {');
+    codeFetchAPI.push('\t\tif (response.ok) {');
+    codeFetchAPI.push('\t\t\tconsole.log("Success");');
+    codeFetchAPI.push('\t\t} else {');
+    codeFetchAPI.push('\t\t\treturn response.json().then((json) => { throw json.error; });');
+    codeFetchAPI.push('\t\t}');
+    codeFetchAPI.push('\t}');
+    codeFetchAPI.push(').catch(function (error) {');
+    codeFetchAPI.push('\tconsole.log(error.message);');
+    codeFetchAPI.push('});');
     // #endregion
 
     // #region Portals
@@ -7128,7 +7380,7 @@ DRB.GenerateCode.Disassociate = function () {
     codePortals.push('});');
     // #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codePortals);
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
 }
 
 /**
@@ -7140,7 +7392,7 @@ DRB.GenerateCode.RetrieveNextLink = function () {
     var codeXrmWebApi = [];
     var codejQuery = [];
     var codeXMLHttpRequest = [];
-
+    var codeFetchAPI = [];
 
     var xrmWebApiUrl = settings.nextLink;
     if (xrmWebApiUrl.indexOf("?") > -1) {
@@ -7154,8 +7406,8 @@ DRB.GenerateCode.RetrieveNextLink = function () {
     }
 
     // Request Headers
-    var requestHeaders = DRB.GenerateCode.GetRequestHeaders(settings);
-
+    var jQueryHeaders = DRB.GenerateCode.GetJQueryRequestHeaders(settings);
+    var xhrHeaders = DRB.GenerateCode.GetXHRRequestHeaders(settings);
     var primaryEntityName = '';
     if (DRB.Utilities.HasValue(settings.primaryEntity)) {
         primaryEntityName = settings.primaryEntity.logicalName;
@@ -7175,19 +7427,18 @@ DRB.GenerateCode.RetrieveNextLink = function () {
     // #region jQuery
     codejQuery.push('$.ajax({');
     codejQuery.push('\ttype: "GET",');
-    codejQuery.push('\tcontentType: "application/json; charset=utf-8",');
-    codejQuery.push('\tdatatype: "json",');
     codejQuery.push('\turl: "' + mainUrl + '",');
-    codejQuery.push('\tbeforeSend: function (req) {');
-    requestHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
-    codejQuery.push('\t},');
     codejQuery.push('\tasync: ' + settings.async + ',');
+    codejQuery.push('\theaders: {');
+    jQueryHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
+    codejQuery.push('\t},');
     codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
     var codejQueryIndent = '\t\t';
     if (settings.detectChanges === true) {
         codejQueryIndent += '\t';
         codejQuery.push('\t\tif (xhr.status === 304) {');
         codejQuery.push('\t\t\t// Handle data not changed');
+        codejQuery.push('\t\t\tconsole.log("Record not changed");');
         codejQuery.push('\t\t} else {');
     }
     codejQuery.push(codejQueryIndent + 'var results = data;');
@@ -7196,7 +7447,7 @@ DRB.GenerateCode.RetrieveNextLink = function () {
     if (settings.detectChanges === true) { codejQuery.push('\t\t}'); }
     codejQuery.push('\t},');
     codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
-    codejQuery.push('\t\tconsole.log(xhr.responseText);');
+    codejQuery.push('\t\tconsole.log(xhr);');
     codejQuery.push('\t}');
     codejQuery.push('});');
     // #endregion
@@ -7204,7 +7455,7 @@ DRB.GenerateCode.RetrieveNextLink = function () {
     // #region XMLHttpRequest
     codeXMLHttpRequest.push('var req = new XMLHttpRequest();');
     codeXMLHttpRequest.push('req.open("GET", "' + mainUrl + '", ' + settings.async + ');');
-    codeXMLHttpRequest.push(requestHeaders.join('\n'));
+    codeXMLHttpRequest.push(xhrHeaders.join('\n'));
     codeXMLHttpRequest.push('req.onreadystatechange = function () {');
     codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
     codeXMLHttpRequest.push('\t\treq.onreadystatechange = null;');
@@ -7215,6 +7466,7 @@ DRB.GenerateCode.RetrieveNextLink = function () {
     if (settings.detectChanges === true) {
         codeXMLHttpRequest.push('\t\t} else if (this.status === 304) {');
         codeXMLHttpRequest.push('\t\t\t// Handle data not changed');
+        codeXMLHttpRequest.push('\t\t\tconsole.log("Record not changed");');
     }
     codeXMLHttpRequest.push('\t\t} else {');
     codeXMLHttpRequest.push('\t\t\tconsole.log(this.responseText);');
@@ -7224,7 +7476,42 @@ DRB.GenerateCode.RetrieveNextLink = function () {
     codeXMLHttpRequest.push('req.send();');
     // #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, null);
+    // #region Fetch API
+    codeFetchAPI = DRB.GenerateCode.GetFetchAPIWarnings(settings);
+    codeFetchAPI.push('fetch(Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", {');
+    codeFetchAPI.push('\tmethod: "GET",');
+    codeFetchAPI.push('\theaders: {');
+    jQueryHeaders.forEach(function (reqHeader) { codeFetchAPI.push('\t\t' + reqHeader); });
+    codeFetchAPI.push('\t}');
+    codeFetchAPI.push('}).then(');
+    codeFetchAPI.push('\tfunction success(response) {');
+    codeFetchAPI.push('\t\treturn response.json().then((json) => { if (response.ok) { return [response, json]; } else { throw json.error; } });');
+    codeFetchAPI.push('\t}');
+    codeFetchAPI.push(').then(function (responseObjects) {');
+    codeFetchAPI.push('\tvar response = responseObjects[0];');
+    codeFetchAPI.push('\tvar responseBody = responseObjects[1];');
+
+    if (settings.detectChanges === true) {
+        codeFetchAPI.push('\tif (response.status === 304) {');
+        codeFetchAPI.push('\t\t// Handle data not changed');
+        codeFetchAPI.push('\t\tconsole.log("Record not changed");');
+        codeFetchAPI.push('\t} else {');
+        codeFetchAPI.push('\t\tvar results = responseBody;');
+        codeFetchAPI.push('\t\tconsole.log(results);');
+        if (settings.retrieveCount === true) { codeFetchAPI.push('\t\tvar odata_count = results["@odata.count"];'); }
+        codeFetchAPI.push('\t}');
+    } else {
+        codeFetchAPI.push('\tvar results = responseBody;');
+        codeFetchAPI.push('\tconsole.log(results);');
+        if (settings.retrieveCount === true) { codeFetchAPI.push('\tvar odata_count = results["@odata.count"];'); }
+    }
+
+    codeFetchAPI.push('}).catch(function (error) {');
+    codeFetchAPI.push('\tconsole.log(error.message);');
+    codeFetchAPI.push('});');
+    // #endregion
+
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, null);
 }
 
 /**
@@ -7236,6 +7523,7 @@ DRB.GenerateCode.PredefinedQuery = function () {
     var codeXrmWebApi = [];
     var codejQuery = [];
     var codeXMLHttpRequest = [];
+    var codeFetchAPI = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity) || !DRB.Utilities.HasValue(settings.queryType)) {
         // Don't generate the code if a table or a query type is not selected
@@ -7246,7 +7534,8 @@ DRB.GenerateCode.PredefinedQuery = function () {
         codeXrmWebApi.push(errorMessage);
         codejQuery.push(errorMessage);
         codeXMLHttpRequest.push(errorMessage);
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, null);
+        codeFetchAPI.push(errorMessage);
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, null);
         return;
     }
 
@@ -7269,8 +7558,8 @@ DRB.GenerateCode.PredefinedQuery = function () {
     codeFetchXML.push('var escapedFetchXML = encodeURIComponent(originalFetchXML);');
 
     // Request Headers
-    var requestHeaders = DRB.GenerateCode.GetRequestHeaders(settings);
-
+    var jQueryHeaders = DRB.GenerateCode.GetJQueryRequestHeaders(settings);
+    var xhrHeaders = DRB.GenerateCode.GetXHRRequestHeaders(settings);
     // #region Xrm.WebApi
     codeXrmWebApi = DRB.GenerateCode.GetXrmWebApiWarnings(settings);
     if (settings.queryType === "fetchxml") {
@@ -7295,30 +7584,22 @@ DRB.GenerateCode.PredefinedQuery = function () {
     }
     codejQuery.push('$.ajax({');
     codejQuery.push('\ttype: "GET",');
-    codejQuery.push('\tcontentType: "application/json; charset=utf-8",');
-    codejQuery.push('\tdatatype: "json",');
     if (settings.queryType === "fetchxml" && settings.retrieveCount !== true) {
         codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + ',');
     } else {
         codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '",');
     }
-    codejQuery.push('\tbeforeSend: function (req) {');
-
-    var requestHeadersJQuery = [];
-    requestHeaders.forEach(function (reqHeader) { requestHeadersJQuery.push('\t\t' + reqHeader); });
-    codejQuery.push(requestHeadersJQuery.join('\n'));
-
-    codejQuery.push('\t},');
     codejQuery.push('\tasync: ' + settings.async + ',');
+    codejQuery.push('\theaders: {');
+    jQueryHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
+    codejQuery.push('\t},');
     codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
     codejQuery.push('\t\tvar results = data;');
-    if (settings.retrieveCount === true) {
-        codejQuery.push('\t\tvar odata_count = results["@odata.count"];');
-    }
+    if (settings.retrieveCount === true) { codejQuery.push('\t\tvar odata_count = results["@odata.count"];'); }
     codejQuery.push('\t\tconsole.log(results);');
     codejQuery.push('\t},');
     codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
-    codejQuery.push('\t\tconsole.log(xhr.responseText);');
+    codejQuery.push('\t\tconsole.log(xhr);');
     codejQuery.push('\t}');
     codejQuery.push('});');
     // #endregion
@@ -7334,16 +7615,14 @@ DRB.GenerateCode.PredefinedQuery = function () {
     } else {
         codeXMLHttpRequest.push('req.open("GET", Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", ' + settings.async + ');');
     }
-    codeXMLHttpRequest.push(requestHeaders.join('\n'));
+    codeXMLHttpRequest.push(xhrHeaders.join('\n'));
 
     codeXMLHttpRequest.push('req.onreadystatechange = function () {');
     codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
     codeXMLHttpRequest.push('\t\treq.onreadystatechange = null;');
     codeXMLHttpRequest.push('\t\tif (this.status === 200) {');
     codeXMLHttpRequest.push('\t\t\tvar results = JSON.parse(this.response);');
-    if (settings.retrieveCount === true) {
-        codeXMLHttpRequest.push('\t\t\tvar odata_count = results["@odata.count"];');
-    }
+    if (settings.retrieveCount === true) { codeXMLHttpRequest.push('\t\t\tvar odata_count = results["@odata.count"];'); }
     codeXMLHttpRequest.push('\t\t\tconsole.log(results);');
     codeXMLHttpRequest.push('\t\t} else {');
     codeXMLHttpRequest.push('\t\t\tconsole.log(this.responseText);');
@@ -7353,7 +7632,36 @@ DRB.GenerateCode.PredefinedQuery = function () {
     codeXMLHttpRequest.push('req.send();');
     // #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, null);
+    // #region Fetch API
+    codeFetchAPI = DRB.GenerateCode.GetFetchAPIWarnings(settings);
+    if (settings.queryType === "fetchxml") {
+        codeFetchXML.forEach(function (lineFetchXML) { codeFetchAPI.push(lineFetchXML); });
+        codeFetchAPI.push('');
+    }
+    if (settings.queryType === "fetchxml" && settings.retrieveCount !== true) {
+        codeFetchAPI.push('fetch(Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + ', {');
+    } else {
+        codeFetchAPI.push('fetch(Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", {');
+    }
+    codeFetchAPI.push('\tmethod: "GET",');
+    codeFetchAPI.push('\theaders: {');
+    jQueryHeaders.forEach(function (reqHeader) { codeFetchAPI.push('\t\t' + reqHeader); });
+    codeFetchAPI.push('\t}');
+    codeFetchAPI.push('}).then(');
+    codeFetchAPI.push('\tfunction success(response) {');
+    codeFetchAPI.push('\t\treturn response.json().then((json) => { if (response.ok) { return [response, json]; } else { throw json.error; } });');
+    codeFetchAPI.push('\t}');
+    codeFetchAPI.push(').then(function (responseObjects) {');
+    codeFetchAPI.push('\tvar response = responseObjects[0];');
+    codeFetchAPI.push('\tvar responseBody = responseObjects[1];');
+    codeFetchAPI.push('\tvar result = responseBody;');
+    codeFetchAPI.push('\tconsole.log(result);');
+    codeFetchAPI.push('}).catch(function (error) {');
+    codeFetchAPI.push('\tconsole.log(error.message);');
+    codeFetchAPI.push('});');
+    // #endregion
+
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, null);
 }
 
 /**
@@ -7365,6 +7673,7 @@ DRB.GenerateCode.DataverseExecute = function (requestType) {
     var codeXrmWebApi = [];
     var codejQuery = [];
     var codeXMLHttpRequest = [];
+    var codeFetchAPI = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity) || !DRB.Utilities.HasValue(settings.dataverseExecute)) {
         var errorMessage = "// Select a Table first";
@@ -7379,13 +7688,14 @@ DRB.GenerateCode.DataverseExecute = function (requestType) {
         codeXrmWebApi.push(errorMessage);
         codejQuery.push(errorMessage);
         codeXMLHttpRequest.push(errorMessage);
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, null);
+        codeFetchAPI.push(errorMessage);
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, null);
         return;
     }
 
     // Request Headers
-    var requestHeaders = DRB.GenerateCode.GetRequestHeaders(settings);
-
+    var jQueryHeaders = DRB.GenerateCode.GetJQueryRequestHeaders(settings);
+    var xhrHeaders = DRB.GenerateCode.GetXHRRequestHeaders(settings);
     // isBound and isCollectionBound
     var isBound = false;
     var isCollectionBound = false;
@@ -7475,18 +7785,12 @@ DRB.GenerateCode.DataverseExecute = function (requestType) {
 
         codejQuery.push('$.ajax({');
         codejQuery.push('\ttype: "POST",');
-        codejQuery.push('\tcontentType: "application/json; charset=utf-8",');
-        codejQuery.push('\tdatatype: "json",');
-        if (xhrAddedParameters === true) { codejQuery.push('\tdata: JSON.stringify(parameters),'); }
         codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '",');
-        codejQuery.push('\tbeforeSend: function (req) {');
-
-        var requestHeadersJQuery = [];
-        requestHeaders.forEach(function (reqHeader) { requestHeadersJQuery.push('\t\t' + reqHeader); });
-        codejQuery.push(requestHeadersJQuery.join('\n'));
-
-        codejQuery.push('\t},');
         codejQuery.push('\tasync: ' + settings.async + ',');
+        codejQuery.push('\theaders: {');
+        jQueryHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
+        codejQuery.push('\t},');
+        if (xhrAddedParameters === true) { codejQuery.push('\tdata: JSON.stringify(parameters),'); }
         codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
         if (settings.dataverseReturnType !== null) {
             codejQuery.push('\t\tvar result = data;');
@@ -7495,10 +7799,9 @@ DRB.GenerateCode.DataverseExecute = function (requestType) {
         } else {
             codejQuery.push('\t\tconsole.log("Success");');
         }
-
         codejQuery.push('\t},');
         codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
-        codejQuery.push('\t\tconsole.log(xhr.responseText);'); // CHECK
+        codejQuery.push('\t\tconsole.log(xhr);');
         codejQuery.push('\t}');
         codejQuery.push('});');
     }
@@ -7507,17 +7810,11 @@ DRB.GenerateCode.DataverseExecute = function (requestType) {
     if (operationType === 1) {
         codejQuery.push('$.ajax({');
         codejQuery.push('\ttype: "GET",');
-        codejQuery.push('\tcontentType: "application/json; charset=utf-8",');
-        codejQuery.push('\tdatatype: "json",');
         codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '",');
-        codejQuery.push('\tbeforeSend: function (req) {');
-
-        var requestHeadersJQuery = [];
-        requestHeaders.forEach(function (reqHeader) { requestHeadersJQuery.push('\t\t' + reqHeader); });
-        codejQuery.push(requestHeadersJQuery.join('\n'));
-
-        codejQuery.push('\t},');
         codejQuery.push('\tasync: ' + settings.async + ',');
+        codejQuery.push('\theaders: {');
+        jQueryHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
+        codejQuery.push('\t},');
         codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
         if (settings.dataverseReturnType !== null) {
             codejQuery.push('\t\tvar result = data;');
@@ -7526,10 +7823,9 @@ DRB.GenerateCode.DataverseExecute = function (requestType) {
         } else {
             codejQuery.push('\t\tconsole.log("Success");');
         }
-
         codejQuery.push('\t},');
         codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
-        codejQuery.push('\t\tconsole.log(xhr.responseText);'); // CHECK
+        codejQuery.push('\t\tconsole.log(xhr);');
         codejQuery.push('\t}');
         codejQuery.push('});');
     }
@@ -7545,8 +7841,7 @@ DRB.GenerateCode.DataverseExecute = function (requestType) {
 
         codeXMLHttpRequest.push('var req = new XMLHttpRequest();');
         codeXMLHttpRequest.push('req.open("POST", Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", ' + settings.async + ');');
-        codeXMLHttpRequest.push(requestHeaders.join('\n'));
-        codeXMLHttpRequest.push('req.setRequestHeader("Content-Type", "application/json; charset=utf-8");'); // POST request
+        codeXMLHttpRequest.push(xhrHeaders.join('\n'));
         codeXMLHttpRequest.push('req.onreadystatechange = function () {');
         codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
         codeXMLHttpRequest.push('\t\treq.onreadystatechange = null;');
@@ -7575,7 +7870,7 @@ DRB.GenerateCode.DataverseExecute = function (requestType) {
     if (operationType === 1) {
         codeXMLHttpRequest.push('var req = new XMLHttpRequest();');
         codeXMLHttpRequest.push('req.open("GET", Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", ' + settings.async + ');');
-        codeXMLHttpRequest.push(requestHeaders.join('\n'));
+        codeXMLHttpRequest.push(xhrHeaders.join('\n'));
         codeXMLHttpRequest.push('req.onreadystatechange = function () {');
         codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
         codeXMLHttpRequest.push('\t\treq.onreadystatechange = null;');
@@ -7598,7 +7893,84 @@ DRB.GenerateCode.DataverseExecute = function (requestType) {
     }
     // #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, null);
+    // #region Fetch API
+    codeFetchAPI = DRB.GenerateCode.GetFetchAPIWarnings(settings);
+    // Action, Custom Action, Custom API Action
+    if (operationType === 0) {
+        if (xhrAddedParameters === true) {
+            var codeParameters = DRB.GenerateCode.GetCodeParameters(settings);
+            codeParameters.forEach(function (line) { codeFetchAPI.push(line); });
+        }
+
+        codeFetchAPI.push('fetch(Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", {');
+        codeFetchAPI.push('\tmethod: "POST",');
+        codeFetchAPI.push('\theaders: {');
+        jQueryHeaders.forEach(function (reqHeader) { codeFetchAPI.push('\t\t' + reqHeader); });
+        codeFetchAPI.push('\t},');
+        codeFetchAPI.push('\tbody: JSON.stringify(parameters)');
+        codeFetchAPI.push('}).then(');
+        codeFetchAPI.push('\tfunction success(response) {');
+        if (settings.dataverseReturnType !== null) {
+            codeFetchAPI.push('\t\treturn response.json().then((json) => { if (response.ok) { return [response, json]; } else { throw json.error; } });');
+            codeFetchAPI.push('\t}');
+            codeFetchAPI.push(').then(function (responseObjects) {');
+            codeFetchAPI.push('\tvar response = responseObjects[0];');
+            codeFetchAPI.push('\tvar responseBody = responseObjects[1];');
+            codeFetchAPI.push('\tvar result = responseBody;');
+            codeFetchAPI.push('\tconsole.log(result);');
+            returnType.forEach(function (line) { codeFetchAPI.push('\t' + line); });
+            codeFetchAPI.push('}).catch(function (error) {');
+            codeFetchAPI.push('\tconsole.log(error.message);');
+            codeFetchAPI.push('});');
+        } else {
+            codeFetchAPI.push('\t\tif (response.ok) {');
+            codeFetchAPI.push('\t\t\tconsole.log("Success");');
+            codeFetchAPI.push('\t\t} else {');
+            codeFetchAPI.push('\t\t\treturn response.json().then((json) => { throw json.error; });');
+            codeFetchAPI.push('\t\t}');
+            codeFetchAPI.push('\t}');
+            codeFetchAPI.push(').catch(function (error) {');
+            codeFetchAPI.push('\tconsole.log(error.message);');
+            codeFetchAPI.push('});');
+        }
+    }
+
+    // Function, Custom API Function
+    if (operationType === 1) {
+        codeFetchAPI.push('fetch(Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", {');
+        codeFetchAPI.push('\tmethod: "GET",');
+        codeFetchAPI.push('\theaders: {');
+        jQueryHeaders.forEach(function (reqHeader) { codeFetchAPI.push('\t\t' + reqHeader); });
+        codeFetchAPI.push('\t}');
+        codeFetchAPI.push('}).then(');
+        codeFetchAPI.push('\tfunction success(response) {');
+        if (settings.dataverseReturnType !== null) {
+            codeFetchAPI.push('\t\treturn response.json().then((json) => { if (response.ok) { return [response, json]; } else { throw json.error; } });');
+            codeFetchAPI.push('\t}');
+            codeFetchAPI.push(').then(function (responseObjects) {');
+            codeFetchAPI.push('\tvar response = responseObjects[0];');
+            codeFetchAPI.push('\tvar responseBody = responseObjects[1];');
+            codeFetchAPI.push('\tvar result = responseBody;');
+            codeFetchAPI.push('\tconsole.log(result);');
+            returnType.forEach(function (line) { codeFetchAPI.push('\t' + line); });
+            codeFetchAPI.push('}).catch(function (error) {');
+            codeFetchAPI.push('\tconsole.log(error.message);');
+            codeFetchAPI.push('});');
+        } else {
+            codeFetchAPI.push('\t\tif (response.ok) {');
+            codeFetchAPI.push('\t\t\tconsole.log("Success");');
+            codeFetchAPI.push('\t\t} else {');
+            codeFetchAPI.push('\t\t\treturn response.json().then((json) => { throw json.error; });');
+            codeFetchAPI.push('\t\t}');
+            codeFetchAPI.push('\t}');
+            codeFetchAPI.push(').catch(function (error) {');
+            codeFetchAPI.push('\tconsole.log(error.message);');
+            codeFetchAPI.push('});');
+        }
+    }
+    // #endregion
+
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, null);
 }
 
 /**
@@ -7610,12 +7982,16 @@ DRB.GenerateCode.ExecuteWorkflow = function () {
     var codeXrmWebApi = [];
     var codejQuery = [];
     var codeXMLHttpRequest = [];
+    var codeFetchAPI = [];
 
     // #region XHR settings
     // Main Url
     var mainUrl = "/api/data/" + settings.version + "/workflows(" + settings.workflowId + ")/Microsoft.Dynamics.CRM.ExecuteWorkflow";
+
     // Request Headers
-    var requestHeaders = DRB.GenerateCode.GetRequestHeaders(settings);
+    var jQueryHeaders = DRB.GenerateCode.GetJQueryRequestHeaders(settings);
+    var xhrHeaders = DRB.GenerateCode.GetXHRRequestHeaders(settings);
+
     // Parameters
     var codeParameters = 'var parameters = { EntityId: "' + settings.primaryId + '" };';
     // #endregion
@@ -7655,20 +8031,18 @@ DRB.GenerateCode.ExecuteWorkflow = function () {
     codejQuery.push('');
     codejQuery.push('$.ajax({');
     codejQuery.push('\ttype: "POST",');
-    codejQuery.push('\tcontentType: "application/json; charset=utf-8",');
-    codejQuery.push('\tdatatype: "json",');
     codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '",');
-    codejQuery.push('\tdata: JSON.stringify(parameters),');
-    codejQuery.push('\tbeforeSend: function (req) {');
-    requestHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
-    codejQuery.push('\t},');
     codejQuery.push('\tasync: ' + settings.async + ',');
+    codejQuery.push('\theaders: {');
+    jQueryHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
+    codejQuery.push('\t},');
+    codejQuery.push('\tdata: JSON.stringify(parameters),');
     codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
     codejQuery.push('\t\tvar result = data;');
     codejQuery.push('\t\tconsole.log(result);');
     codejQuery.push('\t},');
     codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
-    codejQuery.push('\t\tconsole.log(xhr.responseText);'); // CHECK
+    codejQuery.push('\t\tconsole.log(xhr);');
     codejQuery.push('\t}');
     codejQuery.push('});');
     // #endregion
@@ -7678,8 +8052,7 @@ DRB.GenerateCode.ExecuteWorkflow = function () {
     codeXMLHttpRequest.push('');
     codeXMLHttpRequest.push('var req = new XMLHttpRequest();');
     codeXMLHttpRequest.push('req.open("POST", Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", ' + settings.async + ');');
-    codeXMLHttpRequest.push(requestHeaders.join('\n'));
-    codeXMLHttpRequest.push('req.setRequestHeader("Content-Type", "application/json; charset=utf-8");'); // POST request
+    codeXMLHttpRequest.push(xhrHeaders.join('\n'));
     codeXMLHttpRequest.push('req.onreadystatechange = function () {');
     codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
     codeXMLHttpRequest.push('\t\treq.onreadystatechange = null;');
@@ -7694,7 +8067,32 @@ DRB.GenerateCode.ExecuteWorkflow = function () {
     codeXMLHttpRequest.push('req.send(JSON.stringify(parameters));');
     // #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, null);
+    // #region Fetch API
+    codeFetchAPI = DRB.GenerateCode.GetFetchAPIWarnings(settings);
+    codeFetchAPI.push(codeParameters);
+    codeFetchAPI.push('');
+
+    codeFetchAPI.push('fetch(Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", {');
+    codeFetchAPI.push('\tmethod: "POST",');
+    codeFetchAPI.push('\theaders: {');
+    jQueryHeaders.forEach(function (reqHeader) { codeFetchAPI.push('\t\t' + reqHeader); });
+    codeFetchAPI.push('\t},');
+    codeFetchAPI.push('\tbody: JSON.stringify(parameters)');
+    codeFetchAPI.push('}).then(');
+    codeFetchAPI.push('\tfunction success(response) {');
+    codeFetchAPI.push('\t\treturn response.json().then((json) => { if (response.ok) { return [response, json]; } else { throw json.error; } });');
+    codeFetchAPI.push('\t}');
+    codeFetchAPI.push(').then(function (responseObjects) {');
+    codeFetchAPI.push('\tvar response = responseObjects[0];');
+    codeFetchAPI.push('\tvar responseBody = responseObjects[1];');
+    codeFetchAPI.push('\tvar result = responseBody;');
+    codeFetchAPI.push('\tconsole.log(result);');
+    codeFetchAPI.push('}).catch(function (error) {');
+    codeFetchAPI.push('\tconsole.log(error.message);');
+    codeFetchAPI.push('});');
+    // #endregion
+
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, null);
 }
 
 /**
@@ -7705,6 +8103,7 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
 
     var codejQuery = [];
     var codeXMLHttpRequest = [];
+    var codeFetchAPI = [];
     var codePortals = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity) || !DRB.Utilities.HasValue(settings.fileField) || !DRB.Utilities.HasValue(settings.fileOperation)) {
@@ -7715,6 +8114,7 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             errorMessage = "// Select a Table first";
             codejQuery.push(errorMessage);
             codeXMLHttpRequest.push(errorMessage);
+            codeFetchAPI.push(errorMessage);
             codePortals.push(errorMessage);
         }
 
@@ -7723,6 +8123,7 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             errorMessage = "// Select a Column first";
             codejQuery.push(errorMessage);
             codeXMLHttpRequest.push(errorMessage);
+            codeFetchAPI.push(errorMessage);
             codePortals.push(errorMessage);
         }
 
@@ -7731,10 +8132,11 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             errorMessage = "// Select an Operation first";
             codejQuery.push(errorMessage);
             codeXMLHttpRequest.push(errorMessage);
+            codeFetchAPI.push(errorMessage);
             codePortals.push(errorMessage);
         }
 
-        DRB.GenerateCode.SetCodeEditors(null, null, codejQuery, codeXMLHttpRequest, codePortals);
+        DRB.GenerateCode.SetCodeEditors(null, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
         return;
     }
 
@@ -7774,19 +8176,27 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
     }
 
     // Request Headers
-    var requestHeaders = DRB.GenerateCode.GetRequestHeaders(settings);
+    var jQueryHeaders = DRB.GenerateCode.GetJQueryRequestHeaders(settings);
+    var xhrHeaders = DRB.GenerateCode.GetXHRRequestHeaders(settings);
+    var jQueryHeadersBinary = DRB.GenerateCode.GetJQueryRequestHeaders(settings, true);
+    var xhrHeadersBinary = DRB.GenerateCode.GetXHRRequestHeaders(settings, true);
+
     switch (settings.fileOperation) {
         case "retrieve":
-
             var fullSizeCodejQuery = [];
             fullSizeCodejQuery.push('');
             fullSizeCodejQuery.push('// NOTE: the following code decodes the file name from the header');
-            fullSizeCodejQuery.push('var contentDisposition = xhr.getResponseHeader("content-disposition");');
+            fullSizeCodejQuery.push('var contentDisposition = xhr.getResponseHeader("Content-Disposition");');
 
             var fullSizeCodeXMLHttpRequest = [];
             fullSizeCodeXMLHttpRequest.push('');
             fullSizeCodeXMLHttpRequest.push('// NOTE: the following code decodes the file name from the header');
-            fullSizeCodeXMLHttpRequest.push('var contentDisposition = req.getResponseHeader("content-disposition");');
+            fullSizeCodeXMLHttpRequest.push('var contentDisposition = req.getResponseHeader("Content-Disposition");');
+
+            var fullSizeCodeFetchAPI = [];
+            fullSizeCodeFetchAPI.push('');
+            fullSizeCodeFetchAPI.push('// NOTE: the following code decodes the file name from the header');
+            fullSizeCodeFetchAPI.push('var contentDisposition = response.headers.get("Content-Disposition");');
 
             var fullSizeCode = [];
             fullSizeCode.push('try {');
@@ -7810,29 +8220,41 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             downloadFileCode.push('// customLink.download = fileName;');
             downloadFileCode.push('// customLink.click();');
 
+            var downloadFileCodeFetchAPI = [];
+            downloadFileCodeFetchAPI.push('// NOTE: Uncomment the following lines to download the file');
+            downloadFileCodeFetchAPI.push('// var saveFile = fileContent;');
+            downloadFileCodeFetchAPI.push('// var customLink = document.createElement("a");');
+            downloadFileCodeFetchAPI.push('// customLink.href = URL.createObjectURL(saveFile);');
+            downloadFileCodeFetchAPI.push('// customLink.download = fileName;');
+            downloadFileCodeFetchAPI.push('// customLink.click();');
+
+            // #region jQuery
             codejQuery.push('$.ajax({');
             codejQuery.push('\ttype: "GET",');
-            codejQuery.push('\tcontentType: "application/json; charset=utf-8",');
             codejQuery.push('\txhr: function() { var xhr = new XMLHttpRequest(); xhr.responseType = "blob"; return xhr; },');
             codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '",');
-            codejQuery.push('\tbeforeSend: function (req) {');
-            requestHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
-            codejQuery.push('\t},');
             codejQuery.push('\tasync: ' + settings.async + ',');
+            codejQuery.push('\theaders: {');
+            jQueryHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
+            codejQuery.push('\t},');
             codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
-            codejQuery.push('\t\tvar fileContent = data;');
-            codejQuery.push('\t\tvar fileName = "' + defaultFileName + '"; // default name');
+            codejQuery.push('\t\tif (xhr.status === 200) {');
+            codejQuery.push('\t\t\tvar fileContent = data;');
+            codejQuery.push('\t\t\tvar fileName = "' + defaultFileName + '"; // default name');
             if (fileFullSize === true) {
-                fullSizeCodejQuery.forEach(function (line) { codejQuery.push('\t\t' + line); });
-                fullSizeCode.forEach(function (line) { codejQuery.push('\t\t' + line); });
+                fullSizeCodejQuery.forEach(function (line) { codejQuery.push('\t\t\t' + line); });
+                fullSizeCode.forEach(function (line) { codejQuery.push('\t\t\t' + line); });
             }
             codejQuery.push('');
-            codejQuery.push('\t\tconsole.log("' + currentType + ' retrieved. Name: " + fileName);');
+            codejQuery.push('\t\t\tconsole.log("' + currentType + ' retrieved. Name: " + fileName);');
             codejQuery.push('');
-            downloadFileCode.forEach(function (line) { codejQuery.push('\t\t' + line); });
+            downloadFileCode.forEach(function (line) { codejQuery.push('\t\t\t' + line); });
+            codejQuery.push('\t\t} else {');
+            codejQuery.push('\t\t\tconsole.log("' + currentType + ' not found");');
+            codejQuery.push('\t\t}');
             codejQuery.push('\t},');
             codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
-            codejQuery.push('\t\tconsole.log("Error retrieving the ' + currentType + '");');
+            codejQuery.push('\t\tconsole.log(xhr);');
             codejQuery.push('\t}');
             codejQuery.push('});');
             // #endregion
@@ -7840,7 +8262,7 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             // #region XMLHttpRequest
             codeXMLHttpRequest.push('var req = new XMLHttpRequest();');
             codeXMLHttpRequest.push('req.open("GET", Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", ' + settings.async + ');');
-            codeXMLHttpRequest.push(requestHeaders.join('\n'));
+            codeXMLHttpRequest.push(xhrHeaders.join('\n'));
             codeXMLHttpRequest.push('req.responseType = "blob";');
             codeXMLHttpRequest.push('req.onreadystatechange = function () {');
             codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
@@ -7857,11 +8279,48 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             codeXMLHttpRequest.push('');
             downloadFileCode.forEach(function (line) { codeXMLHttpRequest.push('\t\t\t' + line); });
             codeXMLHttpRequest.push('\t\t} else {');
-            codeXMLHttpRequest.push('\t\t\tconsole.log("Error retrieving the ' + currentType + ');');
+            codeXMLHttpRequest.push('\t\t\tconsole.log("' + currentType + ' not found");');
             codeXMLHttpRequest.push('\t\t}');
             codeXMLHttpRequest.push('\t}');
             codeXMLHttpRequest.push('};');
             codeXMLHttpRequest.push('req.send();');
+            // #endregion
+
+            // #region Fetch API
+            codeFetchAPI = DRB.GenerateCode.GetFetchAPIWarnings(settings);
+            codeFetchAPI.push('fetch(Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", {');
+            codeFetchAPI.push('\tmethod: "GET",');
+            codeFetchAPI.push('\theaders: {');
+            jQueryHeaders.forEach(function (reqHeader) { codeFetchAPI.push('\t\t' + reqHeader); });
+            codeFetchAPI.push('\t}');
+            codeFetchAPI.push('}).then(');
+            codeFetchAPI.push('\tfunction success(response) {');
+            codeFetchAPI.push('\t\tif (response.ok) {');
+            codeFetchAPI.push('\t\t\treturn response.blob().then((blob) => { return [response, blob]; });');
+            codeFetchAPI.push('\t\t} else {');
+            codeFetchAPI.push('\t\t\treturn response.json().then((json) => { throw json.error; });');
+            codeFetchAPI.push('\t\t}');
+            codeFetchAPI.push('\t}');
+            codeFetchAPI.push(').then(function (responseObjects) {');
+            codeFetchAPI.push('\tvar response = responseObjects[0];');
+            codeFetchAPI.push('\tvar responseBlob = responseObjects[1];');
+            codeFetchAPI.push('\tif (response.status === 200) {');
+            codeFetchAPI.push('\t\tvar fileContent = responseBlob;');
+            codeFetchAPI.push('\t\tvar fileName = "' + defaultFileName + '"; // default name');
+            if (fileFullSize === true) {
+                fullSizeCodeFetchAPI.forEach(function (line) { codeFetchAPI.push('\t\t' + line); });
+                fullSizeCode.forEach(function (line) { codeFetchAPI.push('\t\t' + line); });
+            }
+            codeFetchAPI.push('');
+            codeFetchAPI.push('\t\tconsole.log("' + currentType + ' retrieved. Name: " + fileName);');
+            codeFetchAPI.push('');
+            downloadFileCodeFetchAPI.forEach(function (line) { codeFetchAPI.push('\t\t' + line); });
+            codeFetchAPI.push('\t} else {');
+            codeFetchAPI.push('\t\tconsole.log("' + currentType + ' not found");');
+            codeFetchAPI.push('\t}');
+            codeFetchAPI.push('}).catch(function (error) {');
+            codeFetchAPI.push('\tconsole.log(error.message);');
+            codeFetchAPI.push('});');
             // #endregion
 
             // #region Portals
@@ -7907,16 +8366,18 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             uploadCode.forEach(function (line) { codejQuery.push(line); });
             codejQuery.push('$.ajax({');
             codejQuery.push('\ttype: "PATCH",');
-            codejQuery.push('\tcontentType: "application/octet-stream",'); // Binary upload
             codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '" + fileName,');
+            codejQuery.push('\tasync: ' + settings.async + ',');
+            codejQuery.push('\theaders: {');
+            jQueryHeadersBinary.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
+            codejQuery.push('\t},');
             codejQuery.push('\tdata: fileContent,');
             codejQuery.push('\tprocessData: false,');
-            codejQuery.push('\tasync: ' + settings.async + ',');
             codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
             codejQuery.push('\t\tconsole.log("' + currentType + ' uploaded");');
             codejQuery.push('\t},');
             codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
-            codejQuery.push('\t\tconsole.log(xhr.responseText);');
+            codejQuery.push('\t\tconsole.log(xhr);');
             codejQuery.push('\t}');
             codejQuery.push('});');
             // #endregion
@@ -7925,7 +8386,7 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             uploadCode.forEach(function (line) { codeXMLHttpRequest.push(line); });
             codeXMLHttpRequest.push('var req = new XMLHttpRequest();');
             codeXMLHttpRequest.push('req.open("PATCH", Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '" + fileName, ' + settings.async + ');');
-            codeXMLHttpRequest.push('req.setRequestHeader("Content-Type", "application/octet-stream");'); // Binary upload
+            codeXMLHttpRequest.push(xhrHeadersBinary.join('\n'));
             codeXMLHttpRequest.push('req.onreadystatechange = function () {');
             codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
             codeXMLHttpRequest.push('\t\treq.onreadystatechange = null;');
@@ -7939,14 +8400,37 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             codeXMLHttpRequest.push('req.send(fileContent);');
             // #endregion
 
+            // #region Fetch API
+            codeFetchAPI = DRB.GenerateCode.GetFetchAPIWarnings(settings);
+            uploadCode.forEach(function (line) { codeFetchAPI.push(line); });
+            codeFetchAPI.push('fetch(Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '" + fileName, {');
+            codeFetchAPI.push('\tmethod: "PATCH",');
+            codeFetchAPI.push('\theaders: {');
+            jQueryHeadersBinary.forEach(function (reqHeader) { codeFetchAPI.push('\t\t' + reqHeader); });
+            codeFetchAPI.push('\t},');
+            codeFetchAPI.push('\tbody: fileContent');
+            codeFetchAPI.push('}).then(');
+            codeFetchAPI.push('\tfunction success(response) {');
+            codeFetchAPI.push('\t\tif (response.ok) {');
+            codeFetchAPI.push('\t\t\tconsole.log("' + currentType + ' uploaded");');
+            codeFetchAPI.push('\t\t} else {');
+            codeFetchAPI.push('\t\t\treturn response.json().then((json) => { throw json.error; });');
+            codeFetchAPI.push('\t\t}');
+            codeFetchAPI.push('\t}');
+            codeFetchAPI.push(').catch(function (error) {');
+            codeFetchAPI.push('\tconsole.log(error.message);');
+            codeFetchAPI.push('});');
+            // #endregion
+
             // #region Portals
             codePortals = DRB.GenerateCode.GetPortalsWarnings(settings);
             uploadCode.forEach(function (line) { codePortals.push(line); });
             codePortals.push('webapi.safeAjax({');
             codePortals.push('\ttype: "PATCH",');
             codePortals.push('\turl: "' + portalsUrl + '" + fileName,');
-            codePortals.push('\tdata: fileContent,');
             codePortals.push('\tcontentType: "application/octet-stream",'); // Binary upload
+            codePortals.push('\tdata: fileContent,');
+            codePortals.push('\tprocessData: false,');
             codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
             codePortals.push('\t\tconsole.log("' + currentType + ' uploaded");');
             codePortals.push('\t}');
@@ -7958,18 +8442,16 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             // #region jQuery
             codejQuery.push('$.ajax({');
             codejQuery.push('\ttype: "DELETE",');
-            codejQuery.push('\tcontentType: "application/json; charset=utf-8",');
-            codejQuery.push('\tdatatype: "json",');
             codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '",');
-            codejQuery.push('\tbeforeSend: function (req) {');
-            requestHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
-            codejQuery.push('\t},');
             codejQuery.push('\tasync: ' + settings.async + ',');
+            codejQuery.push('\theaders: {');
+            jQueryHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
+            codejQuery.push('\t},');
             codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
             codejQuery.push('\t\tconsole.log("' + currentType + ' deleted");');
             codejQuery.push('\t},');
             codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
-            codejQuery.push('\t\tconsole.log(xhr.responseText);');
+            codejQuery.push('\t\tconsole.log(xhr);');
             codejQuery.push('\t}');
             codejQuery.push('});');
             // #endregion
@@ -7977,7 +8459,7 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             // #region XMLHttpRequest
             codeXMLHttpRequest.push('var req = new XMLHttpRequest();');
             codeXMLHttpRequest.push('req.open("DELETE", Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", ' + settings.async + ');');
-            codeXMLHttpRequest.push(requestHeaders.join('\n'));
+            codeXMLHttpRequest.push(xhrHeaders.join('\n'));
             codeXMLHttpRequest.push('req.onreadystatechange = function () {');
             codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
             codeXMLHttpRequest.push('\t\treq.onreadystatechange = null;');
@@ -7989,6 +8471,26 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             codeXMLHttpRequest.push('\t}');
             codeXMLHttpRequest.push('};');
             codeXMLHttpRequest.push('req.send();');
+            // #endregion
+
+            // #region Fetch API
+            codeFetchAPI = DRB.GenerateCode.GetFetchAPIWarnings(settings);
+            codeFetchAPI.push('fetch(Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", {');
+            codeFetchAPI.push('\tmethod: "DELETE",');
+            codeFetchAPI.push('\theaders: {');
+            jQueryHeaders.forEach(function (reqHeader) { codeFetchAPI.push('\t\t' + reqHeader); });
+            codeFetchAPI.push('\t}');
+            codeFetchAPI.push('}).then(');
+            codeFetchAPI.push('\tfunction success(response) {');
+            codeFetchAPI.push('\t\tif (response.ok) {');
+            codeFetchAPI.push('\t\t\tconsole.log("' + currentType + ' deleted");');
+            codeFetchAPI.push('\t\t} else {');
+            codeFetchAPI.push('\t\t\treturn response.json().then((json) => { throw json.error; });');
+            codeFetchAPI.push('\t\t}');
+            codeFetchAPI.push('\t}');
+            codeFetchAPI.push(').catch(function (error) {');
+            codeFetchAPI.push('\tconsole.log(error.message);');
+            codeFetchAPI.push('});');
             // #endregion
 
             // #region Portals
@@ -8004,7 +8506,7 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             // #endregion
             break;
     }
-    DRB.GenerateCode.SetCodeEditors(null, null, codejQuery, codeXMLHttpRequest, codePortals);
+    DRB.GenerateCode.SetCodeEditors(null, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
 }
 
 /**
@@ -8153,7 +8655,7 @@ DRB.GeneratePostman.ReturnValues = function (settings, method, url, body, isBina
     var postmanUrl = { raw: "{{url}}" + url, host: ["{{url}}" + url] };
     var postmanBody = { mode: "raw", raw: body, options: { raw: { language: "json" } } };
     if (isBinary === true) { postmanBody = { mode: "file", file: { src: "" } }; }
-    var postmanHeader = DRB.GeneratePostman.GetRequestHeaders(settings, method, isBinary);
+    var postmanHeader = DRB.GeneratePostman.GetRequestHeaders(settings, isBinary);
     return { postmanMethod: method, postmanUrl: postmanUrl, postmanHeader: postmanHeader, postmanBody: postmanBody };
 }
 
@@ -8161,72 +8663,16 @@ DRB.GeneratePostman.ReturnValues = function (settings, method, url, body, isBina
  * Generate Postman - Get Request Headers
  * @param {any} settings Configuration
  */
-DRB.GeneratePostman.GetRequestHeaders = function (settings, method, isBinary) {
+DRB.GeneratePostman.GetRequestHeaders = function (settings, isBinary) {
     // Request Headers
     var headers = [];
-
-    headers.push({ key: "OData-MaxVersion", value: "4.0", type: "text" });
-    headers.push({ key: "OData-Version", value: "4.0", type: "text" });
-    headers.push({ key: "Accept", value: "application/json", type: "text" });
-
-    if (method === "POST" || method === "PATCH") {
-        if (isBinary === true) {
-            headers.push({ key: "Content-Type", value: "application/octet-stream", type: "text" });
-        } else {
-            headers.push({ key: "Content-Type", value: "application/json; charset=utf-8", type: "text" });
+    var headerValues = DRB.GenerateCode.GetRequestHeaderValues(settings, isBinary);
+    Object.keys(headerValues).forEach(function (headerKey) {
+        headers.push({ key: headerKey, value: headerValues[headerKey], type: "text" });
+        if (headerKey === "If-None-Match" && headerValues[headerKey] === "W/\\\"000000\\\"") {
+            headers[headers.length - 1] = { key: headerKey, value: 'W/"000000"', type: "text" };
         }
-    }
-
-    // Formatted Values and Return Record
-    if (settings.hasOwnProperty("formattedValues")) {
-        if (!settings.hasOwnProperty("returnRecord") && !settings.hasOwnProperty("topCount")) {
-            if (settings.formattedValues === true) { headers.push({ key: "Prefer", value: 'odata.include-annotations="*"', type: "text" }); }
-        }
-        else {
-            if (settings.hasOwnProperty("returnRecord")) {
-                if (settings.formattedValues === true && settings.returnRecord !== true) { headers.push({ key: "Prefer", value: 'odata.include-annotations="*"', type: "text" }); }
-                if (settings.formattedValues !== true && settings.returnRecord === true) { headers.push({ key: "Prefer", value: 'return=representation', type: "text" }); }
-                if (settings.formattedValues === true && settings.returnRecord === true) { headers.push({ key: "Prefer", value: 'odata.include-annotations="*",return=representation', type: "text" }); }
-            }
-            if (settings.hasOwnProperty("topCount")) {
-                var hasTopCount = DRB.Utilities.HasValue(settings.topCount);
-                if (settings.formattedValues === true && hasTopCount !== true) { headers.push({ key: "Prefer", value: 'odata.include-annotations="*"', type: "text" }); }
-                if (settings.formattedValues !== true && hasTopCount === true) { headers.push({ key: "Prefer", value: 'odata.maxpagesize=' + settings.topCount, type: "text" }); }
-                if (settings.formattedValues === true && hasTopCount === true) { headers.push({ key: "Prefer", value: 'odata.include-annotations="*",odata.maxpagesize=' + settings.topCount, type: "text" }); }
-            }
-        }
-    }
-
-    // Token Header
-    if (settings.hasOwnProperty("tokenHeader") && settings.tokenHeader === true) {
-        headers.push({ key: "Authorization", value: "Bearer ", type: "text" });
-    }
-
-    // Impersonate
-    if (settings.hasOwnProperty("impersonate") && settings.impersonate === true) {
-        var impersonateId = "";
-        var impersonateHeader = "MSCRMCallerID";
-        if (DRB.Utilities.HasValue(settings.impersonateType)) {
-            switch (settings.impersonateType) {
-                case "mscrmcallerid": impersonateHeader = "MSCRMCallerID"; break;
-                case "callerobjectid": impersonateHeader = "CallerObjectId"; break;
-            }
-        }
-        if (DRB.Utilities.HasValue(settings.impersonateId)) { impersonateId = settings.impersonateId; }
-        headers.push({ key: impersonateHeader, value: impersonateId, type: "text" });
-    }
-
-    // Detect Changes
-    if (settings.hasOwnProperty("detectChanges") && settings.detectChanges === true) { headers.push({ key: "If-None-Match", value: 'W/"000000', type: "text" }); }
-
-    // Detect Duplicates
-    if (settings.hasOwnProperty("detectDuplicates") && settings.detectDuplicates === true) { headers.push({ key: "MSCRM.SuppressDuplicateDetection", value: "false", type: "text" }); }
-
-    // Prevent
-    if (settings.hasOwnProperty("prevent")) {
-        if (settings.prevent === "create") { headers.push({ key: "If-Match", value: "*", type: "text" }); }
-        if (settings.prevent === "update") { headers.push({ key: "If-None-Match", value: "*", type: "text" }); }
-    }
+    });
     return headers;
 }
 
@@ -14660,8 +15106,9 @@ DRB.DefineOperations = function () {
     DRB.Settings.Tabs.push({ id: "configure", name: "Configure" });
     DRB.Settings.Tabs.push({ id: "code_xrmwebapi", name: "Xrm.WebApi" });
     DRB.Settings.Tabs.push({ id: "code_xrmwebapiexecute", name: "Xrm.WebApi execute" });
+    DRB.Settings.Tabs.push({ id: "code_fetchapi", name: "Fetch" });
     DRB.Settings.Tabs.push({ id: "code_jquery", name: "jQuery" });
-    DRB.Settings.Tabs.push({ id: "code_xmlhttprequest", name: "XMLHttpRequest" });
+    DRB.Settings.Tabs.push({ id: "code_xmlhttprequest", name: "XHR" });
     DRB.Settings.Tabs.push({ id: "code_portals", name: "Portals" });
     DRB.Settings.Tabs.push({ id: "code_editor", name: "Editor" });
     DRB.Settings.Tabs.push({ id: "code_results", name: "Results" });
@@ -14677,7 +15124,7 @@ DRB.DefineOperations = function () {
         var spacer = DRB.UI.CreateSpacer();
         $("#" + tab.id).append(spacer);
         if (tabIndex > 0) {
-            if (tabIndex < 6) {
+            if (tabIndex < 7) {
                 var btn_copyCode = DRB.UI.CreateButton("btn_" + tab.id + "_copy", "Copy Code", "btn-secondary", DRB.Logic.CopyCodeFromEditor, tab.id);
                 var btn_moveCode = DRB.UI.CreateButton("btn_" + tab.id + "_move", "Move Code to Editor", "btn-secondary", DRB.Logic.MoveCodeToMainEditor, tab.id);
 
@@ -14690,7 +15137,7 @@ DRB.DefineOperations = function () {
                         $("#" + tab.id).append(span_warning_xrmwebapi_xtb);
                     }
 
-                    if (tab.id === "code_jquery" || tab.id === "code_xmlhttprequest") {
+                    if (tab.id === "code_fetchapi" || tab.id === "code_jquery" || tab.id === "code_xmlhttprequest") {
                         var span_warning_jqueryxhr_xtb = DRB.UI.CreateSpan("span_warning_jqueryxhr_xtb", "NOTE: Inside DRB for XrmToolBox, Xrm.Utility.getGlobalContext().getClientUrl() is routed to the Instance URL");
                         $("#" + tab.id).append(span_warning_jqueryxhr_xtb);
                     }
@@ -14702,7 +15149,7 @@ DRB.DefineOperations = function () {
                         $("#" + tab.id).append(span_warning_xrmwebapi_jwt);
                     }
 
-                    if (tab.id === "code_jquery" || tab.id === "code_xmlhttprequest") {
+                    if (tab.id === "code_fetchapi" || tab.id === "code_jquery" || tab.id === "code_xmlhttprequest") {
                         var span_warning_jqueryxhr_jwt = DRB.UI.CreateSpan("span_warning_jqueryxhr_jwt", "NOTE: Inside DRB JWT Mode, Xrm.Utility.getGlobalContext().getClientUrl() is routed to the Instance URL");
                         $("#" + tab.id).append(span_warning_jqueryxhr_jwt);
                     }
@@ -14715,7 +15162,7 @@ DRB.DefineOperations = function () {
                 $("#" + tab.id).append(DRB.UI.CreateSpacer());
             }
 
-            if (tabIndex === 6) {
+            if (tabIndex === 7) {
                 var btn_copyCode = DRB.UI.CreateButton("btn_" + tab.id + "_copy", "Copy Code", "btn-secondary", DRB.Logic.CopyCodeFromEditor, tab.id);
                 var btn_executeCode = DRB.UI.CreateButton("btn_" + tab.id + "_execute", "Execute Code", "btn-danger", DRB.Logic.ExecuteCodeFromEditor);
                 var span_warning_editor = DRB.UI.CreateSpan("span_warning_editor", "NOTE: console.log messages will appear inside the Results tab");
@@ -14725,18 +15172,18 @@ DRB.DefineOperations = function () {
                 $("#" + tab.id).append(DRB.UI.CreateSpacer());
             }
 
-            if (tabIndex === 7) {
+            if (tabIndex === 8) {
                 var btn_copyResults = DRB.UI.CreateButton("btn_" + tab.id + "_copy", "Copy Results", "btn-secondary", DRB.Logic.CopyCodeFromEditor, tab.id);
                 var span_warning_result = DRB.UI.CreateSpan("span_warning_result", "NOTE: Due to asynchronous calls the output can appear later");
                 $("#" + tab.id).append(btn_copyResults);
                 $("#" + tab.id).append(span_warning_result);
                 $("#" + tab.id).append(DRB.UI.CreateSpacer());
             }
-            if (tabIndex < 8) {
+            if (tabIndex < 9) {
                 var divEditor = DRB.UI.CreateEmptyDiv(tab.id + "_editor", "code_editor");
                 $("#" + tab.id).append(divEditor);
             }
-            if (tabIndex === 8) {
+            if (tabIndex === 9) {
                 var divEditor = DRB.UI.CreateEmptyDiv(tab.id + "_editor");
                 $("#" + tab.id).append(divEditor);
             }
@@ -14767,6 +15214,11 @@ DRB.DefineOperations = function () {
     DRB.Settings.XMLHttpRequestEditor.session.setMode("ace/mode/javascript");
     DRB.Settings.XMLHttpRequestEditor.setShowPrintMargin(false);
     DRB.Settings.XMLHttpRequestEditor.setOptions({ readOnly: true });
+
+    DRB.Settings.FetchAPIEditor = ace.edit("code_fetchapi_editor", { useWorker: false });
+    DRB.Settings.FetchAPIEditor.session.setMode("ace/mode/javascript");
+    DRB.Settings.FetchAPIEditor.setShowPrintMargin(false);
+    DRB.Settings.FetchAPIEditor.setOptions({ readOnly: true });
 
     DRB.Settings.PortalsEditor = ace.edit("code_portals_editor", { useWorker: false });
     DRB.Settings.PortalsEditor.session.setMode("ace/mode/javascript");
@@ -14806,7 +15258,7 @@ DRB.ShowNotice = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.20";
+    var drbVersion = "1.0.0.21";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 
@@ -14884,6 +15336,7 @@ DRB.Initialize = async function () {
                 case "a_code_xrmwebapiexecute":
                 case "a_code_jquery":
                 case "a_code_xmlhttprequest":
+                case "a_code_fetchapi":
                 case "a_code_portals":
                 case "a_code_powerautomate": DRB.GenerateCode.Start(); break;
             }

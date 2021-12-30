@@ -162,5 +162,20 @@ DRB.Common.ParseJWT = function (token) {
     } catch (e) {
         return null;
     }
-};
+}
+
+/**
+ * Common - Refresh XTB Token
+ * @param {string} token Token
+ */
+DRB.Common.RefreshXTBToken = function (token) {
+    try {
+        if (!DRB.Xrm.IsXTBMode()) { console.log("This method id available only with XTB Mode"); return; }
+        if (!DRB.Utilities.HasValue(token)) { console.log("Received XTB token is not defined"); return; }
+        DRB.Settings.XTBToken = token;
+        console.log("Refreshed token from XTB");
+    } catch (e) {
+        console.log("Failed to refresh token from XTB");
+    }
+}
 // #endregion

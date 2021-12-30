@@ -359,8 +359,9 @@ DRB.DefineOperations = function () {
     DRB.Settings.Tabs.push({ id: "configure", name: "Configure" });
     DRB.Settings.Tabs.push({ id: "code_xrmwebapi", name: "Xrm.WebApi" });
     DRB.Settings.Tabs.push({ id: "code_xrmwebapiexecute", name: "Xrm.WebApi execute" });
+    DRB.Settings.Tabs.push({ id: "code_fetchapi", name: "Fetch" });
     DRB.Settings.Tabs.push({ id: "code_jquery", name: "jQuery" });
-    DRB.Settings.Tabs.push({ id: "code_xmlhttprequest", name: "XMLHttpRequest" });
+    DRB.Settings.Tabs.push({ id: "code_xmlhttprequest", name: "XHR" });
     DRB.Settings.Tabs.push({ id: "code_portals", name: "Portals" });
     DRB.Settings.Tabs.push({ id: "code_editor", name: "Editor" });
     DRB.Settings.Tabs.push({ id: "code_results", name: "Results" });
@@ -376,7 +377,7 @@ DRB.DefineOperations = function () {
         var spacer = DRB.UI.CreateSpacer();
         $("#" + tab.id).append(spacer);
         if (tabIndex > 0) {
-            if (tabIndex < 6) {
+            if (tabIndex < 7) {
                 var btn_copyCode = DRB.UI.CreateButton("btn_" + tab.id + "_copy", "Copy Code", "btn-secondary", DRB.Logic.CopyCodeFromEditor, tab.id);
                 var btn_moveCode = DRB.UI.CreateButton("btn_" + tab.id + "_move", "Move Code to Editor", "btn-secondary", DRB.Logic.MoveCodeToMainEditor, tab.id);
 
@@ -389,7 +390,7 @@ DRB.DefineOperations = function () {
                         $("#" + tab.id).append(span_warning_xrmwebapi_xtb);
                     }
 
-                    if (tab.id === "code_jquery" || tab.id === "code_xmlhttprequest") {
+                    if (tab.id === "code_fetchapi" || tab.id === "code_jquery" || tab.id === "code_xmlhttprequest") {
                         var span_warning_jqueryxhr_xtb = DRB.UI.CreateSpan("span_warning_jqueryxhr_xtb", "NOTE: Inside DRB for XrmToolBox, Xrm.Utility.getGlobalContext().getClientUrl() is routed to the Instance URL");
                         $("#" + tab.id).append(span_warning_jqueryxhr_xtb);
                     }
@@ -401,7 +402,7 @@ DRB.DefineOperations = function () {
                         $("#" + tab.id).append(span_warning_xrmwebapi_jwt);
                     }
 
-                    if (tab.id === "code_jquery" || tab.id === "code_xmlhttprequest") {
+                    if (tab.id === "code_fetchapi" || tab.id === "code_jquery" || tab.id === "code_xmlhttprequest") {
                         var span_warning_jqueryxhr_jwt = DRB.UI.CreateSpan("span_warning_jqueryxhr_jwt", "NOTE: Inside DRB JWT Mode, Xrm.Utility.getGlobalContext().getClientUrl() is routed to the Instance URL");
                         $("#" + tab.id).append(span_warning_jqueryxhr_jwt);
                     }
@@ -414,7 +415,7 @@ DRB.DefineOperations = function () {
                 $("#" + tab.id).append(DRB.UI.CreateSpacer());
             }
 
-            if (tabIndex === 6) {
+            if (tabIndex === 7) {
                 var btn_copyCode = DRB.UI.CreateButton("btn_" + tab.id + "_copy", "Copy Code", "btn-secondary", DRB.Logic.CopyCodeFromEditor, tab.id);
                 var btn_executeCode = DRB.UI.CreateButton("btn_" + tab.id + "_execute", "Execute Code", "btn-danger", DRB.Logic.ExecuteCodeFromEditor);
                 var span_warning_editor = DRB.UI.CreateSpan("span_warning_editor", "NOTE: console.log messages will appear inside the Results tab");
@@ -424,18 +425,18 @@ DRB.DefineOperations = function () {
                 $("#" + tab.id).append(DRB.UI.CreateSpacer());
             }
 
-            if (tabIndex === 7) {
+            if (tabIndex === 8) {
                 var btn_copyResults = DRB.UI.CreateButton("btn_" + tab.id + "_copy", "Copy Results", "btn-secondary", DRB.Logic.CopyCodeFromEditor, tab.id);
                 var span_warning_result = DRB.UI.CreateSpan("span_warning_result", "NOTE: Due to asynchronous calls the output can appear later");
                 $("#" + tab.id).append(btn_copyResults);
                 $("#" + tab.id).append(span_warning_result);
                 $("#" + tab.id).append(DRB.UI.CreateSpacer());
             }
-            if (tabIndex < 8) {
+            if (tabIndex < 9) {
                 var divEditor = DRB.UI.CreateEmptyDiv(tab.id + "_editor", "code_editor");
                 $("#" + tab.id).append(divEditor);
             }
-            if (tabIndex === 8) {
+            if (tabIndex === 9) {
                 var divEditor = DRB.UI.CreateEmptyDiv(tab.id + "_editor");
                 $("#" + tab.id).append(divEditor);
             }
@@ -466,6 +467,11 @@ DRB.DefineOperations = function () {
     DRB.Settings.XMLHttpRequestEditor.session.setMode("ace/mode/javascript");
     DRB.Settings.XMLHttpRequestEditor.setShowPrintMargin(false);
     DRB.Settings.XMLHttpRequestEditor.setOptions({ readOnly: true });
+
+    DRB.Settings.FetchAPIEditor = ace.edit("code_fetchapi_editor", { useWorker: false });
+    DRB.Settings.FetchAPIEditor.session.setMode("ace/mode/javascript");
+    DRB.Settings.FetchAPIEditor.setShowPrintMargin(false);
+    DRB.Settings.FetchAPIEditor.setOptions({ readOnly: true });
 
     DRB.Settings.PortalsEditor = ace.edit("code_portals_editor", { useWorker: false });
     DRB.Settings.PortalsEditor.session.setMode("ace/mode/javascript");
@@ -505,7 +511,7 @@ DRB.ShowNotice = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.20";
+    var drbVersion = "1.0.0.21";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 
@@ -583,6 +589,7 @@ DRB.Initialize = async function () {
                 case "a_code_xrmwebapiexecute":
                 case "a_code_jquery":
                 case "a_code_xmlhttprequest":
+                case "a_code_fetchapi":
                 case "a_code_portals":
                 case "a_code_powerautomate": DRB.GenerateCode.Start(); break;
             }

@@ -9,7 +9,7 @@ DRB.GeneratePostman.ReturnValues = function (settings, method, url, body, isBina
     var postmanUrl = { raw: "{{url}}" + url, host: ["{{url}}" + url] };
     var postmanBody = { mode: "raw", raw: body, options: { raw: { language: "json" } } };
     if (isBinary === true) { postmanBody = { mode: "file", file: { src: "" } }; }
-    var postmanHeader = DRB.GeneratePostman.GetRequestHeaders(settings, method, isBinary);
+    var postmanHeader = DRB.GeneratePostman.GetRequestHeaders(settings, isBinary);
     return { postmanMethod: method, postmanUrl: postmanUrl, postmanHeader: postmanHeader, postmanBody: postmanBody };
 }
 
@@ -17,72 +17,16 @@ DRB.GeneratePostman.ReturnValues = function (settings, method, url, body, isBina
  * Generate Postman - Get Request Headers
  * @param {any} settings Configuration
  */
-DRB.GeneratePostman.GetRequestHeaders = function (settings, method, isBinary) {
+DRB.GeneratePostman.GetRequestHeaders = function (settings, isBinary) {
     // Request Headers
     var headers = [];
-
-    headers.push({ key: "OData-MaxVersion", value: "4.0", type: "text" });
-    headers.push({ key: "OData-Version", value: "4.0", type: "text" });
-    headers.push({ key: "Accept", value: "application/json", type: "text" });
-
-    if (method === "POST" || method === "PATCH") {
-        if (isBinary === true) {
-            headers.push({ key: "Content-Type", value: "application/octet-stream", type: "text" });
-        } else {
-            headers.push({ key: "Content-Type", value: "application/json; charset=utf-8", type: "text" });
+    var headerValues = DRB.GenerateCode.GetRequestHeaderValues(settings, isBinary);
+    Object.keys(headerValues).forEach(function (headerKey) {
+        headers.push({ key: headerKey, value: headerValues[headerKey], type: "text" });
+        if (headerKey === "If-None-Match" && headerValues[headerKey] === "W/\\\"000000\\\"") {
+            headers[headers.length - 1] = { key: headerKey, value: 'W/"000000"', type: "text" };
         }
-    }
-
-    // Formatted Values and Return Record
-    if (settings.hasOwnProperty("formattedValues")) {
-        if (!settings.hasOwnProperty("returnRecord") && !settings.hasOwnProperty("topCount")) {
-            if (settings.formattedValues === true) { headers.push({ key: "Prefer", value: 'odata.include-annotations="*"', type: "text" }); }
-        }
-        else {
-            if (settings.hasOwnProperty("returnRecord")) {
-                if (settings.formattedValues === true && settings.returnRecord !== true) { headers.push({ key: "Prefer", value: 'odata.include-annotations="*"', type: "text" }); }
-                if (settings.formattedValues !== true && settings.returnRecord === true) { headers.push({ key: "Prefer", value: 'return=representation', type: "text" }); }
-                if (settings.formattedValues === true && settings.returnRecord === true) { headers.push({ key: "Prefer", value: 'odata.include-annotations="*",return=representation', type: "text" }); }
-            }
-            if (settings.hasOwnProperty("topCount")) {
-                var hasTopCount = DRB.Utilities.HasValue(settings.topCount);
-                if (settings.formattedValues === true && hasTopCount !== true) { headers.push({ key: "Prefer", value: 'odata.include-annotations="*"', type: "text" }); }
-                if (settings.formattedValues !== true && hasTopCount === true) { headers.push({ key: "Prefer", value: 'odata.maxpagesize=' + settings.topCount, type: "text" }); }
-                if (settings.formattedValues === true && hasTopCount === true) { headers.push({ key: "Prefer", value: 'odata.include-annotations="*",odata.maxpagesize=' + settings.topCount, type: "text" }); }
-            }
-        }
-    }
-
-    // Token Header
-    if (settings.hasOwnProperty("tokenHeader") && settings.tokenHeader === true) {
-        headers.push({ key: "Authorization", value: "Bearer ", type: "text" });
-    }
-
-    // Impersonate
-    if (settings.hasOwnProperty("impersonate") && settings.impersonate === true) {
-        var impersonateId = "";
-        var impersonateHeader = "MSCRMCallerID";
-        if (DRB.Utilities.HasValue(settings.impersonateType)) {
-            switch (settings.impersonateType) {
-                case "mscrmcallerid": impersonateHeader = "MSCRMCallerID"; break;
-                case "callerobjectid": impersonateHeader = "CallerObjectId"; break;
-            }
-        }
-        if (DRB.Utilities.HasValue(settings.impersonateId)) { impersonateId = settings.impersonateId; }
-        headers.push({ key: impersonateHeader, value: impersonateId, type: "text" });
-    }
-
-    // Detect Changes
-    if (settings.hasOwnProperty("detectChanges") && settings.detectChanges === true) { headers.push({ key: "If-None-Match", value: 'W/"000000', type: "text" }); }
-
-    // Detect Duplicates
-    if (settings.hasOwnProperty("detectDuplicates") && settings.detectDuplicates === true) { headers.push({ key: "MSCRM.SuppressDuplicateDetection", value: "false", type: "text" }); }
-
-    // Prevent
-    if (settings.hasOwnProperty("prevent")) {
-        if (settings.prevent === "create") { headers.push({ key: "If-Match", value: "*", type: "text" }); }
-        if (settings.prevent === "update") { headers.push({ key: "If-None-Match", value: "*", type: "text" }); }
-    }
+    });
     return headers;
 }
 
