@@ -319,12 +319,15 @@ DRB.Models.Table = function (logicalName, name, schemaName, entitySetName, prima
     this.ManyToOneRelationships = [];
     this.ManyToManyRelationships = [];
     this.AlternateKeys = [];
+
+    this.SystemViews = [];
     this.PersonalViews = [];
     this.HasHierarchy = false;
 
     this.ColumnsLoaded = false;
     this.RelationshipsLoaded = false;
     this.AlternateKeysLoaded = false;
+    this.SystemViewsLoaded = false;
     this.PersonalViewsLoaded = false;
 
     this.ToDropdownOption = function () { return new DRB.Models.DropdownOption(this.Id, this.Name, this.LogicalName); }
@@ -340,6 +343,24 @@ DRB.Models.User = function (id, name, aadObjectId) {
     this.Id = id;
     this.Name = name;
     this.AADObjectId = aadObjectId;
+}
+
+/**
+ * Models - System View
+ * @param {string} id Id
+ * @param {string} name Name
+ * @param {string} tableLogicalName Table Logical Name
+ * @param {bool} isDefault Is Default
+ * @param {string} layoutXml Layout XML
+ */
+DRB.Models.SystemView = function (id, name, tableLogicalName, isDefault, layoutXml) {
+    this.Id = id;
+    this.Name = name;
+    this.TableLogicalName = tableLogicalName;
+    this.IsDefault = isDefault;
+    this.LayoutXml = layoutXml;
+
+    this.ToDropdownOption = function () { return new DRB.Models.DropdownOption(this.Id, this.Name, this.TableLogicalName); }
 }
 
 /**

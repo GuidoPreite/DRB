@@ -164,12 +164,6 @@ DRB.SetDefaultSettings = function () {
     // #endregion
 
     DRB.Settings.TimeoutDelay = 500; // used in the setTimout calls
-
-    // Default Metadata
-    DRB.Metadata.CurrentNode = null; // set CurrentNode as null
-    DRB.Metadata.DataverseCustomAPIsLoaded = false; // set DataverseCustomAPILoaded as false
-    DRB.Metadata.DataverseCustomActionsLoaded = false; // set DataverseCustomActionLoaded as false
-    DRB.Metadata.DataverseMetadataLoaded = false; // set DataverseMetadataLoaded as false
 }
 
 /**
@@ -356,137 +350,84 @@ DRB.DefineOperations = function () {
 
     // #region Tabs
     DRB.Settings.Tabs = [];
-    DRB.Settings.Tabs.push({ id: "configure", name: "Configure" });
-    DRB.Settings.Tabs.push({ id: "code_xrmwebapi", name: "Xrm.WebApi" });
-    DRB.Settings.Tabs.push({ id: "code_xrmwebapiexecute", name: "Xrm.WebApi execute" });
-    DRB.Settings.Tabs.push({ id: "code_fetchapi", name: "Fetch" });
-    DRB.Settings.Tabs.push({ id: "code_jquery", name: "jQuery" });
-    DRB.Settings.Tabs.push({ id: "code_xmlhttprequest", name: "XHR" });
-    DRB.Settings.Tabs.push({ id: "code_portals", name: "Portals" });
-    DRB.Settings.Tabs.push({ id: "code_editor", name: "Editor" });
-    DRB.Settings.Tabs.push({ id: "code_results", name: "Results" });
-    DRB.Settings.Tabs.push({ id: "code_powerautomate", name: "Power Automate" });
+    DRB.Settings.Tabs.push({ Id: "configure", Name: "Configure", ConfigureContent: true });
+    DRB.Settings.Tabs.push({ Id: "code_xrmwebapi", Name: "Xrm.WebApi", GenerateCode: true, ShowEditor: true, EditorMode: "javascript", CopyCode: true, MoveToEditor: true, ShowWarning: true, WarningXrmWebApi: true, DisabledRequests: ["managefiledata", "manageimagedata"] });
+    DRB.Settings.Tabs.push({ Id: "code_xrmwebapiexecute", Name: "Xrm.WebApi execute", GenerateCode: true, ShowEditor: true, EditorMode: "javascript", CopyCode: true, MoveToEditor: true, ShowWarning: true, WarningXrmWebApi: true, EnabledRequests: ["retrievesingle", "create", "update", "delete"] });
+    DRB.Settings.Tabs.push({ Id: "code_fetchapi", Name: "Fetch", GenerateCode: true, ShowEditor: true, EditorMode: "javascript", CopyCode: true, MoveToEditor: true, ShowWarning: true, WarningClientUrl: true });
+    DRB.Settings.Tabs.push({ Id: "code_jquery", Name: "jQuery", GenerateCode: true, ShowEditor: true, EditorMode: "javascript", CopyCode: true, MoveToEditor: true, ShowWarning: true, WarningClientUrl: true });
+    DRB.Settings.Tabs.push({ Id: "code_xmlhttprequest", Name: "XHR", ShowEditor: true, EditorMode: "javascript", GenerateCode: true, CopyCode: true, MoveToEditor: true, ShowWarning: true, WarningClientUrl: true });
+    DRB.Settings.Tabs.push({ Id: "code_portals", Name: "Portals", GenerateCode: true, ShowEditor: true, EditorMode: "javascript", CopyCode: true, MoveToEditor: true, ShowWarning: true, WarningPortals: true, EnabledRequests: ["retrievesingle", "retrievemultiple", "create", "update", "delete", "associate", "disassociate"] });
+    DRB.Settings.Tabs.push({ Id: "code_editor", Name: "Editor", ShowEditor: true, EditorMode: "javascript", CopyCode: true, Execute: true, ShowWarning: true, WarningEditor: true });
+    DRB.Settings.Tabs.push({ Id: "code_results", Name: "Results", ShowEditor: true, EditorMode: "json", CopyCode: true, Results: true, ShowWarning: true, WarningResults: true });
+    // DRB.Settings.Tabs.push({ Id: "code_typescript", Name: "TypeScript", GenerateCode: true, ShowEditor: true, EditorMode: "typescript", CopyCode: true, ShowWarning: true, WarningClientUrl: true });
+    DRB.Settings.Tabs.push({ Id: "code_powerautomate", Name: "Power Automate", GenerateCode: true, EmptyDiv: true, EnabledRequests: ["retrievesingle", "retrievemultiple"] });
 
     var tabs_Request = DRB.UI.CreateTabs(DRB.DOM.TabsRequest.Id, DRB.Settings.Tabs);
-    var tabs_Content = DRB.UI.CreateTabContents(DRB.DOM.TabsContent.Id, DRB.Settings.Tabs, "code_editor");
+    var tabs_Content = DRB.UI.CreateTabContents(DRB.DOM.TabsContent.Id, DRB.Settings.Tabs);
 
     $("#" + DRB.DOM.MainContent.Id).append(tabs_Request);
     $("#" + DRB.DOM.MainContent.Id).append(tabs_Content);
 
-    DRB.Settings.Tabs.forEach(function (tab, tabIndex) {
-        var spacer = DRB.UI.CreateSpacer();
-        $("#" + tab.id).append(spacer);
-        if (tabIndex > 0) {
-            if (tabIndex < 7) {
-                var btn_copyCode = DRB.UI.CreateButton("btn_" + tab.id + "_copy", "Copy Code", "btn-secondary", DRB.Logic.CopyCodeFromEditor, tab.id);
-                var btn_moveCode = DRB.UI.CreateButton("btn_" + tab.id + "_move", "Move Code to Editor", "btn-secondary", DRB.Logic.MoveCodeToMainEditor, tab.id);
+    DRB.Settings.Tabs.forEach(function (tab) {
+        $("#" + tab.Id).append(DRB.UI.CreateSpacer());
 
-                $("#" + tab.id).append(btn_copyCode);
-                $("#" + tab.id).append(btn_moveCode);
+        if (DRB.Utilities.HasValue(tab.ConfigureContent) && tab.ConfigureContent === true) {
+            $("#" + tab.Id).append(DRB.UI.CreateEmptyDiv(DRB.DOM.ConfigureContent.Id));
+        }
 
-                if (DRB.Xrm.IsXTBMode()) {
-                    if (tab.id === "code_xrmwebapi" || tab.id === "code_xrmwebapiexecute") {
-                        var span_warning_xrmwebapi_xtb = DRB.UI.CreateSpan("span_warning_xrmwebapi_xtb", "NOTE: Xrm.WebApi is not available when DRB is executed inside XrmToolBox");
-                        $("#" + tab.id).append(span_warning_xrmwebapi_xtb);
-                    }
-
-                    if (tab.id === "code_fetchapi" || tab.id === "code_jquery" || tab.id === "code_xmlhttprequest") {
-                        var span_warning_jqueryxhr_xtb = DRB.UI.CreateSpan("span_warning_jqueryxhr_xtb", "NOTE: Inside DRB for XrmToolBox, Xrm.Utility.getGlobalContext().getClientUrl() is routed to the Instance URL");
-                        $("#" + tab.id).append(span_warning_jqueryxhr_xtb);
-                    }
-                }
-
-                if (DRB.Xrm.IsJWTMode()) {
-                    if (tab.id === "code_xrmwebapi" || tab.id === "code_xrmwebapiexecute") {
-                        var span_warning_xrmwebapi_jwt = DRB.UI.CreateSpan("span_warning_xrmwebapi_jwt", "NOTE: Xrm.WebApi is not available when DRB is in JWT Mode");
-                        $("#" + tab.id).append(span_warning_xrmwebapi_jwt);
-                    }
-
-                    if (tab.id === "code_fetchapi" || tab.id === "code_jquery" || tab.id === "code_xmlhttprequest") {
-                        var span_warning_jqueryxhr_jwt = DRB.UI.CreateSpan("span_warning_jqueryxhr_jwt", "NOTE: Inside DRB JWT Mode, Xrm.Utility.getGlobalContext().getClientUrl() is routed to the Instance URL");
-                        $("#" + tab.id).append(span_warning_jqueryxhr_jwt);
-                    }
-                }
-
-                if (tab.id === "code_portals") {
-                    var span_warning_portals = DRB.UI.CreateSpan("span_warning_portals", "NOTE: Inside DRB, Portals endpoint (<i>/_api/</i>) is routed to the default Web API endpoint");
-                    $("#" + tab.id).append(span_warning_portals);
-                }
-                $("#" + tab.id).append(DRB.UI.CreateSpacer());
+        if (DRB.Utilities.HasValue(tab.CopyCode) && tab.CopyCode === true) {
+            if (DRB.Utilities.HasValue(tab.Results) && tab.Results === true) {
+                var btn_copyResults = DRB.UI.CreateButton("btn_" + tab.Id + "_copy", "Copy Results", "btn-secondary", DRB.Logic.CopyCodeFromEditor, tab.Id);
+                $("#" + tab.Id).append(btn_copyResults);
+            } else {
+                var btn_copyCode = DRB.UI.CreateButton("btn_" + tab.Id + "_copy", "Copy Code", "btn-secondary", DRB.Logic.CopyCodeFromEditor, tab.Id);
+                $("#" + tab.Id).append(btn_copyCode);
             }
+        }
 
-            if (tabIndex === 7) {
-                var btn_copyCode = DRB.UI.CreateButton("btn_" + tab.id + "_copy", "Copy Code", "btn-secondary", DRB.Logic.CopyCodeFromEditor, tab.id);
-                var btn_executeCode = DRB.UI.CreateButton("btn_" + tab.id + "_execute", "Execute Code", "btn-danger", DRB.Logic.ExecuteCodeFromEditor);
-                var span_warning_editor = DRB.UI.CreateSpan("span_warning_editor", "NOTE: console.log messages will appear inside the Results tab");
-                $("#" + tab.id).append(btn_copyCode);
-                $("#" + tab.id).append(btn_executeCode);
-                $("#" + tab.id).append(span_warning_editor);
-                $("#" + tab.id).append(DRB.UI.CreateSpacer());
-            }
+        if (DRB.Utilities.HasValue(tab.MoveToEditor) && tab.MoveToEditor === true) {
+            var btn_moveCode = DRB.UI.CreateButton("btn_" + tab.Id + "_move", "Move Code to Editor", "btn-secondary", DRB.Logic.MoveCodeToMainEditor, tab.Id);
+            $("#" + tab.Id).append(btn_moveCode);
+        }
 
-            if (tabIndex === 8) {
-                var btn_copyResults = DRB.UI.CreateButton("btn_" + tab.id + "_copy", "Copy Results", "btn-secondary", DRB.Logic.CopyCodeFromEditor, tab.id);
-                var span_warning_result = DRB.UI.CreateSpan("span_warning_result", "NOTE: Due to asynchronous calls the output can appear later");
-                $("#" + tab.id).append(btn_copyResults);
-                $("#" + tab.id).append(span_warning_result);
-                $("#" + tab.id).append(DRB.UI.CreateSpacer());
-            }
-            if (tabIndex < 9) {
-                var divEditor = DRB.UI.CreateEmptyDiv(tab.id + "_editor", "code_editor");
-                $("#" + tab.id).append(divEditor);
-            }
-            if (tabIndex === 9) {
-                var divEditor = DRB.UI.CreateEmptyDiv(tab.id + "_editor");
-                $("#" + tab.id).append(divEditor);
-            }
-        } else {
-            var divEditor = DRB.UI.CreateEmptyDiv(tab.id + "_settings");
-            $("#" + tab.id).append(divEditor);
+        if (DRB.Utilities.HasValue(tab.Execute) && tab.Execute === true) {
+            var btn_executeCode = DRB.UI.CreateButton("btn_" + tab.Id + "_execute", "Execute Code", "btn-danger", DRB.Logic.ExecuteCodeFromEditor);
+            $("#" + tab.Id).append(btn_executeCode);
+        }
+
+        if (DRB.Utilities.HasValue(tab.ShowWarning) && tab.ShowWarning === true) {
+            $("#" + tab.Id).append(DRB.UI.CreateSpan(DRB.DOM.TabsWarning.Id + tab.Id, ""));
+        }
+
+        if (DRB.Utilities.HasValue(tab.ShowEditor) && tab.ShowEditor === true) {
+            $("#" + tab.Id).append(DRB.UI.CreateSpacer());
+            $("#" + tab.Id).append(DRB.UI.CreateEmptyDiv(tab.Id + "_editor", "code_editor"));
+        }
+
+        if (DRB.Utilities.HasValue(tab.EmptyDiv) && tab.EmptyDiv === true) {
+            $("#" + tab.Id).append(DRB.UI.CreateEmptyDiv(tab.Id + "_div"));
         }
     });
     // #endregion
 
     // #region Editors
-    DRB.Settings.XrmWebApiEditor = ace.edit("code_xrmwebapi_editor", { useWorker: false });
-    DRB.Settings.XrmWebApiEditor.session.setMode("ace/mode/javascript");
-    DRB.Settings.XrmWebApiEditor.setShowPrintMargin(false);
-    DRB.Settings.XrmWebApiEditor.setOptions({ readOnly: true });
+    DRB.Settings.Editors = [];
+    DRB.Settings.TabExecute = "";
+    DRB.Settings.TabResults = "";
 
-    DRB.Settings.XrmWebApiExecuteEditor = ace.edit("code_xrmwebapiexecute_editor", { useWorker: false });
-    DRB.Settings.XrmWebApiExecuteEditor.session.setMode("ace/mode/javascript");
-    DRB.Settings.XrmWebApiExecuteEditor.setShowPrintMargin(false);
-    DRB.Settings.XrmWebApiExecuteEditor.setOptions({ readOnly: true });
+    DRB.Settings.Tabs.forEach(function (tab) {
+        if (DRB.Utilities.HasValue(tab.Execute) && tab.Execute === true) { DRB.Settings.TabExecute = tab.Id; }
+        if (DRB.Utilities.HasValue(tab.Results) && tab.Results === true) { DRB.Settings.TabResults = tab.Id; }
 
-    DRB.Settings.jQueryEditor = ace.edit("code_jquery_editor", { useWorker: false });
-    DRB.Settings.jQueryEditor.session.setMode("ace/mode/javascript");
-    DRB.Settings.jQueryEditor.setShowPrintMargin(false);
-    DRB.Settings.jQueryEditor.setOptions({ readOnly: true });
-
-    DRB.Settings.XMLHttpRequestEditor = ace.edit("code_xmlhttprequest_editor", { useWorker: false });
-    DRB.Settings.XMLHttpRequestEditor.session.setMode("ace/mode/javascript");
-    DRB.Settings.XMLHttpRequestEditor.setShowPrintMargin(false);
-    DRB.Settings.XMLHttpRequestEditor.setOptions({ readOnly: true });
-
-    DRB.Settings.FetchAPIEditor = ace.edit("code_fetchapi_editor", { useWorker: false });
-    DRB.Settings.FetchAPIEditor.session.setMode("ace/mode/javascript");
-    DRB.Settings.FetchAPIEditor.setShowPrintMargin(false);
-    DRB.Settings.FetchAPIEditor.setOptions({ readOnly: true });
-
-    DRB.Settings.PortalsEditor = ace.edit("code_portals_editor", { useWorker: false });
-    DRB.Settings.PortalsEditor.session.setMode("ace/mode/javascript");
-    DRB.Settings.PortalsEditor.setShowPrintMargin(false);
-    DRB.Settings.PortalsEditor.setOptions({ readOnly: true });
-
-    DRB.Settings.MainEditor = ace.edit("code_editor_editor", { useWorker: false });
-    DRB.Settings.MainEditor.session.setMode("ace/mode/javascript");
-    DRB.Settings.MainEditor.setShowPrintMargin(false);
-    //DRB.Settings.MainEditor.setOptions({ maxLines: Infinity });
-
-    DRB.Settings.ResultsEditor = ace.edit("code_results_editor", { useWorker: false });
-    DRB.Settings.ResultsEditor.session.setMode("ace/mode/json");
-    DRB.Settings.ResultsEditor.setShowPrintMargin(false);
-    DRB.Settings.ResultsEditor.setOptions({ readOnly: true });
+        if (DRB.Utilities.HasValue(tab.ShowEditor) && tab.ShowEditor === true) {
+            DRB.Settings.Editors[tab.Id] = ace.edit(tab.Id + "_editor", { useWorker: false });
+            DRB.Settings.Editors[tab.Id].setShowPrintMargin(false);
+            if (DRB.Utilities.HasValue(tab.EditorMode)) { DRB.Settings.Editors[tab.Id].session.setMode("ace/mode/" + tab.EditorMode); }
+            if (DRB.Utilities.HasValue(tab.GenerateCode) && tab.GenerateCode === true) {
+                DRB.Settings.Editors[tab.Id].setOptions({ readOnly: true });
+            }
+        }
+    });
     // #endregion
 }
 
@@ -494,16 +435,47 @@ DRB.DefineOperations = function () {
  * Hide Notice
  */
 DRB.HideNotice = function () {
-    $("#div_notice").hide();
-    $("#btn_notice").attr("onclick", "DRB.ShowNotice()").text("Show Notice");
+    $("#" + DRB.DOM.Notice.Div.Id).hide();
+    $("#" + DRB.DOM.Notice.Button.Id).attr("onclick", "DRB.ShowNotice()").text("Show Notice");
 }
 
 /**
  * Show Notice
  */
 DRB.ShowNotice = function () {
-    $("#div_notice").fadeIn();
-    $("#btn_notice").attr("onclick", "DRB.HideNotice()").text("Hide Notice");
+    $("#" + DRB.DOM.Notice.Div.Id).fadeIn();
+    $("#" + DRB.DOM.Notice.Button.Id).attr("onclick", "DRB.HideNotice()").text("Hide Notice");
+}
+
+DRB.InsertMainBodyContent = function () {
+    $("#" + DRB.DOM.MainBody.Id).html(`<div class="mainlayout col-lg-12">
+            <div class="mainheader">
+                <h3>Dataverse REST Builder <span id="` + DRB.DOM.VersionSpan.Id + `"></span> <span id="` + DRB.DOM.ContextSpan.Id + `"></span></h3>
+                Created by Guido Preite <a target="_blank" href="https://www.twitter.com/crmanswers">Twitter</a> - <a target="_blank" href="https://www.linkedin.com/in/guidopreite/">LinkedIn</a> - <a target="_blank" href="https://github.com/GuidoPreite">GitHub</a> - <a target="_blank" href="https://www.crmanswers.net">Blog</a>
+            </div>
+            <div class="topborder maincontent split">
+                <div id="` + DRB.DOM.Split.Menu.Id + `" style="margin-top: 10px; margin-right: 24px;">
+                    <div class="dropdown">
+                        <button class="btn btn-primary dropdown-toggle" type="button" id="btn_file" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">File</button>
+                        <div class="dropdown-menu" aria-labelledby="btn_file" id="` + DRB.DOM.Collection.Menu.Id + `"></div>
+                        <button id="` + DRB.DOM.Notice.Button.Id + `" type="button" class="btn btn-secondary">Show Notice</button>
+                    </div>
+                    <br />
+                    <div id="` + DRB.DOM.TreeView.Id + `"></div>
+                </div>
+                <div id="` + DRB.DOM.Split.Content.Id + `" style="margin-left: 10px; margin-top: 10px;">
+                    <div id="` + DRB.DOM.Notice.Div.Id + `" class="notice" style="display: none;">
+                        The software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement. In no event shall the authors or copyright holders be liable for any claim, damages or other liability, whether in an action of contract, tort or otherwise, arising from, out of or in connection with the software or the use or other dealings in the software.
+                        <br />
+                        <br />
+                        Dataverse REST Builder is able to create, update and execute requests against the Dataverse Web API endpoint.<br />
+                        <span class="notice-red">Many of the requests generated inside this tool can modify the data if they are executed, please proceed with caution.</span>
+                        <br /><br />
+                    </div>
+                    <div id="` + DRB.DOM.MainContent.Id + `" style="display: none;"></div>
+                </div>
+            </div>
+        </div>`);
 }
 
 /**
@@ -511,7 +483,7 @@ DRB.ShowNotice = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.21";
+    var drbVersion = "1.0.0.22";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 
@@ -574,24 +546,25 @@ DRB.Initialize = async function () {
     }
     // #endregion
 
+    // #region DVDT
+    DRB.Settings.DVDTContext = false;
+    // #endregion
+
     DRB.HideNotice();
-    Split(['#div_menu', '#div_content'], { sizes: [10, 90], minSize: 200, gutterSize: 5 }); // Split
+    Split(["#" + DRB.DOM.Split.Menu.Id, "#" + DRB.DOM.Split.Content.Id], { sizes: [10, 90], minSize: 200, gutterSize: 5 }); // Split
     DRB.SetDefaultSettings();
     DRB.DefineOperations();
-    $("#" + DRB.DOM.ContextSpan.Id).html(DRB.Xrm.GetContext());
 
     // Tab script
     $(document).ready(function () {
         $("#" + DRB.DOM.TabsRequest.Id + " a").click(function (e) {
             e.preventDefault();
-            switch (e.target.id) {
-                case "a_code_xrmwebapi":
-                case "a_code_xrmwebapiexecute":
-                case "a_code_jquery":
-                case "a_code_xmlhttprequest":
-                case "a_code_fetchapi":
-                case "a_code_portals":
-                case "a_code_powerautomate": DRB.GenerateCode.Start(); break;
+            if (e.target.id.length > 2 && e.target.id.indexOf("a_") === 0) {
+                var tabName = e.target.id.substring(2);
+                var checkTab = DRB.Utilities.GetRecordById(DRB.Settings.Tabs, tabName);
+                if (DRB.Utilities.HasValue(checkTab) && checkTab.GenerateCode === true) {
+                    DRB.GenerateCode.Start();
+                }
             }
             $(this).tab('show');
         });

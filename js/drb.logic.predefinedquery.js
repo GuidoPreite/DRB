@@ -185,13 +185,12 @@ DRB.Logic.PredefinedQuery.Start = function () {
     // #region FetchXML
     var divFetchXML = DRB.UI.CreateEmptyDiv(DRB.DOM.FetchXML.Div.Id);
     divFetchXML.append(DRB.UI.CreateSpan(DRB.DOM.FetchXML.Span.Id, DRB.DOM.FetchXML.Span.Name));
-    divFetchXML.append(DRB.UI.CreateEmptyDiv(DRB.DOM.FetchXML.Editor.Id, "code_editor"));
+    divFetchXML.append(DRB.UI.CreateEmptyDiv(DRB.DOM.FetchXML.Editor.Id, DRB.DOM.FetchXML.Editor.Class));
     $("#" + DRB.DOM.ConfigureContent.Id).append(divFetchXML);
 
     DRB.Metadata.XMLEditor = ace.edit(DRB.DOM.FetchXML.Editor.Id, { useWorker: false });
     DRB.Metadata.XMLEditor.session.setMode("ace/mode/xml");
     DRB.Metadata.XMLEditor.setShowPrintMargin(false);
-    //DRB.Metadata.XMLEditor.setOptions({ maxLines: Infinity });
     DRB.Logic.PredefinedQuery.BindFetchXML(DRB.Metadata.XMLEditor);
     divFetchXML.hide();
     // #endregion

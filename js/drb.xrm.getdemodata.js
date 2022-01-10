@@ -261,6 +261,20 @@ DRB.Xrm.GetDemoDataBatch = function (queries) {
             // TODO
         }
         // #endregion
+
+        // #region Demo Data for System Views
+        if (query.EntitySetName.indexOf("savedqueries") > -1) {
+            var systemView_Demo = { value: [] };
+            if (query.Filters.indexOf("account") > -1) { systemView_Demo.value.push({ savedqueryid: "56b534ca-beab-46e6-af0f-07489eaa1585", name: "Account System View", returnedtypecode: "account", isdefault: true, layoutxml: '<cell name="name" width="300" />' }); }
+            if (query.Filters.indexOf("contact") > -1) { systemView_Demo.value.push({ savedqueryid: "509ec83b-b35b-44e5-9b77-084fdd240f2c", name: "Contact System View", returnedtypecode: "contact", isdefault: true, layoutxml: '<cell name="fullname" width="300" /><cell name="firstname" width="300" /><cell name="lastname" width="300" />' }); }
+            if (query.Filters.indexOf("sample_customtable") > -1) { systemView_Demo.value.push({ savedqueryid: "bc336447-e902-4a08-9b98-b8b57ef71dce", name: "Custom Table System View", returnedtypecode: "sample_customtable", isdefault: true, layoutxml: '<cell name="sample_name" width="300" /><cell name="sample_name2" width="300" />' }); }
+            if (query.Filters.indexOf("systemuser") > -1) { systemView_Demo.value.push({ savedqueryid: "7a89a602-b556-456d-b28b-ca6eb6bebc44", name: "User System View", returnedtypecode: "systemuser", isdefault: true, layoutxml: '<cell name="fullname" width="300" /><cell name="firstname" width="300" /><cell name="lastname" width="300" />' }); }
+            if (query.Filters.indexOf("team") > -1) { systemView_Demo.value.push({ savedqueryid: "0dfa59de-eb8b-4fa3-ae22-b89c4eabaf34", name: "Team System View", returnedtypecode: "team", isdefault: true, layoutxml: '<cell name="name" width="300" />' }); }
+
+            var fakeDataQuery = JSON.parse(JSON.stringify(systemView_Demo));
+            fakeData += fakeHeaderStart + JSON.stringify(fakeDataQuery) + emptyLine;
+        }
+        // #endregion
     });
 
     fakeData += fakeHeaderEnd;

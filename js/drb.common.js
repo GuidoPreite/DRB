@@ -169,13 +169,59 @@ DRB.Common.ParseJWT = function (token) {
  * @param {string} token Token
  */
 DRB.Common.RefreshXTBToken = function (token) {
-    try {
-        if (!DRB.Xrm.IsXTBMode()) { console.log("This method id available only with XTB Mode"); return; }
-        if (!DRB.Utilities.HasValue(token)) { console.log("Received XTB token is not defined"); return; }
-        DRB.Settings.XTBToken = token;
-        console.log("Refreshed token from XTB");
-    } catch (e) {
-        console.log("Failed to refresh token from XTB");
-    }
+    if (!DRB.Xrm.IsXTBMode()) { console.log("This method id available only with XTB Mode"); return; }
+    if (!DRB.Utilities.HasValue(token)) { console.log("Received XTB token is not valid"); return; }
+    DRB.Settings.XTBToken = token;
+    console.log("Refreshed token from XTB");
 }
+
+/**
+ * Common - Refresh DVDT Token
+ * @param {string} token Token
+ */
+DRB.Common.RefreshDVDTToken = function (token) {
+    if (!DRB.Xrm.IsDVDTMode()) { console.log("This method id available only with DVDT Mode"); return; }
+    if (!DRB.Utilities.HasValue(token)) { console.log("Received DVDT token is not valid"); return; }
+    DRB.Settings.DVDTToken = token;
+    console.log("Refreshed token from DVDT");
+}
+
+/**
+ * Common - Listener for DVDT
+ */
+window.addEventListener("message", (event) => {
+    const message = event.data;
+    switch (message.command) {
+        case "dvdt_connection":
+            var token = message.token;
+            var parsedToken = DRB.Common.ParseJWT(token);
+            if (DRB.Utilities.HasValue(parsedToken)) {
+                var tokenUrl = parsedToken.aud;
+                var tokenExpireDate = parsedToken.exp * 1000;
+                var now = new Date().getTime();
+                if (DRB.Utilities.HasValue(tokenUrl) && tokenExpireDate > now) {
+                    tokenUrl = tokenUrl.replace(/\/$/, ""); // clean url from trailing slash
+                    DRB.UI.ShowLoading("Checking Token Settings...");
+
+                    DRB.Xrm.GetServerVersion(tokenUrl, token)
+                        .done(function (data) {
+                            DRB.Settings.DVDTToken = token;
+                            DRB.Settings.DVDTUrl = tokenUrl;
+                            DRB.Settings.DVDTVersion = data.Version;
+                            DRB.Settings.DVDTContext = true;
+
+                            DRB.UI.HideLoading();
+                            DRB.Logic.CompleteInitialize();
+                        })
+                        .fail(function (xhr) { DRB.UI.ShowError("DRB.Xrm.GetServerVersion Error", DRB.Common.GetErrorMessage(xhr)); });
+                } else { DRB.UI.ShowError("DVDT Connection Error", "The token from DVDT is not valid"); }
+            } else { DRB.UI.ShowError("DVDT Connection Error", "Failed to parse the token from DVDT"); }
+            break;
+
+        case "dvdt_refreshtoken":
+            var token = message.token;
+            DRB.Common.RefreshDVDTToken(token);
+            break;
+    }
+});
 // #endregion

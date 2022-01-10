@@ -16,13 +16,12 @@ DRB.GenerateCode.SetCodeEditors = function (codeXrmWebApi, codeXrmWebApiExecute,
     if (!DRB.Utilities.HasValue(codeFetchAPI)) { codeFetchAPI = []; }
     if (!DRB.Utilities.HasValue(codePortals)) { codePortals = []; } // Portals is available only for Retrieve Single, Retrieve Multiple, Create, Update, Delete, Associate, Disassociate
 
-    // Insert the code inside the editors
-    DRB.Settings.XrmWebApiEditor.session.setValue(codeXrmWebApi.join('\n'));
-    DRB.Settings.XrmWebApiExecuteEditor.session.setValue(codeXrmWebApiExecute.join('\n'));
-    DRB.Settings.jQueryEditor.session.setValue(codejQuery.join('\n'));
-    DRB.Settings.XMLHttpRequestEditor.session.setValue(codeXMLHttpRequest.join('\n'));
-    DRB.Settings.FetchAPIEditor.session.setValue(codeFetchAPI.join('\n'));
-    DRB.Settings.PortalsEditor.session.setValue(codePortals.join('\n'));
+    DRB.Settings.Editors["code_xrmwebapi"].session.setValue(codeXrmWebApi.join('\n'));
+    DRB.Settings.Editors["code_xrmwebapiexecute"].session.setValue(codeXrmWebApiExecute.join('\n'));
+    DRB.Settings.Editors["code_fetchapi"].session.setValue(codeFetchAPI.join('\n'));
+    DRB.Settings.Editors["code_jquery"].session.setValue(codejQuery.join('\n'));
+    DRB.Settings.Editors["code_xmlhttprequest"].session.setValue(codeXMLHttpRequest.join('\n'));
+    DRB.Settings.Editors["code_portals"].session.setValue(codePortals.join('\n'));
 }
 
 /**
@@ -3627,19 +3626,19 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
  */
 DRB.GenerateCode.PowerAutomate = function (requestType) {
     if (requestType !== "retrievesingle" && requestType !== "retrievemultiple") { return; }
-    var pa_editor = "code_powerautomate_editor";
-    $("#" + pa_editor).empty();
+    var paDiv = "code_powerautomate_div";
+    $("#" + paDiv).empty();
     switch (requestType) {
         case "retrievesingle":
-            $("#" + pa_editor).append(DRB.UI.CreateSpan(DRB.DOM.PowerAutomate.SpanTitleRetrieveSingle.Id, DRB.DOM.PowerAutomate.SpanTitleRetrieveSingle.Name, null, DRB.DOM.PowerAutomate.SpanTitleRetrieveSingle.Class));
+            $("#" + paDiv).append(DRB.UI.CreateSpan(DRB.DOM.PowerAutomate.SpanTitleRetrieveSingle.Id, DRB.DOM.PowerAutomate.SpanTitleRetrieveSingle.Name, null, DRB.DOM.PowerAutomate.SpanTitleRetrieveSingle.Class));
             break;
         case "retrievemultiple":
-            $("#" + pa_editor).append(DRB.UI.CreateSpan(DRB.DOM.PowerAutomate.SpanTitleRetrieveMultiple.Id, DRB.DOM.PowerAutomate.SpanTitleRetrieveMultiple.Name, null, DRB.DOM.PowerAutomate.SpanTitleRetrieveMultiple.Class));
+            $("#" + paDiv).append(DRB.UI.CreateSpan(DRB.DOM.PowerAutomate.SpanTitleRetrieveMultiple.Id, DRB.DOM.PowerAutomate.SpanTitleRetrieveMultiple.Name, null, DRB.DOM.PowerAutomate.SpanTitleRetrieveMultiple.Class));
             break;
     }
-    $("#" + pa_editor).append(DRB.UI.CreateSpacer());
+    $("#" + paDiv).append(DRB.UI.CreateSpacer());
     var divTable = DRB.UI.CreateTable(DRB.DOM.PowerAutomate.Table.Id);
-    $("#" + pa_editor).append(divTable);
+    $("#" + paDiv).append(divTable);
 
     var paSettings = [];
 
@@ -3661,7 +3660,7 @@ DRB.GenerateCode.PowerAutomate = function (requestType) {
         tdLabel.append(DRB.UI.CreateSpan(DRB.DOM.PowerAutomate[setting + "Span"].Id, DRB.DOM.PowerAutomate[setting + "Span"].Name));
         tdValue.append(DRB.UI.CreateInputStringPowerAutomate(DRB.DOM.PowerAutomate[setting + "Input"].Id));
         if (settingIndex > 0) {
-            tdCopy.append(DRB.UI.CreateButton(DRB.DOM.PowerAutomate.ButtonCopy.Id + DRB.DOM.PowerAutomate[setting + "Span"].Id, DRB.DOM.PowerAutomate.ButtonCopy.Name, DRB.DOM.PowerAutomate.ButtonCopy.Class, DRB.Logic.CopyCodeForPowerautomate, setting, DRB.DOM.PowerAutomate[setting + "Span"].Name));
+            tdCopy.append(DRB.UI.CreateButton(DRB.DOM.PowerAutomate.ButtonCopy.Id + DRB.DOM.PowerAutomate[setting + "Span"].Id, DRB.DOM.PowerAutomate.ButtonCopy.Name, DRB.DOM.PowerAutomate.ButtonCopy.Class, DRB.Logic.CopyCodeForPowerAutomate, setting, DRB.DOM.PowerAutomate[setting + "Span"].Name));
         }
     });
 

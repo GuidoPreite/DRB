@@ -541,7 +541,7 @@ DRB.UI.CreateTabs = function (id, tabs) {
     tabs.forEach(function (tab, tabIndex) {
         var aClass = "nav-link";
         if (tabIndex === 0) { aClass += " active"; }
-        var a = $("<a>", { id: "a_" + tab.id, class: aClass, "data-bs-toggle": "tab", href: "#" + tab.id, text: tab.name });
+        var a = $("<a>", { id: "a_" + tab.Id, class: aClass, "data-bs-toggle": "tab", href: "#" + tab.Id, text: tab.Name });
         var li = $('<li>', { class: "nav-item" }).html(a);
         ul.append(li);
     });
@@ -553,7 +553,7 @@ DRB.UI.CreateTabContents = function (id, tabs) {
     tabs.forEach(function (tab, tabIndex) {
         var subDivClass = "tab-pane";
         if (tabIndex === 0) { subDivClass += " active show"; }
-        var subDiv = $("<div>", { id: tab.id, class: subDivClass });
+        var subDiv = $("<div>", { id: tab.Id, class: subDivClass });
         div.append(subDiv);
     });
     return div;
@@ -640,12 +640,20 @@ DRB.UI.OpenLookup = function (settings) {
             return;
         }
 
+        // DVDT Mode
+        if (DRB.Xrm.IsDVDTMode()) {
+            DRB.UI.Show("DVDT Mode", "Lookup is not available inside DVDT.<br />A random Guid has been generated.");
+            $("#" + settings.textId).val(DRB.Utilities.GenerateGuid()).trigger("input").change();
+            return;
+        }
+
         // Demo Mode
         if (DRB.Xrm.IsDemoMode()) {
             DRB.UI.Show("Demo Mode", "Lookup is not available in Demo Mode.<br />A random Guid has been generated.");
             $("#" + settings.textId).val(DRB.Utilities.GenerateGuid()).trigger("input").change();
             return;
         }
+
         DRB.Xrm.GetXrmObject().Utility.lookupObjects(lookupOptions).then(
             function (success) {
                 if (success.length > 0) {

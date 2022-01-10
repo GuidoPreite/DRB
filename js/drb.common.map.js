@@ -272,6 +272,30 @@ DRB.Common.MapRelationships = function (data, type, sortProperty, sourceTable) {
 }
 
 /**
+ * Common - Map System Views
+ * @param {any} data Data to parse
+ * @param {string} sortProperty Sort Property
+ */
+DRB.Common.MapSystemViews = function (data, sortProperty) {
+    // create the array
+    var views = [];
+    // parse data
+    if (Array.isArray(data.value)) {
+        data.value.forEach(function (record) {
+            var id = record.savedqueryid;
+            var name = record.name;
+            var tableLogicalName = record.returnedtypecode;
+            var isDefault = record.isdefault;
+            var layoutXml = record.layoutxml;
+            views.push(new DRB.Models.SystemView(id, name, tableLogicalName, isDefault, layoutXml));
+        });
+        // sort the array based on the provided sortProperty
+        if (DRB.Utilities.HasValue(sortProperty)) { views.sort(DRB.Utilities.CustomSort(sortProperty)); }
+    }
+    return views;
+}
+
+/**
  * Common - Map Personal Views
  * @param {any} data Data to parse
  * @param {string} sortProperty Sort Property

@@ -14,6 +14,21 @@ DRB.Common.RetrieveUsers = function () {
 }
 
 /**
+ * Retrieve System Views
+ * @param {string[]} tableLogicalNames Table Logical Names
+ */
+DRB.Common.RetrieveSystemViews = function (tableLogicalNames) {
+    var queries = [];
+    tableLogicalNames.forEach(function (tableLogicalName) {
+        var query = {};
+        query.EntitySetName = "savedqueries";
+        query.Filters = "$select=savedqueryid,name,returnedtypecode,isdefault,layoutxml&$filter=returnedtypecode eq '" + tableLogicalName + "'";
+        queries.push(query);
+    });
+    return DRB.Xrm.RetrieveBatch(queries);
+}
+
+/**
  * Retrieve Personal Views
  */
 DRB.Common.RetrievePersonalViews = function () {
@@ -147,7 +162,7 @@ DRB.Common.RetrieveTablesDetails = function (tableLogicalNames, includeRelations
     if (includeAlternateKeys === true) { includeOptionValues = true; } // Alternate Key supports Picklist, retrieving Option Values is required
 
     var batchedQueries = [];
-    var tableBatchSize = 150; // 150 tables each batch request, because there are a max of 6 requests for each table (150 x 6 = 900 < 1000)    
+    var tableBatchSize = 150; // 150 tables each batch request, because there are a max of 6 requests for each table (150 x 6 = 900 < 1000)
 
     batchedTableLogicalNames = [];
     for (var count = 0; count < tableLogicalNames.length; count++) {
@@ -236,6 +251,36 @@ DRB.Common.SetCustomActionTables = function (data) {
     DRB.Common.MapCustomActionRequestParameters(contexts[1], customActions);
     DRB.Common.MapCustomActionResponseProperties(contexts[2], customActions);
     return customActions;
+}
+
+/**
+ * Common - Set System Views
+ * @param {any} data Data to process
+ */
+DRB.Common.SetSystemViews = function (data, tables) {
+    var dataResponses = [];
+    // clear the response
+    var firstRowData = data.split('\r\n', 1)[0];
+    var splittedData = data.split(firstRowData);
+    splittedData.forEach(function (segment) { if (segment.indexOf("{") > -1) { dataResponses.push(segment); } });
+    // end clear the response
+    var contexts = [];
+    dataResponses.forEach(function (dataResponse) {
+        var contextRegion = dataResponse.substring(dataResponse.indexOf('{'), dataResponse.lastIndexOf('}') + 1);
+        contexts.push(JSON.parse(contextRegion));
+    });
+
+    contexts.forEach(function (context) {
+        var systemViews = DRB.Common.MapSystemViews(context, "Name");
+        if (systemViews.length > 0) {
+            var tableLogicalName = systemViews[0].TableLogicalName;
+            var currentTable = DRB.Utilities.GetRecordById(tables, tableLogicalName);
+            if (DRB.Utilities.HasValue(currentTable)) {
+                currentTable.SystemViews = systemViews;
+                currentTable.SystemViewsLoaded = true;
+            }
+        }
+    });
 }
 
 /**

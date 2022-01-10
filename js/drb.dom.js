@@ -1,11 +1,22 @@
 // #region DRB.DOM
 // Main Content
-DRB.DOM.MainContent = { Id: "main_content" }; // defined also inside index.htm
-DRB.DOM.VersionSpan = { Id: "span_drbversion" }; // defined also inside index.htm
-DRB.DOM.ContextSpan = { Id: "span_context" }; // defined also inside index.htm
+DRB.DOM.MainBody = { Id: "main_body" }; // defined also inside index.htm
+DRB.DOM.MainContent = { Id: "main_content" };
+DRB.DOM.VersionSpan = { Id: "span_drbversion" };
+DRB.DOM.ContextSpan = { Id: "span_context" };
+
+// Notice
+DRB.DOM.Notice = {};
+DRB.DOM.Notice.Div = { Id: "div_notice" };
+DRB.DOM.Notice.Button = { Id: "btn_notice" };
+
+// Split
+DRB.DOM.Split = {};
+DRB.DOM.Split.Menu = { Id: "div_menu" };
+DRB.DOM.Split.Content = { Id: "div_content" };
 
 // jsTree
-DRB.DOM.TreeView = { Id: "div_collection" }; // defined also inside index.htm
+DRB.DOM.TreeView = { Id: "div_collection" };
 
 // Configure Content
 DRB.DOM.ConfigureContent = { Id: "configure_settings" };
@@ -13,10 +24,11 @@ DRB.DOM.ConfigureContent = { Id: "configure_settings" };
 // Tabs
 DRB.DOM.TabsRequest = { Id: "tabs_request" };
 DRB.DOM.TabsContent = { Id: "tabs_content" };
+DRB.DOM.TabsWarning = { Id: "tabs_warning_" };
 
 // Collection
 DRB.DOM.Collection = {};
-DRB.DOM.Collection.Menu = { Id: "mnu_file" }; // defined also inside index.htm
+DRB.DOM.Collection.Menu = { Id: "mnu_file" };
 DRB.DOM.Collection.Separator = { Id: "", Class: "dropdown-divider" };
 DRB.DOM.Collection.LoadInput = { Id: "inp_loadfile" };
 DRB.DOM.Collection.NewButton = { Id: "btn_newcollection", Name: "New Collection", Class: "dropdown-item" };
@@ -387,7 +399,7 @@ DRB.DOM.PersonalViewId.Input = { Id: "txt_personalviewid" };
 DRB.DOM.FetchXML = {};
 DRB.DOM.FetchXML.Div = { Id: "div_fetchxml" };
 DRB.DOM.FetchXML.Span = { Id: "span_fetchxml", Name: "Fetch XML" };
-DRB.DOM.FetchXML.Editor = { Id: "editor_fetchxml" };
+DRB.DOM.FetchXML.Editor = { Id: "editor_fetchxml", Class: "code_editor" };
 // #endregion
 
 // #region Dataverse Execute
@@ -483,5 +495,24 @@ DRB.DOM.PowerAutomate.SortBySpan = { Id: "span_sortby", Name: "Sort By" };
 DRB.DOM.PowerAutomate.SortByInput = { Id: "txt_sortby" };
 DRB.DOM.PowerAutomate.RowCountSpan = { Id: "span_rowcount", Name: "Row count" };
 DRB.DOM.PowerAutomate.RowCountInput = { Id: "txt_rowcount" };
+// #endregion
+
+// #region Lookup
+DRB.DOM.Lookup = {};
+DRB.DOM.Lookup.Div = { Id: "div_lookup" };
+DRB.DOM.Lookup.TableSpan = { Id: "span_tablelookup", Name: "Table" };
+DRB.DOM.Lookup.TableDropdown = { Id: "cbx_tablelookup" };
+DRB.DOM.Lookup.InputSpan = { Id: "span_inputlookup", Name: "Primary Column" };
+DRB.DOM.Lookup.Input = { Id: "cbx_inputlookup" };
+DRB.DOM.Lookup.SearchButton = { Id: "btn_searchlookup", Name: "Search", Class: "btn-secondary" };
+DRB.DOM.Lookup.Table = { Id: "table_lookup" };
+DRB.DOM.Lookup.Tr = { Id: "tr_lookup_" };
+DRB.DOM.Lookup.TdLabel = { Id: "td_lookup_label_" };
+DRB.DOM.Lookup.TdValue = { Id: "td_lookup_value_" };
+
+DRB.DOM.Lookup.HeaderIDSpan = { Id: "span_lookup_header_id", Name: "<b>ID</b>" };
+DRB.DOM.Lookup.HeaderPrimaryColumnSpan = { Id: "span_lookup_header_primarycolumn", Name: "<b>Primary Column</b>" };
+DRB.DOM.Lookup.SelectButton = { Id: "btn_selectlookup_", Name: "Select", Class: "btn-outline-secondary" };
+DRB.DOM.Lookup.NoRecordsSpan = { Id: "span_norecordslookup", Name: "No Records" };
 // #endregion
 // #endregion
