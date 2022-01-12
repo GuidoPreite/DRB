@@ -230,4 +230,11 @@ div.bootstrap-select {
     border: 1px solid #828282;
 }
 /* #endregion */
+
+/* #region Lookup */
+.lookup-results {
+    height: 300px;
+}
+/* #endregion */
+
 /* #endregion */
