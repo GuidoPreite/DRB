@@ -263,7 +263,12 @@ DRB.UI.CreateCheckbox = function (id, text, className, checked) {
  * @param {string} text Text
  * @param {string} className Class Name
  * @param {Function} event Function to call when the button is clicked
- * @param {Function} parameter Parameter passed to the function
+ * @param {any} parameter First parameter passed to the function
+ * @param {any} parameter2 Second parameter passed to the function
+ * @param {any} parameter3 Third parameter passed to the function
+ * @param {any} parameter4 Fourth parameter passed to the function
+ * @param {any} parameter5 Fifth parameter passed to the function
+ * @param {any} parameter6 Sixth parameter passed to the function
  */
 DRB.UI.CreateButton = function (id, text, className, event, parameter, parameter2, parameter3, parameter4, parameter5, parameter6) {
     if (!DRB.Utilities.HasValue(className)) { className = "btn-primary"; }
@@ -626,45 +631,22 @@ DRB.UI.OpenLookup = function (settings) {
 
     // if lookupOptions is valid show the selection, otherwise show the error
     if (DRB.Utilities.HasValue(lookupOptions)) {
-        // XTB Mode
-        if (DRB.Xrm.IsXTBMode()) {
-            DRB.UI.Show("XrmToolBox Mode", "Lookup is not available inside XrmToolBox.<br />A random Guid has been generated.");
-            $("#" + settings.textId).val(DRB.Utilities.GenerateGuid()).trigger("input").change();
-            return;
-        }
-
-        // JWT Mode
-        if (DRB.Xrm.IsJWTMode()) {
-            DRB.UI.Show("JWT Mode", "Lookup is not available in JWT Mode.<br />A random Guid has been generated.");
-            $("#" + settings.textId).val(DRB.Utilities.GenerateGuid()).trigger("input").change();
-            return;
-        }
-
-        // DVDT Mode
-        if (DRB.Xrm.IsDVDTMode()) {
-            DRB.UI.Show("DVDT Mode", "Lookup is not available inside DVDT.<br />A random Guid has been generated.");
-            $("#" + settings.textId).val(DRB.Utilities.GenerateGuid()).trigger("input").change();
-            return;
-        }
-
-        // Demo Mode
-        if (DRB.Xrm.IsDemoMode()) {
-            DRB.UI.Show("Demo Mode", "Lookup is not available in Demo Mode.<br />A random Guid has been generated.");
-            $("#" + settings.textId).val(DRB.Utilities.GenerateGuid()).trigger("input").change();
-            return;
-        }
-
-        DRB.Xrm.GetXrmObject().Utility.lookupObjects(lookupOptions).then(
-            function (success) {
-                if (success.length > 0) {
-                    $("#" + settings.textId).val(success[0].id).trigger("input").change();
-                    if (DRB.Utilities.HasValue(settings.dropdownId)) {
-                        $("#" + settings.dropdownId).val(success[0].entityType).change();
-                        DRB.UI.RefreshDropdown(settings.dropdownId);
+        if (DRB.Xrm.IsInstanceMode()) {
+            DRB.Xrm.GetXrmObject().Utility.lookupObjects(lookupOptions).then(
+                function (success) {
+                    if (success.length > 0) {
+                        $("#" + settings.textId).val(success[0].id).trigger("input").change();
+                        if (DRB.Utilities.HasValue(settings.dropdownId)) {
+                            $("#" + settings.dropdownId).val(success[0].entityType).change();
+                            DRB.UI.RefreshDropdown(settings.dropdownId);
+                        }
                     }
-                }
-            },
-            function (error) { DRB.UI.ShowError("Xrm.Utility.lookupObjects Error", error); });
+                },
+                function (error) { DRB.UI.ShowError("Xrm.Utility.lookupObjects Error", error); });
+        } else {
+            // XTB, JWT, DVDT, Demo
+            DRB.Common.OpenLookup(lookupOptions, settings);          
+        }
     } else {
         DRB.UI.ShowError("Table not selected", "Please select a Table first");
     }

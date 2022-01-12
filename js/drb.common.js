@@ -147,6 +147,115 @@ DRB.Common.BindNumber = function (id, minValue, maxValue) {
     });
 }
 
+DRB.Common.LookupSelect = function (settings, tableLogicalName, recordId) {
+    $("#" + settings.textId).val(recordId).trigger("input").change();
+    if (DRB.Utilities.HasValue(settings.dropdownId)) {
+        $("#" + settings.dropdownId).val(tableLogicalName).change();
+        DRB.UI.RefreshDropdown(settings.dropdownId);
+    }
+    DRB.UI.HideLoading();
+}
+
+DRB.Common.LookupSearch = function (settings) {
+    var tableLogicalName = $("#" + DRB.DOM.Lookup.TableDropdown.Id).val();
+    var text = $("#" + DRB.DOM.Lookup.Input.Id).val();
+    if (!DRB.Utilities.HasValue(tableLogicalName) || !DRB.Utilities.HasValue(text)) { return; }
+
+    var checkTable = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, tableLogicalName);
+    if (DRB.Utilities.HasValue(checkTable)) {
+        $("#" + DRB.DOM.Lookup.DivResults.Id).empty();
+        $("#" + DRB.DOM.Lookup.DivResults.Id).append(DRB.UI.CreateSpan("", "Retrieving Records..."));
+        DRB.Xrm.Retrieve(checkTable.EntitySetName, "$select=" + checkTable.PrimaryNameAttribute + "&$filter=contains(" + checkTable.PrimaryNameAttribute + ",'" + text + "')&$orderby=" + checkTable.PrimaryNameAttribute + " asc&$top=5")
+            .done(function (data) {
+                $("#" + DRB.DOM.Lookup.DivResults.Id).empty();
+                if (data.value.length > 0) {
+                    // Create Table to show the results
+                    var divTable = DRB.UI.CreateTable(DRB.DOM.Lookup.Table.Id);
+                    var thHeader = DRB.UI.CreateTr(DRB.DOM.Lookup.Tr.Id + "header");
+                    var tdLabelHeaderSelect = DRB.UI.CreateTd(DRB.DOM.Lookup.TdLabel.Id + "header_select");
+                    var tdLabelHeaderID = DRB.UI.CreateTd(DRB.DOM.Lookup.TdLabel.Id + "header_id");
+                    var tdLabelHeaderPrimaryColumn = DRB.UI.CreateTd(DRB.DOM.Lookup.TdLabel.Id + "header_primarycolumn");
+                    divTable.append(thHeader);
+                    thHeader.append(tdLabelHeaderSelect);
+                    thHeader.append(tdLabelHeaderID);
+                    thHeader.append(tdLabelHeaderPrimaryColumn);
+                    tdLabelHeaderID.append(DRB.UI.CreateSpan(DRB.DOM.Lookup.HeaderIDSpan.Id, DRB.DOM.Lookup.HeaderIDSpan.Name));
+                    tdLabelHeaderPrimaryColumn.append(DRB.UI.CreateSpan(DRB.DOM.Lookup.HeaderPrimaryColumnSpan.Id, DRB.DOM.Lookup.HeaderPrimaryColumnSpan.Name));
+
+                    var searchResults = [];
+
+                    data.value.forEach(function (record) {
+                        searchResults.push({ Id: record[checkTable.PrimaryIdAttribute], PrimaryColumn: record[checkTable.PrimaryNameAttribute] });
+                    });
+
+                    searchResults.forEach(function (searchResult, searchResultIndex) {
+                        var tr = DRB.UI.CreateTr(DRB.DOM.Lookup.Tr.Id + searchResultIndex);
+                        var tdValueSelect = DRB.UI.CreateTd(DRB.DOM.Lookup.TdValue.Id + searchResultIndex + "_select");
+                        var tdValueID = DRB.UI.CreateTd(DRB.DOM.Lookup.TdValue.Id + searchResultIndex + "_id");
+                        var tdValuePrimaryColumn = DRB.UI.CreateTd(DRB.DOM.Lookup.TdValue.Id + searchResultIndex + "_primarycolumn");
+
+                        divTable.append(tr);
+                        tr.append(tdValueSelect);
+                        tr.append(tdValueID);
+                        tr.append(tdValuePrimaryColumn);
+                        tdValueSelect.append(DRB.UI.CreateButton(DRB.DOM.Lookup.SelectButton.Id + searchResultIndex, DRB.DOM.Lookup.SelectButton.Name, DRB.DOM.Lookup.SelectButton.Class, DRB.Common.LookupSelect, settings, checkTable.LogicalName, searchResult.Id));
+                        tdValueID.append(DRB.UI.CreateSpan("", searchResult.Id));
+                        tdValuePrimaryColumn.append(DRB.UI.CreateSpan("", searchResult.PrimaryColumn));
+                    });
+                    $("#" + DRB.DOM.Lookup.DivResults.Id).append(divTable);
+                } else {
+                    $("#" + DRB.DOM.Lookup.DivResults.Id).append(DRB.UI.CreateSpan("", "No Records"));
+                }
+            })
+            .fail(function (xhr) {
+                $("#" + DRB.DOM.Lookup.DivResults.Id).empty();
+                $("#" + DRB.DOM.Lookup.DivResults.Id).append(DRB.UI.CreateSpan("", "Error retrieving Records"));
+            });
+    }
+}
+
+DRB.Common.BindLookupInput = function (id) {
+    $("#" + id).on("change keyup", function (e) {
+        var text = $(this).val();
+        var disableButton = false;
+        if (!DRB.Utilities.HasValue(text)) { disableButton = true; }
+        $("#" + DRB.DOM.Lookup.SearchButton.Id).prop("disabled", disableButton);
+    });
+}
+
+DRB.Common.BindLookupTable = function (id) {
+    $("#" + id).on("change", function (e) {
+        $("#" + DRB.DOM.Lookup.Input.Id).val("").trigger("input").change();
+        $("#" + DRB.DOM.Lookup.DivResults.Id).empty();
+    });
+}
+
+DRB.Common.OpenLookup = function (lookupOptions, settings) {
+    var lookupTables = [];
+    lookupOptions.entityTypes.forEach(function (tableLogicalName) {
+        var checkTable = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, tableLogicalName);
+        if (DRB.Utilities.HasValue(checkTable)) { lookupTables.push(checkTable); }
+    });
+
+    var lookupDiv = DRB.UI.CreateEmptyDiv(DRB.DOM.Lookup.Div.Id);
+    lookupDiv.append(DRB.UI.CreateSpan(DRB.DOM.Lookup.TableSpan.Id, DRB.DOM.Lookup.TableSpan.Name));
+    lookupDiv.append(DRB.UI.CreateDropdown(DRB.DOM.Lookup.TableDropdown.Id));
+    lookupDiv.append(DRB.UI.CreateSpan("", "NOTE: maximum 5 records are returned"));
+    lookupDiv.append(DRB.UI.CreateSpacer());
+    lookupDiv.append(DRB.UI.CreateSpan(DRB.DOM.Lookup.InputSpan.Id, DRB.DOM.Lookup.InputSpan.Name));
+    lookupDiv.append(DRB.UI.CreateInputString(DRB.DOM.Lookup.Input.Id));
+    lookupDiv.append(DRB.UI.CreateSpan(null, " "));
+    lookupDiv.append(DRB.UI.CreateButton(DRB.DOM.Lookup.SearchButton.Id, DRB.DOM.Lookup.SearchButton.Name, DRB.DOM.Lookup.SearchButton.Class, DRB.Common.LookupSearch, settings));
+    lookupDiv.append(DRB.UI.CreateSpacer());
+    lookupDiv.append(DRB.UI.CreateEmptyDiv(DRB.DOM.Lookup.DivResults.Id, DRB.DOM.Lookup.DivResults.Class));
+    DRB.UI.Show("Lookup", lookupDiv, "large");
+    $(".modal-footer").remove();
+    DRB.UI.FillDropdown(DRB.DOM.Lookup.TableDropdown.Id, DRB.DOM.Lookup.TableDropdown.Name, new DRB.Models.Records(lookupTables).ToDropdown());
+    DRB.Common.BindLookupTable(DRB.DOM.Lookup.TableDropdown.Id);
+    DRB.Common.BindLookupInput(DRB.DOM.Lookup.Input.Id);
+    $("#" + DRB.DOM.Lookup.Input.Id).val("").trigger("input").change();
+}
+
 /**
  * Common - Parse JWT
  * @param {string} token Token

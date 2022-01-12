@@ -312,6 +312,36 @@ DRB.Xrm.GetDemoData = function (entitySetName, filters, singleRecord) {
             break;
     }
 
+    if (filters.indexOf("top=5") > -1) {
+        fakeData = { value: [] };
+        switch (entitySetName) {
+            case "accounts":
+                fakeData.value.push({ accountid: "c6f35754-6fa8-4e8b-8b58-d4ca958001f4", name: "Demo Account 1" });
+                fakeData.value.push({ accountid: "ddd99cd3-bec1-4643-af90-c4b21760ec0d", name: "Demo Account 2" });
+                fakeData.value.push({ accountid: "e02fc8d5-a484-4991-ae70-f3a928be3389", name: "Demo Account 3" });
+                fakeData.value.push({ accountid: "8d7b828d-7d1c-4e30-9a8b-7d28cce7b9c3", name: "Demo Account 4" });
+                fakeData.value.push({ accountid: "c081711e-685b-4dc2-9d57-76f3d599d03a", name: "Demo Account 5" });
+                break;
+            case "contacts":
+                fakeData.value.push({ contactid: "c6f35754-6fa8-4e8b-8b58-d4ca958001f4", fullname: "Demo Contact 1" });
+                fakeData.value.push({ contactid: "ddd99cd3-bec1-4643-af90-c4b21760ec0d", fullname: "Demo Contact 2" });
+                break;
+            case "sample_customtables":
+                fakeData.value.push({ sample_customtableid: "c6f35754-6fa8-4e8b-8b58-d4ca958001f4", sample_name: "Demo Custom Table 1" });
+                fakeData.value.push({ sample_customtableid: "ddd99cd3-bec1-4643-af90-c4b21760ec0d", sample_name: "Demo Custom Table 2" });
+                fakeData.value.push({ sample_customtableid: "e02fc8d5-a484-4991-ae70-f3a928be3389", sample_name: "Demo Custom Table 3" });
+                fakeData.value.push({ sample_customtableid: "8d7b828d-7d1c-4e30-9a8b-7d28cce7b9c3", sample_name: "Demo Custom Table 4" });
+                break;
+            case "systemusers":
+                fakeData.value.push({ systemuserid: "c6f35754-6fa8-4e8b-8b58-d4ca958001f4", fullname: "Demo User 1" });
+                fakeData.value.push({ systemuserid: "ddd99cd3-bec1-4643-af90-c4b21760ec0d", fullname: "Demo User 2" });
+                fakeData.value.push({ systemuserid: "e02fc8d5-a484-4991-ae70-f3a928be3389", fullname: "Demo User 3" });
+                break;
+            case "teams":
+                fakeData.value.push({ teamid: "c6f35754-6fa8-4e8b-8b58-d4ca958001f4", name: "Demo Team 1" });
+              break;
+        }
+    }
     return fakeData;
 }
 

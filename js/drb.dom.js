@@ -500,6 +500,7 @@ DRB.DOM.PowerAutomate.RowCountInput = { Id: "txt_rowcount" };
 // #region Lookup
 DRB.DOM.Lookup = {};
 DRB.DOM.Lookup.Div = { Id: "div_lookup" };
+DRB.DOM.Lookup.DivResults = { Id: "div_resultslookup", Class: "lookup-results" };
 DRB.DOM.Lookup.TableSpan = { Id: "span_tablelookup", Name: "Table" };
 DRB.DOM.Lookup.TableDropdown = { Id: "cbx_tablelookup" };
 DRB.DOM.Lookup.InputSpan = { Id: "span_inputlookup", Name: "Primary Column" };

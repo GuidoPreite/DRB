@@ -529,6 +529,7 @@ DRB.DOM.PowerAutomate.RowCountInput = { Id: "txt_rowcount" };
 // #region Lookup
 DRB.DOM.Lookup = {};
 DRB.DOM.Lookup.Div = { Id: "div_lookup" };
+DRB.DOM.Lookup.DivResults = { Id: "div_resultslookup", Class: "lookup-results" };
 DRB.DOM.Lookup.TableSpan = { Id: "span_tablelookup", Name: "Table" };
 DRB.DOM.Lookup.TableDropdown = { Id: "cbx_tablelookup" };
 DRB.DOM.Lookup.InputSpan = { Id: "span_inputlookup", Name: "Primary Column" };
@@ -950,6 +951,36 @@ DRB.Xrm.GetDemoData = function (entitySetName, filters, singleRecord) {
             break;
     }
 
+    if (filters.indexOf("top=5") > -1) {
+        fakeData = { value: [] };
+        switch (entitySetName) {
+            case "accounts":
+                fakeData.value.push({ accountid: "c6f35754-6fa8-4e8b-8b58-d4ca958001f4", name: "Demo Account 1" });
+                fakeData.value.push({ accountid: "ddd99cd3-bec1-4643-af90-c4b21760ec0d", name: "Demo Account 2" });
+                fakeData.value.push({ accountid: "e02fc8d5-a484-4991-ae70-f3a928be3389", name: "Demo Account 3" });
+                fakeData.value.push({ accountid: "8d7b828d-7d1c-4e30-9a8b-7d28cce7b9c3", name: "Demo Account 4" });
+                fakeData.value.push({ accountid: "c081711e-685b-4dc2-9d57-76f3d599d03a", name: "Demo Account 5" });
+                break;
+            case "contacts":
+                fakeData.value.push({ contactid: "c6f35754-6fa8-4e8b-8b58-d4ca958001f4", fullname: "Demo Contact 1" });
+                fakeData.value.push({ contactid: "ddd99cd3-bec1-4643-af90-c4b21760ec0d", fullname: "Demo Contact 2" });
+                break;
+            case "sample_customtables":
+                fakeData.value.push({ sample_customtableid: "c6f35754-6fa8-4e8b-8b58-d4ca958001f4", sample_name: "Demo Custom Table 1" });
+                fakeData.value.push({ sample_customtableid: "ddd99cd3-bec1-4643-af90-c4b21760ec0d", sample_name: "Demo Custom Table 2" });
+                fakeData.value.push({ sample_customtableid: "e02fc8d5-a484-4991-ae70-f3a928be3389", sample_name: "Demo Custom Table 3" });
+                fakeData.value.push({ sample_customtableid: "8d7b828d-7d1c-4e30-9a8b-7d28cce7b9c3", sample_name: "Demo Custom Table 4" });
+                break;
+            case "systemusers":
+                fakeData.value.push({ systemuserid: "c6f35754-6fa8-4e8b-8b58-d4ca958001f4", fullname: "Demo User 1" });
+                fakeData.value.push({ systemuserid: "ddd99cd3-bec1-4643-af90-c4b21760ec0d", fullname: "Demo User 2" });
+                fakeData.value.push({ systemuserid: "e02fc8d5-a484-4991-ae70-f3a928be3389", fullname: "Demo User 3" });
+                break;
+            case "teams":
+                fakeData.value.push({ teamid: "c6f35754-6fa8-4e8b-8b58-d4ca958001f4", name: "Demo Team 1" });
+              break;
+        }
+    }
     return fakeData;
 }
 
@@ -1841,7 +1872,12 @@ DRB.UI.CreateCheckbox = function (id, text, className, checked) {
  * @param {string} text Text
  * @param {string} className Class Name
  * @param {Function} event Function to call when the button is clicked
- * @param {Function} parameter Parameter passed to the function
+ * @param {any} parameter First parameter passed to the function
+ * @param {any} parameter2 Second parameter passed to the function
+ * @param {any} parameter3 Third parameter passed to the function
+ * @param {any} parameter4 Fourth parameter passed to the function
+ * @param {any} parameter5 Fifth parameter passed to the function
+ * @param {any} parameter6 Sixth parameter passed to the function
  */
 DRB.UI.CreateButton = function (id, text, className, event, parameter, parameter2, parameter3, parameter4, parameter5, parameter6) {
     if (!DRB.Utilities.HasValue(className)) { className = "btn-primary"; }
@@ -2204,45 +2240,22 @@ DRB.UI.OpenLookup = function (settings) {
 
     // if lookupOptions is valid show the selection, otherwise show the error
     if (DRB.Utilities.HasValue(lookupOptions)) {
-        // XTB Mode
-        if (DRB.Xrm.IsXTBMode()) {
-            DRB.UI.Show("XrmToolBox Mode", "Lookup is not available inside XrmToolBox.<br />A random Guid has been generated.");
-            $("#" + settings.textId).val(DRB.Utilities.GenerateGuid()).trigger("input").change();
-            return;
-        }
-
-        // JWT Mode
-        if (DRB.Xrm.IsJWTMode()) {
-            DRB.UI.Show("JWT Mode", "Lookup is not available in JWT Mode.<br />A random Guid has been generated.");
-            $("#" + settings.textId).val(DRB.Utilities.GenerateGuid()).trigger("input").change();
-            return;
-        }
-
-        // DVDT Mode
-        if (DRB.Xrm.IsDVDTMode()) {
-            DRB.UI.Show("DVDT Mode", "Lookup is not available inside DVDT.<br />A random Guid has been generated.");
-            $("#" + settings.textId).val(DRB.Utilities.GenerateGuid()).trigger("input").change();
-            return;
-        }
-
-        // Demo Mode
-        if (DRB.Xrm.IsDemoMode()) {
-            DRB.UI.Show("Demo Mode", "Lookup is not available in Demo Mode.<br />A random Guid has been generated.");
-            $("#" + settings.textId).val(DRB.Utilities.GenerateGuid()).trigger("input").change();
-            return;
-        }
-
-        DRB.Xrm.GetXrmObject().Utility.lookupObjects(lookupOptions).then(
-            function (success) {
-                if (success.length > 0) {
-                    $("#" + settings.textId).val(success[0].id).trigger("input").change();
-                    if (DRB.Utilities.HasValue(settings.dropdownId)) {
-                        $("#" + settings.dropdownId).val(success[0].entityType).change();
-                        DRB.UI.RefreshDropdown(settings.dropdownId);
+        if (DRB.Xrm.IsInstanceMode()) {
+            DRB.Xrm.GetXrmObject().Utility.lookupObjects(lookupOptions).then(
+                function (success) {
+                    if (success.length > 0) {
+                        $("#" + settings.textId).val(success[0].id).trigger("input").change();
+                        if (DRB.Utilities.HasValue(settings.dropdownId)) {
+                            $("#" + settings.dropdownId).val(success[0].entityType).change();
+                            DRB.UI.RefreshDropdown(settings.dropdownId);
+                        }
                     }
-                }
-            },
-            function (error) { DRB.UI.ShowError("Xrm.Utility.lookupObjects Error", error); });
+                },
+                function (error) { DRB.UI.ShowError("Xrm.Utility.lookupObjects Error", error); });
+        } else {
+            // XTB, JWT, DVDT, Demo
+            DRB.Common.OpenLookup(lookupOptions, settings);          
+        }
     } else {
         DRB.UI.ShowError("Table not selected", "Please select a Table first");
     }
@@ -3697,6 +3710,115 @@ DRB.Common.BindNumber = function (id, minValue, maxValue) {
             return finalNumber;
         });
     });
+}
+
+DRB.Common.LookupSelect = function (settings, tableLogicalName, recordId) {
+    $("#" + settings.textId).val(recordId).trigger("input").change();
+    if (DRB.Utilities.HasValue(settings.dropdownId)) {
+        $("#" + settings.dropdownId).val(tableLogicalName).change();
+        DRB.UI.RefreshDropdown(settings.dropdownId);
+    }
+    DRB.UI.HideLoading();
+}
+
+DRB.Common.LookupSearch = function (settings) {
+    var tableLogicalName = $("#" + DRB.DOM.Lookup.TableDropdown.Id).val();
+    var text = $("#" + DRB.DOM.Lookup.Input.Id).val();
+    if (!DRB.Utilities.HasValue(tableLogicalName) || !DRB.Utilities.HasValue(text)) { return; }
+
+    var checkTable = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, tableLogicalName);
+    if (DRB.Utilities.HasValue(checkTable)) {
+        $("#" + DRB.DOM.Lookup.DivResults.Id).empty();
+        $("#" + DRB.DOM.Lookup.DivResults.Id).append(DRB.UI.CreateSpan("", "Retrieving Records..."));
+        DRB.Xrm.Retrieve(checkTable.EntitySetName, "$select=" + checkTable.PrimaryNameAttribute + "&$filter=contains(" + checkTable.PrimaryNameAttribute + ",'" + text + "')&$orderby=" + checkTable.PrimaryNameAttribute + " asc&$top=5")
+            .done(function (data) {
+                $("#" + DRB.DOM.Lookup.DivResults.Id).empty();
+                if (data.value.length > 0) {
+                    // Create Table to show the results
+                    var divTable = DRB.UI.CreateTable(DRB.DOM.Lookup.Table.Id);
+                    var thHeader = DRB.UI.CreateTr(DRB.DOM.Lookup.Tr.Id + "header");
+                    var tdLabelHeaderSelect = DRB.UI.CreateTd(DRB.DOM.Lookup.TdLabel.Id + "header_select");
+                    var tdLabelHeaderID = DRB.UI.CreateTd(DRB.DOM.Lookup.TdLabel.Id + "header_id");
+                    var tdLabelHeaderPrimaryColumn = DRB.UI.CreateTd(DRB.DOM.Lookup.TdLabel.Id + "header_primarycolumn");
+                    divTable.append(thHeader);
+                    thHeader.append(tdLabelHeaderSelect);
+                    thHeader.append(tdLabelHeaderID);
+                    thHeader.append(tdLabelHeaderPrimaryColumn);
+                    tdLabelHeaderID.append(DRB.UI.CreateSpan(DRB.DOM.Lookup.HeaderIDSpan.Id, DRB.DOM.Lookup.HeaderIDSpan.Name));
+                    tdLabelHeaderPrimaryColumn.append(DRB.UI.CreateSpan(DRB.DOM.Lookup.HeaderPrimaryColumnSpan.Id, DRB.DOM.Lookup.HeaderPrimaryColumnSpan.Name));
+
+                    var searchResults = [];
+
+                    data.value.forEach(function (record) {
+                        searchResults.push({ Id: record[checkTable.PrimaryIdAttribute], PrimaryColumn: record[checkTable.PrimaryNameAttribute] });
+                    });
+
+                    searchResults.forEach(function (searchResult, searchResultIndex) {
+                        var tr = DRB.UI.CreateTr(DRB.DOM.Lookup.Tr.Id + searchResultIndex);
+                        var tdValueSelect = DRB.UI.CreateTd(DRB.DOM.Lookup.TdValue.Id + searchResultIndex + "_select");
+                        var tdValueID = DRB.UI.CreateTd(DRB.DOM.Lookup.TdValue.Id + searchResultIndex + "_id");
+                        var tdValuePrimaryColumn = DRB.UI.CreateTd(DRB.DOM.Lookup.TdValue.Id + searchResultIndex + "_primarycolumn");
+
+                        divTable.append(tr);
+                        tr.append(tdValueSelect);
+                        tr.append(tdValueID);
+                        tr.append(tdValuePrimaryColumn);
+                        tdValueSelect.append(DRB.UI.CreateButton(DRB.DOM.Lookup.SelectButton.Id + searchResultIndex, DRB.DOM.Lookup.SelectButton.Name, DRB.DOM.Lookup.SelectButton.Class, DRB.Common.LookupSelect, settings, checkTable.LogicalName, searchResult.Id));
+                        tdValueID.append(DRB.UI.CreateSpan("", searchResult.Id));
+                        tdValuePrimaryColumn.append(DRB.UI.CreateSpan("", searchResult.PrimaryColumn));
+                    });
+                    $("#" + DRB.DOM.Lookup.DivResults.Id).append(divTable);
+                } else {
+                    $("#" + DRB.DOM.Lookup.DivResults.Id).append(DRB.UI.CreateSpan("", "No Records"));
+                }
+            })
+            .fail(function (xhr) {
+                $("#" + DRB.DOM.Lookup.DivResults.Id).empty();
+                $("#" + DRB.DOM.Lookup.DivResults.Id).append(DRB.UI.CreateSpan("", "Error retrieving Records"));
+            });
+    }
+}
+
+DRB.Common.BindLookupInput = function (id) {
+    $("#" + id).on("change keyup", function (e) {
+        var text = $(this).val();
+        var disableButton = false;
+        if (!DRB.Utilities.HasValue(text)) { disableButton = true; }
+        $("#" + DRB.DOM.Lookup.SearchButton.Id).prop("disabled", disableButton);
+    });
+}
+
+DRB.Common.BindLookupTable = function (id) {
+    $("#" + id).on("change", function (e) {
+        $("#" + DRB.DOM.Lookup.Input.Id).val("").trigger("input").change();
+        $("#" + DRB.DOM.Lookup.DivResults.Id).empty();
+    });
+}
+
+DRB.Common.OpenLookup = function (lookupOptions, settings) {
+    var lookupTables = [];
+    lookupOptions.entityTypes.forEach(function (tableLogicalName) {
+        var checkTable = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, tableLogicalName);
+        if (DRB.Utilities.HasValue(checkTable)) { lookupTables.push(checkTable); }
+    });
+
+    var lookupDiv = DRB.UI.CreateEmptyDiv(DRB.DOM.Lookup.Div.Id);
+    lookupDiv.append(DRB.UI.CreateSpan(DRB.DOM.Lookup.TableSpan.Id, DRB.DOM.Lookup.TableSpan.Name));
+    lookupDiv.append(DRB.UI.CreateDropdown(DRB.DOM.Lookup.TableDropdown.Id));
+    lookupDiv.append(DRB.UI.CreateSpan("", "NOTE: maximum 5 records are returned"));
+    lookupDiv.append(DRB.UI.CreateSpacer());
+    lookupDiv.append(DRB.UI.CreateSpan(DRB.DOM.Lookup.InputSpan.Id, DRB.DOM.Lookup.InputSpan.Name));
+    lookupDiv.append(DRB.UI.CreateInputString(DRB.DOM.Lookup.Input.Id));
+    lookupDiv.append(DRB.UI.CreateSpan(null, " "));
+    lookupDiv.append(DRB.UI.CreateButton(DRB.DOM.Lookup.SearchButton.Id, DRB.DOM.Lookup.SearchButton.Name, DRB.DOM.Lookup.SearchButton.Class, DRB.Common.LookupSearch, settings));
+    lookupDiv.append(DRB.UI.CreateSpacer());
+    lookupDiv.append(DRB.UI.CreateEmptyDiv(DRB.DOM.Lookup.DivResults.Id, DRB.DOM.Lookup.DivResults.Class));
+    DRB.UI.Show("Lookup", lookupDiv, "large");
+    $(".modal-footer").remove();
+    DRB.UI.FillDropdown(DRB.DOM.Lookup.TableDropdown.Id, DRB.DOM.Lookup.TableDropdown.Name, new DRB.Models.Records(lookupTables).ToDropdown());
+    DRB.Common.BindLookupTable(DRB.DOM.Lookup.TableDropdown.Id);
+    DRB.Common.BindLookupInput(DRB.DOM.Lookup.Input.Id);
+    $("#" + DRB.DOM.Lookup.Input.Id).val("").trigger("input").change();
 }
 
 /**
@@ -15449,7 +15571,7 @@ DRB.InsertMainBodyContent = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.22";
+    var drbVersion = "1.0.0.23";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 
