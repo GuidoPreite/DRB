@@ -35,6 +35,10 @@ DRB.DOM.Collection.NewButton = { Id: "btn_newcollection", Name: "New Collection"
 DRB.DOM.Collection.LoadButton = { Id: "btn_loadcollection", Name: "Load Collection", Class: "dropdown-item" };
 DRB.DOM.Collection.SaveButton = { Id: "btn_savecollection", Name: "Save Collection", Class: "dropdown-item" };
 DRB.DOM.Collection.ExportPostmanButton = { Id: "btn_exportpostmancollection", Name: "Export as Postman Collection (2.1)", Class: "dropdown-item" };
+DRB.DOM.Collection.ExportRESTClientEnvironmentButton = { Id: "btn_exportrestclientenvironment", Name: "Export REST Client Environment", Class: "dropdown-item" };
+DRB.DOM.Collection.ExportRESTClientCollectionButton = { Id: "btn_exportrestclientcollection", Name: "Export as REST Client Collection (.http)", Class: "dropdown-item" };
+DRB.DOM.Collection.ExportThunderEnvironmentButton = { Id: "btn_exportthunderenvironment", Name: "Export Thunder Client Environment", Class: "dropdown-item" };
+DRB.DOM.Collection.ExportThunderCollectionButton = { Id: "btn_exportthundercollection", Name: "Export as Thunder Client Collection", Class: "dropdown-item" };
 
 DRB.DOM.Collection.Postman = {};
 DRB.DOM.Collection.Postman.Div = { Id: "div_export_postman" };
@@ -71,6 +75,46 @@ DRB.DOM.Collection.Postman.ScopeInput = { Id: "txt_postman_scope" };
 DRB.DOM.Collection.Postman.ResourceSpan = { Id: "span_postman_resource", Name: "Resource" };
 DRB.DOM.Collection.Postman.ResourceInput = { Id: "txt_postman_resource" };
 
+
+DRB.DOM.Collection.RESTClient = {};
+DRB.DOM.Collection.RESTClient.Div = { Id: "div_export_restclient" };
+DRB.DOM.Collection.RESTClient.SettingsDiv = { Id: "div_export_restclient_setting" };
+DRB.DOM.Collection.RESTClient.Table = { Id: "table_restclient" };
+DRB.DOM.Collection.RESTClient.Tr = { Id: "tr_restclient_" };
+DRB.DOM.Collection.RESTClient.TdLabel = { Id: "td_restclient_label_" };
+DRB.DOM.Collection.RESTClient.TdValue = { Id: "td_restclient_value_" };
+DRB.DOM.Collection.RESTClient.EndpointSpan = { Id: "span_restclient_endpoint", Name: "Endpoint" };
+DRB.DOM.Collection.RESTClient.EndpointDropdown = { Id: "cbx_restclient_endpoint", Name: "Select Endpoint" };
+DRB.DOM.Collection.RESTClient.UrlSpan = { Id: "span_restclient_url", Name: "URL", SmallText: "{{url}}" };
+DRB.DOM.Collection.RESTClient.UrlInput = { Id: "txt_restclient_url" };
+DRB.DOM.Collection.RESTClient.ClientIdSpan = { Id: "span_restclient_clientid", Name: "Client ID", SmallText: "{{clientid}}" };
+DRB.DOM.Collection.RESTClient.ClientIdInput = { Id: "txt_restclient_clientid" };
+DRB.DOM.Collection.RESTClient.ClientSecretSpan = { Id: "span_restclient_clientsecret", Name: "Client Secret", SmallText: "{{clientsecret}}" };
+DRB.DOM.Collection.RESTClient.ClientSecretInput = { Id: "txt_restclient_clientsecret" };
+DRB.DOM.Collection.RESTClient.TenantIdSpan = { Id: "span_restclient_tenantid", Name: "Tenant ID", SmallText: "{{tenantid}}" };
+DRB.DOM.Collection.RESTClient.TenantIdInput = { Id: "txt_restclient_tenantid" };
+DRB.DOM.Collection.RESTClient.AccessTokenSpan = { Id: "span_restclient_accesstoken", Name: "Access Token URL" };
+DRB.DOM.Collection.RESTClient.AccessTokenInput = { Id: "txt_restclient_accesstoken" };
+DRB.DOM.Collection.RESTClient.ScopeSpan = { Id: "span_restclient_scope", Name: "Scope" };
+DRB.DOM.Collection.RESTClient.ScopeInput = { Id: "txt_restclient_scope" };
+DRB.DOM.Collection.RESTClient.ResourceSpan = { Id: "span_restclient_resource", Name: "Resource" };
+DRB.DOM.Collection.RESTClient.ResourceInput = { Id: "txt_restclient_resource" };
+
+DRB.DOM.Collection.ThunderClient = {};
+DRB.DOM.Collection.ThunderClient.Div = { Id: "div_export_thunder" };
+DRB.DOM.Collection.ThunderClient.SettingsDiv = { Id: "div_export_thunder_setting" };
+DRB.DOM.Collection.ThunderClient.Table = { Id: "table_thunder" };
+DRB.DOM.Collection.ThunderClient.Tr = { Id: "tr_thunder_" };
+DRB.DOM.Collection.ThunderClient.TdLabel = { Id: "td_thunder_label_" };
+DRB.DOM.Collection.ThunderClient.TdValue = { Id: "td_thunder_value_" };
+DRB.DOM.Collection.ThunderClient.UrlSpan = { Id: "span_thunder_url", Name: "URL", SmallText: "{{url}}" };
+DRB.DOM.Collection.ThunderClient.UrlInput = { Id: "txt_thunder_url" };
+DRB.DOM.Collection.ThunderClient.ClientIdSpan = { Id: "span_thunder_clientid", Name: "Client ID", SmallText: "{{clientid}}" };
+DRB.DOM.Collection.ThunderClient.ClientIdInput = { Id: "txt_thunder_clientid" };
+DRB.DOM.Collection.ThunderClient.ClientSecretSpan = { Id: "span_thunder_clientsecret", Name: "Client Secret", SmallText: "{{clientsecret}}" };
+DRB.DOM.Collection.ThunderClient.ClientSecretInput = { Id: "txt_thunder_clientsecret" };
+DRB.DOM.Collection.ThunderClient.TenantIdSpan = { Id: "span_thunder_tenantid", Name: "Tenant ID", SmallText: "{{tenantid}}" };
+DRB.DOM.Collection.ThunderClient.TenantIdInput = { Id: "txt_thunder_tenantid" };
 
 // Request Type
 DRB.DOM.RequestType = {};

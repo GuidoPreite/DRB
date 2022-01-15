@@ -163,6 +163,11 @@ DRB.SetDefaultSettings = function () {
     DRB.Settings.PostmanEndpoint = [new DRB.Models.IdValue("v1", "Token Endpoint V1"), new DRB.Models.IdValue("v2", "Token Endpoint V2")];
     // #endregion
 
+    // #region REST Client Export Settings
+    DRB.Settings.RESTClientEndpoint = [new DRB.Models.IdValue("v1", "Token Endpoint V1"), new DRB.Models.IdValue("v2", "Token Endpoint V2")];
+    // #endregion
+
+
     DRB.Settings.TimeoutDelay = 500; // used in the setTimout calls
 }
 
@@ -177,6 +182,12 @@ DRB.DefineOperations = function () {
     var btn_SaveCollection = DRB.UI.CreateButton(DRB.DOM.Collection.SaveButton.Id, DRB.DOM.Collection.SaveButton.Name, DRB.DOM.Collection.SaveButton.Class, DRB.Collection.Save);
     var btn_ExportPostmanCollection = DRB.UI.CreateButton(DRB.DOM.Collection.ExportPostmanButton.Id, DRB.DOM.Collection.ExportPostmanButton.Name, DRB.DOM.Collection.ExportPostmanButton.Class, DRB.Collection.ExportPostman);
 
+    var btn_ExportRESTClientEnvironment = DRB.UI.CreateButton(DRB.DOM.Collection.ExportRESTClientEnvironmentButton.Id, DRB.DOM.Collection.ExportRESTClientEnvironmentButton.Name, DRB.DOM.Collection.ExportRESTClientEnvironmentButton.Class, DRB.Collection.ExportRESTClientEnvironment);
+    var btn_ExportRESTClientCollection = DRB.UI.CreateButton(DRB.DOM.Collection.ExportRESTClientCollectionButton.Id, DRB.DOM.Collection.ExportRESTClientCollectionButton.Name, DRB.DOM.Collection.ExportRESTClientCollectionButton.Class, DRB.Collection.ExportRESTClientCollection);
+
+    var btn_ExportThunderClientEnvironment = DRB.UI.CreateButton(DRB.DOM.Collection.ExportThunderEnvironmentButton.Id, DRB.DOM.Collection.ExportThunderEnvironmentButton.Name, DRB.DOM.Collection.ExportThunderEnvironmentButton.Class, DRB.Collection.ExportThunderClientEnvironment);
+    var btn_ExportThunderClientCollection = DRB.UI.CreateButton(DRB.DOM.Collection.ExportThunderCollectionButton.Id, DRB.DOM.Collection.ExportThunderCollectionButton.Name, DRB.DOM.Collection.ExportThunderCollectionButton.Class, DRB.Collection.ExportThunderClientCollection);
+
     var menu = $("#" + DRB.DOM.Collection.Menu.Id);
     menu.append(inp_LoadFile);
     menu.append(btn_NewCollection);
@@ -184,6 +195,12 @@ DRB.DefineOperations = function () {
     menu.append(btn_SaveCollection);
     menu.append(DRB.UI.CreateEmptyDiv(DRB.DOM.Collection.Separator.Id, DRB.DOM.Collection.Separator.Class));
     menu.append(btn_ExportPostmanCollection);
+    menu.append(DRB.UI.CreateEmptyDiv(DRB.DOM.Collection.Separator.Id, DRB.DOM.Collection.Separator.Class));
+    menu.append(btn_ExportRESTClientEnvironment);
+    menu.append(btn_ExportRESTClientCollection);
+    //menu.append(DRB.UI.CreateEmptyDiv(DRB.DOM.Collection.Separator.Id, DRB.DOM.Collection.Separator.Class));
+    //menu.append(btn_ExportThunderClientEnvironment);
+    //menu.append(btn_ExportThunderClientCollection);
     // #endregion
 
     // #region jsTree
@@ -483,7 +500,7 @@ DRB.InsertMainBodyContent = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.23";
+    var drbVersion = "1.0.0.24";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 

@@ -64,6 +64,10 @@ DRB.DOM.Collection.NewButton = { Id: "btn_newcollection", Name: "New Collection"
 DRB.DOM.Collection.LoadButton = { Id: "btn_loadcollection", Name: "Load Collection", Class: "dropdown-item" };
 DRB.DOM.Collection.SaveButton = { Id: "btn_savecollection", Name: "Save Collection", Class: "dropdown-item" };
 DRB.DOM.Collection.ExportPostmanButton = { Id: "btn_exportpostmancollection", Name: "Export as Postman Collection (2.1)", Class: "dropdown-item" };
+DRB.DOM.Collection.ExportRESTClientEnvironmentButton = { Id: "btn_exportrestclientenvironment", Name: "Export REST Client Environment", Class: "dropdown-item" };
+DRB.DOM.Collection.ExportRESTClientCollectionButton = { Id: "btn_exportrestclientcollection", Name: "Export as REST Client Collection (.http)", Class: "dropdown-item" };
+DRB.DOM.Collection.ExportThunderEnvironmentButton = { Id: "btn_exportthunderenvironment", Name: "Export Thunder Client Environment", Class: "dropdown-item" };
+DRB.DOM.Collection.ExportThunderCollectionButton = { Id: "btn_exportthundercollection", Name: "Export as Thunder Client Collection", Class: "dropdown-item" };
 
 DRB.DOM.Collection.Postman = {};
 DRB.DOM.Collection.Postman.Div = { Id: "div_export_postman" };
@@ -100,6 +104,46 @@ DRB.DOM.Collection.Postman.ScopeInput = { Id: "txt_postman_scope" };
 DRB.DOM.Collection.Postman.ResourceSpan = { Id: "span_postman_resource", Name: "Resource" };
 DRB.DOM.Collection.Postman.ResourceInput = { Id: "txt_postman_resource" };
 
+
+DRB.DOM.Collection.RESTClient = {};
+DRB.DOM.Collection.RESTClient.Div = { Id: "div_export_restclient" };
+DRB.DOM.Collection.RESTClient.SettingsDiv = { Id: "div_export_restclient_setting" };
+DRB.DOM.Collection.RESTClient.Table = { Id: "table_restclient" };
+DRB.DOM.Collection.RESTClient.Tr = { Id: "tr_restclient_" };
+DRB.DOM.Collection.RESTClient.TdLabel = { Id: "td_restclient_label_" };
+DRB.DOM.Collection.RESTClient.TdValue = { Id: "td_restclient_value_" };
+DRB.DOM.Collection.RESTClient.EndpointSpan = { Id: "span_restclient_endpoint", Name: "Endpoint" };
+DRB.DOM.Collection.RESTClient.EndpointDropdown = { Id: "cbx_restclient_endpoint", Name: "Select Endpoint" };
+DRB.DOM.Collection.RESTClient.UrlSpan = { Id: "span_restclient_url", Name: "URL", SmallText: "{{url}}" };
+DRB.DOM.Collection.RESTClient.UrlInput = { Id: "txt_restclient_url" };
+DRB.DOM.Collection.RESTClient.ClientIdSpan = { Id: "span_restclient_clientid", Name: "Client ID", SmallText: "{{clientid}}" };
+DRB.DOM.Collection.RESTClient.ClientIdInput = { Id: "txt_restclient_clientid" };
+DRB.DOM.Collection.RESTClient.ClientSecretSpan = { Id: "span_restclient_clientsecret", Name: "Client Secret", SmallText: "{{clientsecret}}" };
+DRB.DOM.Collection.RESTClient.ClientSecretInput = { Id: "txt_restclient_clientsecret" };
+DRB.DOM.Collection.RESTClient.TenantIdSpan = { Id: "span_restclient_tenantid", Name: "Tenant ID", SmallText: "{{tenantid}}" };
+DRB.DOM.Collection.RESTClient.TenantIdInput = { Id: "txt_restclient_tenantid" };
+DRB.DOM.Collection.RESTClient.AccessTokenSpan = { Id: "span_restclient_accesstoken", Name: "Access Token URL" };
+DRB.DOM.Collection.RESTClient.AccessTokenInput = { Id: "txt_restclient_accesstoken" };
+DRB.DOM.Collection.RESTClient.ScopeSpan = { Id: "span_restclient_scope", Name: "Scope" };
+DRB.DOM.Collection.RESTClient.ScopeInput = { Id: "txt_restclient_scope" };
+DRB.DOM.Collection.RESTClient.ResourceSpan = { Id: "span_restclient_resource", Name: "Resource" };
+DRB.DOM.Collection.RESTClient.ResourceInput = { Id: "txt_restclient_resource" };
+
+DRB.DOM.Collection.ThunderClient = {};
+DRB.DOM.Collection.ThunderClient.Div = { Id: "div_export_thunder" };
+DRB.DOM.Collection.ThunderClient.SettingsDiv = { Id: "div_export_thunder_setting" };
+DRB.DOM.Collection.ThunderClient.Table = { Id: "table_thunder" };
+DRB.DOM.Collection.ThunderClient.Tr = { Id: "tr_thunder_" };
+DRB.DOM.Collection.ThunderClient.TdLabel = { Id: "td_thunder_label_" };
+DRB.DOM.Collection.ThunderClient.TdValue = { Id: "td_thunder_value_" };
+DRB.DOM.Collection.ThunderClient.UrlSpan = { Id: "span_thunder_url", Name: "URL", SmallText: "{{url}}" };
+DRB.DOM.Collection.ThunderClient.UrlInput = { Id: "txt_thunder_url" };
+DRB.DOM.Collection.ThunderClient.ClientIdSpan = { Id: "span_thunder_clientid", Name: "Client ID", SmallText: "{{clientid}}" };
+DRB.DOM.Collection.ThunderClient.ClientIdInput = { Id: "txt_thunder_clientid" };
+DRB.DOM.Collection.ThunderClient.ClientSecretSpan = { Id: "span_thunder_clientsecret", Name: "Client Secret", SmallText: "{{clientsecret}}" };
+DRB.DOM.Collection.ThunderClient.ClientSecretInput = { Id: "txt_thunder_clientsecret" };
+DRB.DOM.Collection.ThunderClient.TenantIdSpan = { Id: "span_thunder_tenantid", Name: "Tenant ID", SmallText: "{{tenantid}}" };
+DRB.DOM.Collection.ThunderClient.TenantIdInput = { Id: "txt_thunder_tenantid" };
 
 // Request Type
 DRB.DOM.RequestType = {};
@@ -14835,6 +14879,120 @@ DRB.Collection.ExportNodes = function (currentNode, exportNode) {
 }
 
 /**
+ * Collection - Save 
+ */
+DRB.Collection.Save = function () {
+    // get jsTree data structure
+    var currentNodes = $("#" + DRB.DOM.TreeView.Id).jstree(true).get_json("#");
+    // if no nodes then show error
+    if (currentNodes.length === 0) { DRB.UI.ShowError("Save Collection", "Create or Load a Collection before Save"); }
+    else {
+        // get current DateTime
+        var now = new Date();
+        // create json collection
+        var collection = {};
+        collection.created_on = now.toJSON(); // current DateTime as json 
+        collection.version = 1; // collection version
+        // export jsTree nodes to the json collection
+        DRB.Collection.ExportNodes(currentNodes[0], collection);
+        // create fileName and fileDate (coming from current DateTime) to be used inside a valid filename
+        var fileName = currentNodes[0].text.replace(/[^a-z0-9]/gi, "_");
+        var fileDate = now.toLocaleString("sv").replace(/ /g, "_").replace(/-/g, "").replace(/:/g, "");
+        // create the blob content holding the json collection
+        var saveFile = new Blob([JSON.stringify(collection, null, "\t")], { type: "application/json" });
+        // download the blob content with the provided filename
+        var customLink = document.createElement("a");
+        customLink.href = URL.createObjectURL(saveFile);
+        customLink.download = fileName + "_" + fileDate + ".json";
+        customLink.click();
+    }
+}
+
+// #region Postman
+/**
+ * Collection - Bind Postman Endpoint
+ * @param {string} id Id
+*/
+DRB.Collection.BindPostmanEndpoint = function (id) {
+    $("#" + id).on("change", function (e) {
+        var endpoint = $(this).val();
+        var dom = DRB.DOM.Collection.Postman;
+        switch (endpoint) {
+            case "v1":
+                $("#" + dom.ScopeInput.Id).val("");
+                $("#" + dom.ResourceInput.Id).val("{{url}}");
+                $("#" + dom.AccessTokenInput.Id).val("https://login.microsoftonline.com/{{tenantid}}/oauth2/token");
+                break;
+            case "v2":
+                $("#" + dom.ScopeInput.Id).val("{{url}}/.default");
+                $("#" + dom.ResourceInput.Id).val("");
+                $("#" + dom.AccessTokenInput.Id).val("https://login.microsoftonline.com/{{tenantid}}/oauth2/v2.0/token");
+                break;
+        }
+    });
+}
+
+/**
+ * Collection - Bind Postman Grant Type
+ * @param {string} id Id
+*/
+DRB.Collection.BindPostmanGrantType = function (id) {
+    $("#" + id).on("change", function (e) {
+        var grantType = $(this).val();
+        var dom = DRB.DOM.Collection.Postman;
+        $("#" + dom.SettingsDiv.Id).empty();
+        var divTable = DRB.UI.CreateTable(dom.Table.Id);
+        $("#" + dom.SettingsDiv.Id).append(divTable);
+
+        switch (grantType) {
+            case "implicit":
+                var implicitSettings = ["Url", "ClientId", "AuthUrl", "CallbackUrl"];
+                implicitSettings.forEach(function (setting) {
+                    var tr = DRB.UI.CreateTr(dom.Tr.Id + dom[setting + "Span"].Id);
+                    var tdLabel = DRB.UI.CreateTd(dom.TdLabel.Id + dom[setting + "Span"].Id);
+                    var tdValue = DRB.UI.CreateTd(dom.TdValue.Id + dom[setting + "Span"].Id);
+                    divTable.append(tr);
+                    tr.append(tdLabel);
+                    tr.append(tdValue);
+
+                    tdLabel.append(DRB.UI.CreateSpan(dom[setting + "Span"].Id, dom[setting + "Span"].Name, dom[setting + "Span"].SmallText));
+                    tdValue.append(DRB.UI.CreateInputLongString(dom[setting + "Input"].Id, null, dom[setting + "Span"].Name));
+                });
+                $("#" + dom.UrlInput.Id).val(DRB.Xrm.GetClientUrl());
+                $("#" + dom.ClientIdInput.Id).val("51f81489-12ee-4a9e-aaae-a2591f45987d");
+                $("#" + dom.AuthUrlInput.Id).val("https://login.microsoftonline.com/common/oauth2/authorize?resource={{url}}");
+                $("#" + dom.CallbackUrlInput.Id).val("https://callbackurl");
+
+                break;
+
+            case "client_credentials":
+                var clientCredentialSettings = ["Url", "ClientId", "ClientSecret", "TenantId", "Endpoint", "AccessToken", "Scope", "Resource"];
+                clientCredentialSettings.forEach(function (setting) {
+                    var tr = DRB.UI.CreateTr(dom.Tr.Id + dom[setting + "Span"].Id);
+                    var tdLabel = DRB.UI.CreateTd(dom.TdLabel.Id + dom[setting + "Span"].Id);
+                    var tdValue = DRB.UI.CreateTd(dom.TdValue.Id + dom[setting + "Span"].Id);
+                    divTable.append(tr);
+                    tr.append(tdLabel);
+                    tr.append(tdValue);
+
+                    tdLabel.append(DRB.UI.CreateSpan(dom[setting + "Span"].Id, dom[setting + "Span"].Name, dom[setting + "Span"].SmallText));
+                    if (setting === "Endpoint") {
+                        tdValue.append(DRB.UI.CreateSimpleDropdown(dom.EndpointDropdown.Id));
+
+                    } else {
+                        tdValue.append(DRB.UI.CreateInputLongString(dom[setting + "Input"].Id, null, dom[setting + "Span"].Name));
+                    }
+                });
+                $("#" + dom.UrlInput.Id).val(DRB.Xrm.GetClientUrl());
+                DRB.UI.FillDropdown(dom.EndpointDropdown.Id, dom.EndpointDropdown.Name, new DRB.Models.Records(DRB.Settings.PostmanEndpoint).ToDropdown());
+                DRB.Collection.BindPostmanEndpoint(dom.EndpointDropdown.Id);
+                $("#" + dom.EndpointDropdown.Id).val(DRB.Settings.PostmanEndpoint[1].Id).change();
+                break;
+        }
+    });
+}
+
+/**
  * Collection - Export Nodes Postman
  * @param {any} currentNode Current Node
  * @param {any} exportNode Export Node
@@ -14866,125 +15024,13 @@ DRB.Collection.ExportNodesPostman = function (currentNode, exportNode) {
 }
 
 /**
- * Collection - Save 
- */
-DRB.Collection.Save = function () {
-    // get jsTree data structure
-    var currentNodes = $("#" + DRB.DOM.TreeView.Id).jstree(true).get_json("#");
-    // if no nodes then show error
-    if (currentNodes.length === 0) { DRB.UI.ShowError("Save Collection", "Create or Load a Collection before Save"); }
-    else {
-        // get current DateTime
-        var now = new Date();
-        // create json collection
-        var collection = {};
-        collection.created_on = now.toJSON(); // current DateTime as json 
-        collection.version = 1; // collection version
-        // export jsTree nodes to the json collection
-        DRB.Collection.ExportNodes(currentNodes[0], collection);
-        // create fileName and fileDate (coming from current DateTime) to be used inside a valid filename
-        var fileName = currentNodes[0].text.replace(/[^a-z0-9]/gi, "_");
-        var fileDate = now.toLocaleString("sv").replace(/ /g, "_").replace(/-/g, "").replace(/:/g, "");
-        // create the blob content holding the json collection
-        var saveFile = new Blob([JSON.stringify(collection, null, "\t")], { type: "application/json" });
-        // download the blob content with the provided filename
-        var customLink = document.createElement("a");
-        customLink.href = URL.createObjectURL(saveFile);
-        customLink.download = fileName + "_" + fileDate + ".json";
-        customLink.click();
-    }
-}
-
-/**
- * Collection - Bind Postman Endpoint
- * @param {string} id Id
-*/
-DRB.Collection.BindPostmanEndpoint = function (id) {
-    $("#" + id).on("change", function (e) {
-        var endpoint = $(this).val();
-        var postmanDOM = DRB.DOM.Collection.Postman;
-        switch (endpoint) {
-            case "v1":
-                $("#" + postmanDOM.ScopeInput.Id).val("");
-                $("#" + postmanDOM.ResourceInput.Id).val("{{url}}");
-                $("#" + postmanDOM.AccessTokenInput.Id).val("https://login.microsoftonline.com/{{tenantid}}/oauth2/token");
-                break;
-            case "v2":
-                $("#" + postmanDOM.ScopeInput.Id).val("{{url}}/.default");
-                $("#" + postmanDOM.ResourceInput.Id).val("");
-                $("#" + postmanDOM.AccessTokenInput.Id).val("https://login.microsoftonline.com/{{tenantid}}/oauth2/v2.0/token");
-                break;
-        }
-    });
-}
-/**
- * Collection - Bind Postman Grant Type
- * @param {string} id Id
-*/
-DRB.Collection.BindPostmanGrantType = function (id) {
-    $("#" + id).on("change", function (e) {
-        var grantType = $(this).val();
-        var postmanDOM = DRB.DOM.Collection.Postman;
-        $("#" + postmanDOM.SettingsDiv.Id).empty();
-        var divTable = DRB.UI.CreateTable(postmanDOM.Table.Id);
-        $("#" + postmanDOM.SettingsDiv.Id).append(divTable);
-
-        switch (grantType) {
-            case "implicit":
-                var implicitSettings = ["Url", "ClientId", "AuthUrl", "CallbackUrl"];
-                implicitSettings.forEach(function (setting) {
-                    var tr = DRB.UI.CreateTr(postmanDOM.Tr.Id + postmanDOM[setting + "Span"].Id);
-                    var tdLabel = DRB.UI.CreateTd(postmanDOM.TdLabel.Id + postmanDOM[setting + "Span"].Id);
-                    var tdValue = DRB.UI.CreateTd(postmanDOM.TdValue.Id + postmanDOM[setting + "Span"].Id);
-                    divTable.append(tr);
-                    tr.append(tdLabel);
-                    tr.append(tdValue);
-
-                    tdLabel.append(DRB.UI.CreateSpan(postmanDOM[setting + "Span"].Id, postmanDOM[setting + "Span"].Name, postmanDOM[setting + "Span"].SmallText));
-                    tdValue.append(DRB.UI.CreateInputLongString(postmanDOM[setting + "Input"].Id, null, postmanDOM[setting + "Span"].Name));
-                });
-                $("#" + postmanDOM.UrlInput.Id).val(DRB.Xrm.GetClientUrl());
-                $("#" + postmanDOM.ClientIdInput.Id).val("51f81489-12ee-4a9e-aaae-a2591f45987d");
-                $("#" + postmanDOM.AuthUrlInput.Id).val("https://login.microsoftonline.com/common/oauth2/authorize?resource={{url}}");
-                $("#" + postmanDOM.CallbackUrlInput.Id).val("https://callbackurl");
-
-                break;
-
-            case "client_credentials":
-                var clientCredentialSettings = ["Url", "ClientId", "ClientSecret", "TenantId", "Endpoint", "AccessToken", "Scope", "Resource"];
-                clientCredentialSettings.forEach(function (setting) {
-                    var tr = DRB.UI.CreateTr(postmanDOM.Tr.Id + postmanDOM[setting + "Span"].Id);
-                    var tdLabel = DRB.UI.CreateTd(postmanDOM.TdLabel.Id + postmanDOM[setting + "Span"].Id);
-                    var tdValue = DRB.UI.CreateTd(postmanDOM.TdValue.Id + postmanDOM[setting + "Span"].Id);
-                    divTable.append(tr);
-                    tr.append(tdLabel);
-                    tr.append(tdValue);
-
-                    tdLabel.append(DRB.UI.CreateSpan(postmanDOM[setting + "Span"].Id, postmanDOM[setting + "Span"].Name, postmanDOM[setting + "Span"].SmallText));
-                    if (setting === "Endpoint") {
-                        tdValue.append(DRB.UI.CreateSimpleDropdown(postmanDOM.EndpointDropdown.Id));
-
-                    } else {
-                        tdValue.append(DRB.UI.CreateInputLongString(postmanDOM[setting + "Input"].Id, null, postmanDOM[setting + "Span"].Name));
-                    }
-                });
-                $("#" + postmanDOM.UrlInput.Id).val(DRB.Xrm.GetClientUrl());
-                DRB.UI.FillDropdown(postmanDOM.EndpointDropdown.Id, postmanDOM.EndpointDropdown.Name, new DRB.Models.Records(DRB.Settings.PostmanEndpoint).ToDropdown());
-                DRB.Collection.BindPostmanEndpoint(postmanDOM.EndpointDropdown.Id);
-                $("#" + postmanDOM.EndpointDropdown.Id).val(DRB.Settings.PostmanEndpoint[1].Id).change();
-                break;
-        }
-    });
-}
-
-/**
  * Collection - Export Postman File
  */
 DRB.Collection.ExportPostmanFile = function () {
     // get jsTree data structure
     var currentNodes = $("#" + DRB.DOM.TreeView.Id).jstree(true).get_json("#");
-    var postmanDOM = DRB.DOM.Collection.Postman;
-    var grantType = $("#" + postmanDOM.GrantTypeDropdown.Id).val();
+    var dom = DRB.DOM.Collection.Postman;
+    var grantType = $("#" + dom.GrantTypeDropdown.Id).val();
     // get current DateTime
     var now = new Date();
     // create json collection
@@ -15014,9 +15060,9 @@ DRB.Collection.ExportPostmanFile = function () {
         case "client_credentials":
             collection.auth.oauth2.push({ key: "clientId", value: "{{clientid}}", type: "string" });
             collection.auth.oauth2.push({ key: "clientSecret", value: "{{clientsecret}}", type: "string" });
-            collection.auth.oauth2.push({ key: "scope", value: $("#" + postmanDOM.ScopeInput.Id).val(), type: "string" });
-            collection.auth.oauth2.push({ key: "accessTokenUrl", value: $("#" + postmanDOM.AccessTokenInput.Id).val(), type: "string" });
-            var resourceValue = $("#" + postmanDOM.ResourceInput.Id).val();
+            collection.auth.oauth2.push({ key: "scope", value: $("#" + dom.ScopeInput.Id).val(), type: "string" });
+            collection.auth.oauth2.push({ key: "accessTokenUrl", value: $("#" + dom.AccessTokenInput.Id).val(), type: "string" });
+            var resourceValue = $("#" + dom.ResourceInput.Id).val();
             if (DRB.Utilities.HasValue(resourceValue)) {
                 var resourceKey = { key: "resource", value: {}, type: "any" };
                 var newGuid = DRB.Utilities.GenerateGuid();
@@ -15033,17 +15079,17 @@ DRB.Collection.ExportPostmanFile = function () {
     // #endregion
 
     // #region variable
-    collection.variable.push({ key: "url", value: $("#" + postmanDOM.UrlInput.Id).val() });
+    collection.variable.push({ key: "url", value: $("#" + dom.UrlInput.Id).val() });
     switch (grantType) {
         case "implicit":
-            collection.variable.push({ key: "clientid", value: $("#" + postmanDOM.ClientIdInput.Id).val() });
-            collection.variable.push({ key: "authurl", value: $("#" + postmanDOM.AuthUrlInput.Id).val() });
-            collection.variable.push({ key: "callback", value: $("#" + postmanDOM.CallbackUrlInput.Id).val() });
+            collection.variable.push({ key: "clientid", value: $("#" + dom.ClientIdInput.Id).val() });
+            collection.variable.push({ key: "authurl", value: $("#" + dom.AuthUrlInput.Id).val() });
+            collection.variable.push({ key: "callback", value: $("#" + dom.CallbackUrlInput.Id).val() });
             break;
         case "client_credentials":
-            collection.variable.push({ key: "clientid", value: $("#" + postmanDOM.ClientIdInput.Id).val() });
-            collection.variable.push({ key: "clientsecret", value: $("#" + postmanDOM.ClientSecretInput.Id).val() });
-            collection.variable.push({ key: "tenantid", value: $("#" + postmanDOM.TenantIdInput.Id).val() });
+            collection.variable.push({ key: "clientid", value: $("#" + dom.ClientIdInput.Id).val() });
+            collection.variable.push({ key: "clientsecret", value: $("#" + dom.ClientSecretInput.Id).val() });
+            collection.variable.push({ key: "tenantid", value: $("#" + dom.TenantIdInput.Id).val() });
             break;
     }
     // #endregion
@@ -15069,21 +15115,336 @@ DRB.Collection.ExportPostman = function () {
     // get jsTree data structure
     var currentNodes = $("#" + DRB.DOM.TreeView.Id).jstree(true).get_json("#");
     // if no nodes then show error
-    if (currentNodes.length === 0) { DRB.UI.ShowError("Export Postman Collection", "Create or Load a Collection before Export"); }
+    if (currentNodes.length === 0) { DRB.UI.ShowError("Export as Postman Collection", "Create or Load a Collection before Export"); }
     else {
-        var postmanDOM = DRB.DOM.Collection.Postman;
-        var postmanDiv = DRB.UI.CreateEmptyDiv(postmanDOM.Div.Id);
+        var dom = DRB.DOM.Collection.Postman;
+        var exportDiv = DRB.UI.CreateEmptyDiv(dom.Div.Id);
 
-        postmanDiv.append(DRB.UI.CreateSpan(postmanDOM.GrantTypeSpan.Id, postmanDOM.GrantTypeSpan.Name));
-        postmanDiv.append(DRB.UI.CreateSimpleDropdown(postmanDOM.GrantTypeDropdown.Id));
-        postmanDiv.append(DRB.UI.CreateSpacer());
-        postmanDiv.append(DRB.UI.CreateEmptyDiv(postmanDOM.SettingsDiv.Id));
-        DRB.UI.ShowExport("Export as Postman Collection", postmanDiv, "large", DRB.Collection.ExportPostmanFile);
-        DRB.UI.FillDropdown(postmanDOM.GrantTypeDropdown.Id, postmanDOM.GrantTypeDropdown.Name, new DRB.Models.Records(DRB.Settings.PostmanGrantType).ToDropdown());
-        DRB.Collection.BindPostmanGrantType(postmanDOM.GrantTypeDropdown.Id);
-        $("#" + postmanDOM.GrantTypeDropdown.Id).val(DRB.Settings.PostmanGrantType[0].Id).change();
+        exportDiv.append(DRB.UI.CreateSpan(dom.GrantTypeSpan.Id, dom.GrantTypeSpan.Name));
+        exportDiv.append(DRB.UI.CreateSimpleDropdown(dom.GrantTypeDropdown.Id));
+        exportDiv.append(DRB.UI.CreateSpacer());
+        exportDiv.append(DRB.UI.CreateEmptyDiv(dom.SettingsDiv.Id));
+        DRB.UI.ShowExport("Export as Postman Collection", exportDiv, "large", DRB.Collection.ExportPostmanFile);
+        DRB.UI.FillDropdown(dom.GrantTypeDropdown.Id, dom.GrantTypeDropdown.Name, new DRB.Models.Records(DRB.Settings.PostmanGrantType).ToDropdown());
+        DRB.Collection.BindPostmanGrantType(dom.GrantTypeDropdown.Id);
+        $("#" + dom.GrantTypeDropdown.Id).val(DRB.Settings.PostmanGrantType[0].Id).change();
     }
 }
+// #endregion
+
+// #region REST Client
+/**
+ * Collection - Bind REST Client Endpoint
+ * @param {string} id Id
+*/
+DRB.Collection.BindRESTClientEndpoint = function (id) {
+    $("#" + id).on("change", function (e) {
+        var endpoint = $(this).val();
+        var dom = DRB.DOM.Collection.RESTClient;
+        switch (endpoint) {
+            case "v1":
+                $("#" + dom.ScopeInput.Id).val("");
+                $("#" + dom.ResourceInput.Id).val("{{url}}");
+                $("#" + dom.AccessTokenInput.Id).val("https://login.microsoftonline.com/{{tenantid}}/oauth2/token");
+                break;
+            case "v2":
+                $("#" + dom.ScopeInput.Id).val("{{url}}/.default");
+                $("#" + dom.ResourceInput.Id).val("");
+                $("#" + dom.AccessTokenInput.Id).val("https://login.microsoftonline.com/{{tenantid}}/oauth2/v2.0/token");
+                break;
+        }
+    });
+}
+
+/**
+ * Collection - Export REST Client Environment File
+ */
+DRB.Collection.ExportRESTClientEnvironmentFile = function () {
+    var dom = DRB.DOM.Collection.RESTClient;
+    // get current DateTime
+    var now = new Date();
+
+    // create json environment
+    var environment = {
+        "rest-client.environmentVariables": {
+            "$shared": {}, "DRB_Environment": {
+                "url": $("#" + dom.UrlInput.Id).val(),
+                "clientid": $("#" + dom.ClientIdInput.Id).val(),
+                "clientsecret": $("#" + dom.ClientSecretInput.Id).val(),
+                "tenantid": $("#" + dom.TenantIdInput.Id).val()
+            }
+        }
+    };
+
+    // create fileDate (coming from current DateTime) to be used inside a valid filename
+    var fileDate = now.toLocaleString("sv").replace(/ /g, "_").replace(/-/g, "").replace(/:/g, "");
+    // create the blob content holding the json collection
+    var saveFile = new Blob([JSON.stringify(environment, null, "\t")], { type: "application/json" });
+    // download the blob content with the provided filename
+    var customLink = document.createElement("a");
+    customLink.href = URL.createObjectURL(saveFile);
+    customLink.download = "DRB_Environment_" + fileDate + ".settings.json";
+    customLink.click();
+}
+
+/**
+ * Collection - Export REST Client Environment 
+ */
+DRB.Collection.ExportRESTClientEnvironment = function () {
+    var dom = DRB.DOM.Collection.RESTClient;
+    var exportDiv = DRB.UI.CreateEmptyDiv(dom.Div.Id);
+    exportDiv.append(DRB.UI.CreateEmptyDiv(dom.SettingsDiv.Id));
+
+    DRB.UI.ShowExport("Export REST Client Environment", exportDiv, "large", DRB.Collection.ExportRESTClientEnvironmentFile);
+
+    $("#" + dom.SettingsDiv.Id).append(DRB.UI.CreateSpan("", "NOTE: the exported settings.json should be considered a sample, please refer to <a href='https://github.com/Huachao/vscode-restclient#environments' target='_blank'>REST Client documentation</a>"));
+    $("#" + dom.SettingsDiv.Id).append(DRB.UI.CreateSpacer());
+
+    var divTable = DRB.UI.CreateTable(dom.Table.Id);
+    $("#" + dom.SettingsDiv.Id).append(divTable);
+    var enviromentSettings = ["Url", "ClientId", "ClientSecret", "TenantId"];
+
+    enviromentSettings.forEach(function (setting) {
+        var tr = DRB.UI.CreateTr(dom.Tr.Id + dom[setting + "Span"].Id);
+        var tdLabel = DRB.UI.CreateTd(dom.TdLabel.Id + dom[setting + "Span"].Id);
+        var tdValue = DRB.UI.CreateTd(dom.TdValue.Id + dom[setting + "Span"].Id);
+        divTable.append(tr);
+        tr.append(tdLabel);
+        tr.append(tdValue);
+
+        tdLabel.append(DRB.UI.CreateSpan(dom[setting + "Span"].Id, dom[setting + "Span"].Name, dom[setting + "Span"].SmallText));
+        tdValue.append(DRB.UI.CreateInputLongString(dom[setting + "Input"].Id, null, dom[setting + "Span"].Name));
+    });
+
+    $("#" + dom.UrlInput.Id).val(DRB.Xrm.GetClientUrl());
+}
+
+/**
+ * Collection - Export Nodes REST Client
+ * @param {any} currentNode Current Node
+ * @param {string[]} lines Lines
+ */
+DRB.Collection.ExportNodesRESTClient = function (currentNode, lines) {
+    // recursive function to convert a jsTree node to a REST Client collection node
+    //if (currentNode.type === "collection" || currentNode.type === "folder") { exportNode.item = []; }
+    // if (currentNode.type === "folder" || currentNode.type === "request") { exportNode.name = currentNode.text; }
+    if (currentNode.type === "request") {
+        if (DRB.Utilities.HasValue(currentNode.data.requestType)) {
+            lines.push("### " + currentNode.text);
+            var postmanSettings = DRB.GeneratePostman.Start(currentNode.data.requestType, currentNode.data.configuration);
+            lines.push(postmanSettings.postmanMethod + " " + postmanSettings.postmanUrl.raw);
+            lines.push("Authorization: Bearer {{token}}");
+            postmanSettings.postmanHeader.forEach(function (header) {
+                lines.push(header.key + ": " + header.value);
+            });
+            if (postmanSettings.postmanMethod === "POST" || postmanSettings.postmanMethod === "PATCH") {
+                lines.push("");
+                lines.push(postmanSettings.postmanBody.raw);
+            }
+            lines.push("");
+        }
+    }
+    if (currentNode.children.length === 0) { return; }
+    for (var count = 0; count < currentNode.children.length; count++) {
+        DRB.Collection.ExportNodesRESTClient(currentNode.children[count], lines);
+    }
+}
+
+/**
+ * Collection - Export REST Client Collection File
+ */
+DRB.Collection.ExportRESTClientCollectionFile = function () {
+    // get jsTree data structure
+    var currentNodes = $("#" + DRB.DOM.TreeView.Id).jstree(true).get_json("#");
+
+    var dom = DRB.DOM.Collection.RESTClient;
+    var endpointType = $("#" + dom.EndpointDropdown.Id).val();
+    // get current DateTime
+    var now = new Date();
+
+    var lines = [];
+    lines.push("### Get Access Token");
+    lines.push("# @name getAADToken");
+    lines.push("POST " + $("#" + dom.AccessTokenInput.Id).val());
+    lines.push("Content-Type: application/x-www-form-urlencoded");
+    lines.push("");
+    switch (endpointType) {
+        case "v1":
+            lines.push("grant_type=client_credentials&client_id={{clientid}}&client_secret={{clientsecret}}&resource=" + $("#" + dom.ResourceInput.Id).val());
+            break;
+        case "v2":
+            lines.push("grant_type=client_credentials&client_id={{clientid}}&client_secret={{clientsecret}}&scope=" + $("#" + dom.ScopeInput.Id).val());
+            break;
+    }
+
+    lines.push("");
+    lines.push("### Extract access token from getAADToken request");
+    lines.push("@token = {{getAADToken.response.body.access_token}}");
+    lines.push("");
+
+    // export jsTree nodes to the json collection
+    DRB.Collection.ExportNodesRESTClient(currentNodes[0], lines);
+    var collection = lines.join("\r\n");
+
+    // create fileName and fileDate (coming from current DateTime) to be used inside a valid filename
+    var fileName = currentNodes[0].text.replace(/[^a-z0-9]/gi, "_");
+    var fileDate = now.toLocaleString("sv").replace(/ /g, "_").replace(/-/g, "").replace(/:/g, "");
+    // create the blob content holding the json collection
+    var saveFile = new Blob([collection]);
+    // download the blob content with the provided filename
+    var customLink = document.createElement("a");
+    customLink.href = URL.createObjectURL(saveFile);
+    customLink.download = fileName + "_" + fileDate + ".http";
+    customLink.click();
+}
+
+/**
+ * Collection - Export REST Client Collection
+ */
+DRB.Collection.ExportRESTClientCollection = function () {
+    // get jsTree data structure
+    var currentNodes = $("#" + DRB.DOM.TreeView.Id).jstree(true).get_json("#");
+    // if no nodes then show error
+    if (currentNodes.length === 0) { DRB.UI.ShowError("Export as REST Client Collection", "Create or Load a Collection before Export"); }
+    else {
+        var dom = DRB.DOM.Collection.RESTClient;
+        var restClientDiv = DRB.UI.CreateEmptyDiv(dom.Div.Id);
+        restClientDiv.append(DRB.UI.CreateEmptyDiv(dom.SettingsDiv.Id));
+        DRB.UI.ShowExport("Export as REST Client Collection", restClientDiv, "large", DRB.Collection.ExportRESTClientCollectionFile);
+
+        var divTable = DRB.UI.CreateTable(dom.Table.Id);
+        $("#" + dom.SettingsDiv.Id).append(divTable);
+        var collectionSettings = ["Endpoint", "AccessToken", "Scope", "Resource"];
+        collectionSettings.forEach(function (setting) {
+            var tr = DRB.UI.CreateTr(dom.Tr.Id + dom[setting + "Span"].Id);
+            var tdLabel = DRB.UI.CreateTd(dom.TdLabel.Id + dom[setting + "Span"].Id);
+            var tdValue = DRB.UI.CreateTd(dom.TdValue.Id + dom[setting + "Span"].Id);
+            divTable.append(tr);
+            tr.append(tdLabel);
+            tr.append(tdValue);
+
+            tdLabel.append(DRB.UI.CreateSpan(dom[setting + "Span"].Id, dom[setting + "Span"].Name, dom[setting + "Span"].SmallText));
+            if (setting === "Endpoint") {
+                tdValue.append(DRB.UI.CreateSimpleDropdown(dom.EndpointDropdown.Id));
+
+            } else {
+                tdValue.append(DRB.UI.CreateInputLongString(dom[setting + "Input"].Id, null, dom[setting + "Span"].Name));
+            }
+        });
+
+        DRB.UI.FillDropdown(dom.EndpointDropdown.Id, dom.EndpointDropdown.Name, new DRB.Models.Records(DRB.Settings.RESTClientEndpoint).ToDropdown());
+        DRB.Collection.BindRESTClientEndpoint(dom.EndpointDropdown.Id);
+        $("#" + dom.EndpointDropdown.Id).val(DRB.Settings.RESTClientEndpoint[1].Id).change();
+
+        $("#" + dom.UrlInput.Id).val(DRB.Xrm.GetClientUrl());
+    }
+}
+// #endregion
+
+// #region Thunder Client
+/**
+ * Collection - Export Thunder Client Environment File
+ */
+DRB.Collection.ExportThunderClientEnvironmentFile = function () {
+    var dom = DRB.DOM.Collection.ThunderClient;
+    // get current DateTime
+    var now = new Date();
+    var enviromentUrl = $("#" + dom.UrlInput.Id).val();
+    // create json environment
+    var environment = { client: "Thunder Client", environmentName: "DRB - " + enviromentUrl, dateExported: now.toJSON(), version: "1.0", variables: [] };
+
+    environment.variables.push({ name: "url", value: enviromentUrl });
+    environment.variables.push({ name: "clientid", value: $("#" + dom.ClientIdInput.Id).val() });
+    environment.variables.push({ name: "clientsecret", value: $("#" + dom.ClientSecretInput.Id).val() });
+    environment.variables.push({ name: "tenantid", value: $("#" + dom.TenantIdInput.Id).val() });
+
+    // create fileDate (coming from current DateTime) to be used inside a valid filename
+    var fileDate = now.toLocaleString("sv").replace(/ /g, "_").replace(/-/g, "").replace(/:/g, "");
+    // create the blob content holding the json collection
+    var saveFile = new Blob([JSON.stringify(environment, null, "\t")], { type: "application/json" });
+    // download the blob content with the provided filename
+    var customLink = document.createElement("a");
+    customLink.href = URL.createObjectURL(saveFile);
+    customLink.download = "DRB_" + fileDate + ".thunder_environment.json";
+    customLink.click();
+}
+
+/**
+ * Collection - Export Thunder Client Environment 
+ */
+DRB.Collection.ExportThunderClientEnvironment = function () {
+    var dom = DRB.DOM.Collection.ThunderClient;
+    var exportDiv = DRB.UI.CreateEmptyDiv(dom.Div.Id);
+    exportDiv.append(DRB.UI.CreateEmptyDiv(dom.SettingsDiv.Id));
+
+    DRB.UI.ShowExport("Export Thunder Client Environment", exportDiv, "large", DRB.Collection.ExportThunderClientEnvironmentFile);
+
+    var divTable = DRB.UI.CreateTable(dom.Table.Id);
+    $("#" + dom.SettingsDiv.Id).append(divTable);
+    var enviromentSettings = ["Url", "ClientId", "ClientSecret", "TenantId"];
+
+    enviromentSettings.forEach(function (setting) {
+        var tr = DRB.UI.CreateTr(dom.Tr.Id + dom[setting + "Span"].Id);
+        var tdLabel = DRB.UI.CreateTd(dom.TdLabel.Id + dom[setting + "Span"].Id);
+        var tdValue = DRB.UI.CreateTd(dom.TdValue.Id + dom[setting + "Span"].Id);
+        divTable.append(tr);
+        tr.append(tdLabel);
+        tr.append(tdValue);
+
+        tdLabel.append(DRB.UI.CreateSpan(dom[setting + "Span"].Id, dom[setting + "Span"].Name, dom[setting + "Span"].SmallText));
+        tdValue.append(DRB.UI.CreateInputLongString(dom[setting + "Input"].Id, null, dom[setting + "Span"].Name));
+    });
+
+    $("#" + dom.UrlInput.Id).val(DRB.Xrm.GetClientUrl());
+}
+
+/**
+ * Collection - Export Thunder Client Collection File
+ */
+DRB.Collection.ExportThunderClientCollectionFile = function () {
+    // TO BE COMPLETED
+    // get current DateTime
+    var now = new Date();
+    // create json environment
+    var collection = { client: "Thunder Client", collectionName: "", dateExported: now.toJSON(), version: "1.1", folders: [], requests: [], settings: { headers: [], auth: { type: "oauth2", oauth2: {} }, tests: [] } };
+
+    collection.settings.auth.oauth2.accessToken = "";
+    collection.settings.auth.oauth2.grantType = "client_credentials";
+    collection.settings.auth.oauth2.callbackUrl = "";
+    collection.settings.auth.oauth2.authUrl = "";
+    collection.settings.auth.oauth2.tokenUrl = "https://login.microsoftonline.com/{{tenantid}}/oauth2/v2.0/token";
+    collection.settings.auth.oauth2.clientId = "{{clientid}}";
+    collection.settings.auth.oauth2.clientSecret = "{{clientsecret}}";
+    collection.settings.auth.oauth2.scope = "{{url}}/.default";
+    collection.settings.auth.oauth2.state = "";
+    collection.settings.auth.oauth2.username = "";
+    collection.settings.auth.oauth2.password = "";
+    collection.settings.auth.oauth2.clientAuth = "in-header";
+
+    // create fileDate (coming from current DateTime) to be used inside a valid filename
+    var fileDate = now.toLocaleString("sv").replace(/ /g, "_").replace(/-/g, "").replace(/:/g, "");
+    // create the blob content holding the json collection
+    var saveFile = new Blob([JSON.stringify(collection, null, "\t")], { type: "application/json" });
+    // download the blob content with the provided filename
+    var customLink = document.createElement("a");
+    customLink.href = URL.createObjectURL(saveFile);
+    customLink.download = "COLL_" + fileDate + ".thunder_collection.json";
+    customLink.click();
+}
+
+/**
+ * Collection - Export Thunder Client Collection 
+ */
+DRB.Collection.ExportThunderClientCollection = function () {
+    // get jsTree data structure
+    var currentNodes = $("#" + DRB.DOM.TreeView.Id).jstree(true).get_json("#");
+    // if no nodes then show error
+    if (currentNodes.length === 0) { DRB.UI.ShowError("Export as Thunder Client Collection", "Create or Load a Collection before Export"); }
+    else {
+        DRB.Collection.ExportThunderClientCollectionFile();
+    }
+}
+// #endregion
 // #endregion  
  
 // #region DRB.Initialize
@@ -15251,6 +15612,11 @@ DRB.SetDefaultSettings = function () {
     DRB.Settings.PostmanEndpoint = [new DRB.Models.IdValue("v1", "Token Endpoint V1"), new DRB.Models.IdValue("v2", "Token Endpoint V2")];
     // #endregion
 
+    // #region REST Client Export Settings
+    DRB.Settings.RESTClientEndpoint = [new DRB.Models.IdValue("v1", "Token Endpoint V1"), new DRB.Models.IdValue("v2", "Token Endpoint V2")];
+    // #endregion
+
+
     DRB.Settings.TimeoutDelay = 500; // used in the setTimout calls
 }
 
@@ -15265,6 +15631,12 @@ DRB.DefineOperations = function () {
     var btn_SaveCollection = DRB.UI.CreateButton(DRB.DOM.Collection.SaveButton.Id, DRB.DOM.Collection.SaveButton.Name, DRB.DOM.Collection.SaveButton.Class, DRB.Collection.Save);
     var btn_ExportPostmanCollection = DRB.UI.CreateButton(DRB.DOM.Collection.ExportPostmanButton.Id, DRB.DOM.Collection.ExportPostmanButton.Name, DRB.DOM.Collection.ExportPostmanButton.Class, DRB.Collection.ExportPostman);
 
+    var btn_ExportRESTClientEnvironment = DRB.UI.CreateButton(DRB.DOM.Collection.ExportRESTClientEnvironmentButton.Id, DRB.DOM.Collection.ExportRESTClientEnvironmentButton.Name, DRB.DOM.Collection.ExportRESTClientEnvironmentButton.Class, DRB.Collection.ExportRESTClientEnvironment);
+    var btn_ExportRESTClientCollection = DRB.UI.CreateButton(DRB.DOM.Collection.ExportRESTClientCollectionButton.Id, DRB.DOM.Collection.ExportRESTClientCollectionButton.Name, DRB.DOM.Collection.ExportRESTClientCollectionButton.Class, DRB.Collection.ExportRESTClientCollection);
+
+    var btn_ExportThunderClientEnvironment = DRB.UI.CreateButton(DRB.DOM.Collection.ExportThunderEnvironmentButton.Id, DRB.DOM.Collection.ExportThunderEnvironmentButton.Name, DRB.DOM.Collection.ExportThunderEnvironmentButton.Class, DRB.Collection.ExportThunderClientEnvironment);
+    var btn_ExportThunderClientCollection = DRB.UI.CreateButton(DRB.DOM.Collection.ExportThunderCollectionButton.Id, DRB.DOM.Collection.ExportThunderCollectionButton.Name, DRB.DOM.Collection.ExportThunderCollectionButton.Class, DRB.Collection.ExportThunderClientCollection);
+
     var menu = $("#" + DRB.DOM.Collection.Menu.Id);
     menu.append(inp_LoadFile);
     menu.append(btn_NewCollection);
@@ -15272,6 +15644,12 @@ DRB.DefineOperations = function () {
     menu.append(btn_SaveCollection);
     menu.append(DRB.UI.CreateEmptyDiv(DRB.DOM.Collection.Separator.Id, DRB.DOM.Collection.Separator.Class));
     menu.append(btn_ExportPostmanCollection);
+    menu.append(DRB.UI.CreateEmptyDiv(DRB.DOM.Collection.Separator.Id, DRB.DOM.Collection.Separator.Class));
+    menu.append(btn_ExportRESTClientEnvironment);
+    menu.append(btn_ExportRESTClientCollection);
+    //menu.append(DRB.UI.CreateEmptyDiv(DRB.DOM.Collection.Separator.Id, DRB.DOM.Collection.Separator.Class));
+    //menu.append(btn_ExportThunderClientEnvironment);
+    //menu.append(btn_ExportThunderClientCollection);
     // #endregion
 
     // #region jsTree
@@ -15571,7 +15949,7 @@ DRB.InsertMainBodyContent = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.23";
+    var drbVersion = "1.0.0.24";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 
