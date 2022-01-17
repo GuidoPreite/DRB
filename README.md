@@ -4,7 +4,7 @@ Dataverse REST Builder (DRB) is an application to create and execute requests ag
 
 The tool is released as <a target="_blank" href="https://github.com/GuidoPreite/DRB/releases">Managed Solution</a> but there is also a version for <a target="_blank" href="https://www.xrmtoolbox.com">XrmToolBox</a> (listed inside the Tool Library).
 
-Demo: <a target="_blank" href="https://guidopreite.github.io/DRB/">https://guidopreite.github.io/DRB/</a>
+**Demo**: <a target="_blank" href="https://guidopreite.github.io/DRB/">https://guidopreite.github.io/DRB/</a>
 
 Dataverse REST Builder has been shown on _The DevConnect Show_ by <a target="_blank" href="https://powermaverick.dev">Danish Naglekar</a>, you can find the video below
 
