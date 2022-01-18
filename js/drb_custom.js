@@ -144,6 +144,10 @@ DRB.DOM.Collection.ThunderClient.ClientSecretSpan = { Id: "span_thunder_clientse
 DRB.DOM.Collection.ThunderClient.ClientSecretInput = { Id: "txt_thunder_clientsecret" };
 DRB.DOM.Collection.ThunderClient.TenantIdSpan = { Id: "span_thunder_tenantid", Name: "Tenant ID", SmallText: "{{tenantid}}" };
 DRB.DOM.Collection.ThunderClient.TenantIdInput = { Id: "txt_thunder_tenantid" };
+DRB.DOM.Collection.ThunderClient.AccessTokenSpan = { Id: "span_thunder_accesstoken", Name: "Access Token URL" };
+DRB.DOM.Collection.ThunderClient.AccessTokenInput = { Id: "txt_thunder_accesstoken" };
+DRB.DOM.Collection.ThunderClient.ScopeSpan = { Id: "span_thunder_scope", Name: "Scope" };
+DRB.DOM.Collection.ThunderClient.ScopeInput = { Id: "txt_thunder_scope" };
 
 // Request Type
 DRB.DOM.RequestType = {};
@@ -15308,9 +15312,9 @@ DRB.Collection.ExportRESTClientCollection = function () {
     if (currentNodes.length === 0) { DRB.UI.ShowError("Export as REST Client Collection", "Create or Load a Collection before Export"); }
     else {
         var dom = DRB.DOM.Collection.RESTClient;
-        var restClientDiv = DRB.UI.CreateEmptyDiv(dom.Div.Id);
-        restClientDiv.append(DRB.UI.CreateEmptyDiv(dom.SettingsDiv.Id));
-        DRB.UI.ShowExport("Export as REST Client Collection", restClientDiv, "large", DRB.Collection.ExportRESTClientCollectionFile);
+        var exportDiv = DRB.UI.CreateEmptyDiv(dom.Div.Id);
+        exportDiv.append(DRB.UI.CreateEmptyDiv(dom.SettingsDiv.Id));
+        DRB.UI.ShowExport("Export as REST Client Collection", exportDiv, "large", DRB.Collection.ExportRESTClientCollectionFile);
 
         var divTable = DRB.UI.CreateTable(dom.Table.Id);
         $("#" + dom.SettingsDiv.Id).append(divTable);
@@ -15335,8 +15339,6 @@ DRB.Collection.ExportRESTClientCollection = function () {
         DRB.UI.FillDropdown(dom.EndpointDropdown.Id, dom.EndpointDropdown.Name, new DRB.Models.Records(DRB.Settings.RESTClientEndpoint).ToDropdown());
         DRB.Collection.BindRESTClientEndpoint(dom.EndpointDropdown.Id);
         $("#" + dom.EndpointDropdown.Id).val(DRB.Settings.RESTClientEndpoint[1].Id).change();
-
-        $("#" + dom.UrlInput.Id).val(DRB.Xrm.GetClientUrl());
     }
 }
 // #endregion
@@ -15365,7 +15367,7 @@ DRB.Collection.ExportThunderClientEnvironmentFile = function () {
     // download the blob content with the provided filename
     var customLink = document.createElement("a");
     customLink.href = URL.createObjectURL(saveFile);
-    customLink.download = "DRB_" + fileDate + ".thunder_environment.json";
+    customLink.download = "DRB_Environment_" + fileDate + ".thunder_environment.json";
     customLink.click();
 }
 
@@ -15399,14 +15401,62 @@ DRB.Collection.ExportThunderClientEnvironment = function () {
 }
 
 /**
+ * Collection - Export Nodes Thunder Client
+ * @param {any} currentNode Current Node
+ * @param {any} exportNode Export Node
+ */
+DRB.Collection.ExportNodesThunderClient = function (currentNode, parentNodeId, exportNode) {
+    // recursive function to convert a jsTree node to a Postman collection node
+
+    var nodeId = DRB.Utilities.GenerateGuid();
+    if (currentNode.type === "collection") { nodeId = ""; }
+    if (currentNode.type === "folder") {
+        exportNode.folders.push({ containerId: parentNodeId, name: currentNode.text, _id: nodeId });
+    }
+    if (currentNode.type === "request") {
+        exportNode.requests.push({ containerId: parentNodeId, name: currentNode.text, _id: nodeId });
+
+        if (DRB.Utilities.HasValue(currentNode.data.requestType)) {
+            var requestIndex = exportNode.requests.length - 1;
+            var postmanSettings = DRB.GeneratePostman.Start(currentNode.data.requestType, currentNode.data.configuration);
+            exportNode.requests[requestIndex].method = postmanSettings.postmanMethod;
+            exportNode.requests[requestIndex].url = postmanSettings.postmanUrl.raw;
+            exportNode.requests[requestIndex].headers = [];
+            postmanSettings.postmanHeader.forEach(function (header) {
+                exportNode.requests[requestIndex].headers.push({ name: header.key, value: header.value });
+            });
+            if (postmanSettings.postmanMethod === "POST" || postmanSettings.postmanMethod === "PATCH") {
+                exportNode.requests[requestIndex].body = {};
+                if (postmanSettings.postmanBody.mode === "raw") {
+                    exportNode.requests[requestIndex].body.type = "json";
+                    exportNode.requests[requestIndex].body.raw = postmanSettings.postmanBody.raw;
+                    exportNode.requests[requestIndex].body.form = [];
+                }
+                if (postmanSettings.postmanBody.mode === "file") {
+                    exportNode.requests[requestIndex].body.type = "binary";
+                    exportNode.requests[requestIndex].body.raw = "";
+                    exportNode.requests[requestIndex].body.form = [];
+                    exportNode.requests[requestIndex].body.binary = "";
+                }
+            }
+        }
+    }
+    if (currentNode.children.length === 0) { return; }
+    for (var count = 0; count < currentNode.children.length; count++) {
+        DRB.Collection.ExportNodesThunderClient(currentNode.children[count], nodeId, exportNode);
+    }
+}
+
+/**
  * Collection - Export Thunder Client Collection File
  */
 DRB.Collection.ExportThunderClientCollectionFile = function () {
-    // TO BE COMPLETED
+    // get jsTree data structure
+    var currentNodes = $("#" + DRB.DOM.TreeView.Id).jstree(true).get_json("#");
     // get current DateTime
     var now = new Date();
     // create json environment
-    var collection = { client: "Thunder Client", collectionName: "", dateExported: now.toJSON(), version: "1.1", folders: [], requests: [], settings: { headers: [], auth: { type: "oauth2", oauth2: {} }, tests: [] } };
+    var collection = { client: "Thunder Client", collectionName: currentNodes[0].text, dateExported: now.toJSON(), version: "1.1", folders: [], requests: [], settings: { headers: [], auth: { type: "oauth2", oauth2: {} }, tests: [] } };
 
     collection.settings.auth.oauth2.accessToken = "";
     collection.settings.auth.oauth2.grantType = "client_credentials";
@@ -15421,14 +15471,33 @@ DRB.Collection.ExportThunderClientCollectionFile = function () {
     collection.settings.auth.oauth2.password = "";
     collection.settings.auth.oauth2.clientAuth = "in-header";
 
-    // create fileDate (coming from current DateTime) to be used inside a valid filename
+
+    // export jsTree nodes to the json collection
+    DRB.Collection.ExportNodesThunderClient(currentNodes[0], "", collection);
+
+
+    collection.folders.forEach(function (folder, folderIndex) {
+        folder.created = now.toJSON();
+        folder.sortNum = (folderIndex + 1) * 10000;
+    });
+
+    var collectionId = DRB.Utilities.GenerateGuid();
+    collection.requests.forEach(function (request, requestIndex) {
+        request.created = now.toJSON();
+        request.modified = now.toJSON();
+        request.sortNum = (requestIndex + 1) * 10000;
+        request.colId = collectionId;
+    });
+
+    // create fileName and fileDate (coming from current DateTime) to be used inside a valid filename
+    var fileName = currentNodes[0].text.replace(/[^a-z0-9]/gi, "_");
     var fileDate = now.toLocaleString("sv").replace(/ /g, "_").replace(/-/g, "").replace(/:/g, "");
     // create the blob content holding the json collection
     var saveFile = new Blob([JSON.stringify(collection, null, "\t")], { type: "application/json" });
     // download the blob content with the provided filename
     var customLink = document.createElement("a");
     customLink.href = URL.createObjectURL(saveFile);
-    customLink.download = "COLL_" + fileDate + ".thunder_collection.json";
+    customLink.download = fileName + "_" + fileDate + ".thunder_collection.json";
     customLink.click();
 }
 
@@ -15441,7 +15510,26 @@ DRB.Collection.ExportThunderClientCollection = function () {
     // if no nodes then show error
     if (currentNodes.length === 0) { DRB.UI.ShowError("Export as Thunder Client Collection", "Create or Load a Collection before Export"); }
     else {
-        DRB.Collection.ExportThunderClientCollectionFile();
+        var dom = DRB.DOM.Collection.ThunderClient;
+        var exportDiv = DRB.UI.CreateEmptyDiv(dom.Div.Id);
+        exportDiv.append(DRB.UI.CreateEmptyDiv(dom.SettingsDiv.Id));
+        DRB.UI.ShowExport("Export as Thunder Client Collection", exportDiv, "large", DRB.Collection.ExportThunderClientCollectionFile);
+
+        var divTable = DRB.UI.CreateTable(dom.Table.Id);
+        $("#" + dom.SettingsDiv.Id).append(divTable);
+        var collectionSettings = ["AccessToken", "Scope"];
+        collectionSettings.forEach(function (setting) {
+            var tr = DRB.UI.CreateTr(dom.Tr.Id + dom[setting + "Span"].Id);
+            var tdLabel = DRB.UI.CreateTd(dom.TdLabel.Id + dom[setting + "Span"].Id);
+            var tdValue = DRB.UI.CreateTd(dom.TdValue.Id + dom[setting + "Span"].Id);
+            divTable.append(tr);
+            tr.append(tdLabel);
+            tr.append(tdValue);
+            tdLabel.append(DRB.UI.CreateSpan(dom[setting + "Span"].Id, dom[setting + "Span"].Name, dom[setting + "Span"].SmallText));
+            tdValue.append(DRB.UI.CreateInputLongString(dom[setting + "Input"].Id, null, dom[setting + "Span"].Name));
+        });
+        $("#" + dom.AccessTokenInput.Id).val("https://login.microsoftonline.com/{{tenantid}}/oauth2/v2.0/token");
+        $("#" + dom.ScopeInput.Id).val("{{url}}/.default");
     }
 }
 // #endregion
@@ -15647,9 +15735,9 @@ DRB.DefineOperations = function () {
     menu.append(DRB.UI.CreateEmptyDiv(DRB.DOM.Collection.Separator.Id, DRB.DOM.Collection.Separator.Class));
     menu.append(btn_ExportRESTClientEnvironment);
     menu.append(btn_ExportRESTClientCollection);
-    //menu.append(DRB.UI.CreateEmptyDiv(DRB.DOM.Collection.Separator.Id, DRB.DOM.Collection.Separator.Class));
-    //menu.append(btn_ExportThunderClientEnvironment);
-    //menu.append(btn_ExportThunderClientCollection);
+    menu.append(DRB.UI.CreateEmptyDiv(DRB.DOM.Collection.Separator.Id, DRB.DOM.Collection.Separator.Class));
+    menu.append(btn_ExportThunderClientEnvironment);
+    menu.append(btn_ExportThunderClientCollection);
     // #endregion
 
     // #region jsTree
@@ -15778,7 +15866,7 @@ DRB.DefineOperations = function () {
             "folder": { "valid_children": ["folder", "request"] }, // "folder" can have only "folder" and "request" nodes, default icon
             "request": { "icon": "jstree-file", "valid_children": [] } // "request" can't have nodes, file icon
         },
-        "plugins": ["dnd", "types", "contextmenu"] // drag and drop, node types, right click menu 
+        "plugins": ["dnd", "types", "contextmenu"] // drag and drop, node types, right click menu
     });
 
     $("#" + DRB.DOM.TreeView.Id).on("select_node.jstree", function (e, data) {
@@ -15949,7 +16037,7 @@ DRB.InsertMainBodyContent = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.24";
+    var drbVersion = "1.0.0.25";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 

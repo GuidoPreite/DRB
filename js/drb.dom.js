@@ -115,6 +115,10 @@ DRB.DOM.Collection.ThunderClient.ClientSecretSpan = { Id: "span_thunder_clientse
 DRB.DOM.Collection.ThunderClient.ClientSecretInput = { Id: "txt_thunder_clientsecret" };
 DRB.DOM.Collection.ThunderClient.TenantIdSpan = { Id: "span_thunder_tenantid", Name: "Tenant ID", SmallText: "{{tenantid}}" };
 DRB.DOM.Collection.ThunderClient.TenantIdInput = { Id: "txt_thunder_tenantid" };
+DRB.DOM.Collection.ThunderClient.AccessTokenSpan = { Id: "span_thunder_accesstoken", Name: "Access Token URL" };
+DRB.DOM.Collection.ThunderClient.AccessTokenInput = { Id: "txt_thunder_accesstoken" };
+DRB.DOM.Collection.ThunderClient.ScopeSpan = { Id: "span_thunder_scope", Name: "Scope" };
+DRB.DOM.Collection.ThunderClient.ScopeInput = { Id: "txt_thunder_scope" };
 
 // Request Type
 DRB.DOM.RequestType = {};

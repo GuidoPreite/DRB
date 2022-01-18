@@ -198,9 +198,9 @@ DRB.DefineOperations = function () {
     menu.append(DRB.UI.CreateEmptyDiv(DRB.DOM.Collection.Separator.Id, DRB.DOM.Collection.Separator.Class));
     menu.append(btn_ExportRESTClientEnvironment);
     menu.append(btn_ExportRESTClientCollection);
-    //menu.append(DRB.UI.CreateEmptyDiv(DRB.DOM.Collection.Separator.Id, DRB.DOM.Collection.Separator.Class));
-    //menu.append(btn_ExportThunderClientEnvironment);
-    //menu.append(btn_ExportThunderClientCollection);
+    menu.append(DRB.UI.CreateEmptyDiv(DRB.DOM.Collection.Separator.Id, DRB.DOM.Collection.Separator.Class));
+    menu.append(btn_ExportThunderClientEnvironment);
+    menu.append(btn_ExportThunderClientCollection);
     // #endregion
 
     // #region jsTree
@@ -329,7 +329,7 @@ DRB.DefineOperations = function () {
             "folder": { "valid_children": ["folder", "request"] }, // "folder" can have only "folder" and "request" nodes, default icon
             "request": { "icon": "jstree-file", "valid_children": [] } // "request" can't have nodes, file icon
         },
-        "plugins": ["dnd", "types", "contextmenu"] // drag and drop, node types, right click menu 
+        "plugins": ["dnd", "types", "contextmenu"] // drag and drop, node types, right click menu
     });
 
     $("#" + DRB.DOM.TreeView.Id).on("select_node.jstree", function (e, data) {
@@ -500,7 +500,7 @@ DRB.InsertMainBodyContent = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.24";
+    var drbVersion = "1.0.0.25";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 
