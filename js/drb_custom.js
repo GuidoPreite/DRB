@@ -3944,6 +3944,10 @@ window.addEventListener("message", (event) => {
             var token = message.token;
             DRB.Common.RefreshDVDTToken(token);
             break;
+
+        case "dvdt_noconnection":
+            DRB.UI.ShowError("DVDT Connection Error", "You have not connected to any connection in Dataverse DevTools.");
+            break;
     }
 });
 // #endregion  
