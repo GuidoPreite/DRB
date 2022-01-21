@@ -14,3 +14,7 @@ It is possible to export the requests to these applications:
 Dataverse REST Builder has been shown on _The DevConnect Show_ by <a target="_blank" href="https://powermaverick.dev">Danish Naglekar</a>, you can find the video below
 
 [![Ep.10: Guido Preite on The DevConnect Show](https://img.youtube.com/vi/VYtWd5QDQq8/0.jpg)](https://www.youtube.com/watch?v=VYtWd5QDQq8)
+
+Managed Solution version [![Github Downloads](https://img.shields.io/github/downloads/GuidoPreite/DRB/total.svg)](https://github.com/GuidoPreite/DRB/releases)
+
+XrmToolBox version [![NuGet Downloads](https://img.shields.io/nuget/dt/GuidoPreite.DRB.svg)](https://www.xrmtoolbox.com/plugins/GuidoPreite.DRB/)
