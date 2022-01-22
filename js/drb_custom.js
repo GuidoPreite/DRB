@@ -3982,7 +3982,7 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
     preCode.push('webapi.safeAjax = function(ajaxOptions) {');
     preCode.push('\tlet ajaxUrl = ajaxOptions.url;');
     preCode.push('\tif (ajaxUrl.indexOf("/_api/") === 0) {');
-    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode()) {
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) {
         preCode.push('\t\tajaxOptions.url = ajaxUrl.replace("/_api/", DRB.Xrm.GetClientUrl() + "/api/data/v9.0/");');
     } else {
         preCode.push('\t\tajaxOptions.url = ajaxUrl.replace("/_api/", Xrm.Utility.getGlobalContext().getClientUrl() + "/api/data/v9.0/");');
