@@ -377,7 +377,12 @@ DRB.Logic.RetrieveMultiple.AddFilterColumns = function (domObject, metadataPath)
     var fields = JSON.parse(JSON.stringify(refMetadata.filterFields));
     var clearedFields = [];
     fields.forEach(function (field) {
-        var checkColumn = DRB.Utilities.GetRecordById(DRB.Metadata.CurrentColumns, field.logicalName);
+        var currentColumns = DRB.Metadata.CurrentColumns;
+        if (DRB.Utilities.HasValue(field.relationship)) {
+            var table = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, field.relationship.targetEntity);
+            if (DRB.Utilities.HasValue(table)) { currentColumns = table.Columns; }
+        }
+        var checkColumn = DRB.Utilities.GetRecordById(currentColumns, field.logicalName);
         if (DRB.Utilities.HasValue(checkColumn)) { clearedFields.push(field); }
     });
 
@@ -386,7 +391,14 @@ DRB.Logic.RetrieveMultiple.AddFilterColumns = function (domObject, metadataPath)
     refConfiguration.filterFields = [];
 
     clearedFields.forEach(function (field, fieldIndex) {
-        DRB.Logic.AddColumn(columnsCriteria, domObject, metadataPath);
+        var fromRelationship = false;
+        if (DRB.Utilities.HasValue(field.relationship)) { fromRelationship = true; }
+        DRB.Logic.AddColumn(columnsCriteria, domObject, metadataPath, fromRelationship);
+
+        if (fromRelationship === true) {
+            $("#" + DRB.DOM[domObject].LookupRelationshipDropdown.Id + metadataPath + "_" + fieldIndex).val(field.relationship.schemaName).change();
+        }
+
         $("#" + DRB.DOM[domObject].Dropdown.Id + metadataPath + "_" + fieldIndex).val(field.logicalName).change();
         // set operator
         $("#" + DRB.DOM[domObject].ControlOperator.Id + metadataPath + "_" + fieldIndex).val(field.operator).change();

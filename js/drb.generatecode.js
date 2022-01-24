@@ -225,6 +225,16 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
             configurationObject.filterFields.forEach(function (filterField) {
                 if (JSON.stringify(filterField) !== JSON.stringify({})) {
                     partialQuery += " " + filterFieldsLogic + " ";
+
+
+                    var completefieldLogicalName = filterField.logicalName;
+                    var completefieldODataName = filterField.oDataName;
+
+                    if (DRB.Utilities.HasValue(filterField.relationship)) {
+                        completefieldLogicalName = filterField.relationship.navigationProperty + "/" + completefieldLogicalName;
+                        completefieldODataName = filterField.relationship.navigationProperty + "/" + completefieldODataName;
+                    }
+
                     if (filterField.requiredValue === false) {
                         var operatorFound = false;
                         // check for specific operators with the following syntax
@@ -258,12 +268,12 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                             case "LastFiscalPeriod": // Microsoft.Dynamics.CRM.LastFiscalPeriod(PropertyName='createdon')
                             case "ThisFiscalPeriod": // Microsoft.Dynamics.CRM.ThisFiscalPeriod(PropertyName='createdon')
                                 operatorFound = true;
-                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + filterField.logicalName + "')";
+                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + completefieldLogicalName + "')";
                                 break;
                         }
                         if (operatorFound === false) {
                             // default syntax
-                            partialQuery += filterField.oDataName + " " + filterField.operator;
+                            partialQuery += completefieldODataName + " " + filterField.operator;
                         }
                     }
 
@@ -282,7 +292,7 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                                 if (DRB.Utilities.HasValue(filterField.value)) {
                                     clearedValue = filterField.value.replace(/"/g, '\\"');
                                 }
-                                partialQuery += filterField.operator + "(" + filterField.oDataName + ",'" + clearedValue + "')";
+                                partialQuery += filterField.operator + "(" + completefieldODataName + ",'" + clearedValue + "')";
                                 break;
                             case "In": // Microsoft.Dynamics.CRM.ContainValues(PropertyName='sample_choices',PropertyValues=['1','2'])
                             case "NotIn": // Microsoft.Dynamics.CRM.ContainValues(PropertyName='sample_choices',PropertyValues=['1','2'])
@@ -296,7 +306,7 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                                     });
                                     if (filterField.value.length > 0) { clearedValue = clearedValue.slice(0, -1); }
                                 }
-                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + filterField.oDataName + "',PropertyValues=[" + clearedValue + "])";
+                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + completefieldODataName + "',PropertyValues=[" + clearedValue + "])";
                                 break;
 
                             case "NextXHours": // Microsoft.Dynamics.CRM.NextXHours(PropertyName='createdon',PropertyValue=1)
@@ -321,7 +331,7 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                             case "OlderThanXYears": // Microsoft.Dynamics.CRM.OlderThanXYears(PropertyName='createdon',PropertyValue=1)
                                 operatorFound = true;
                                 var clearedValue = filterField.value;
-                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + filterField.oDataName + "',PropertyValue=" + clearedValue + ")";
+                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + completefieldODataName + "',PropertyValue=" + clearedValue + ")";
                                 break;
 
                             case "Above": // Microsoft.Dynamics.CRM.Above(PropertyName='accountid',PropertyValue='51de97a6-f82e-1472-376d-11949cb13d52')
@@ -331,13 +341,13 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                             case "UnderOrEqual": // Microsoft.Dynamics.CRM.UnderOrEqual(PropertyName='accountid',PropertyValue='51de97a6-f82e-1472-376d-11949cb13d52')
                                 operatorFound = true;
                                 var clearedValue = filterField.value;
-                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + filterField.oDataName + "',PropertyValue='" + clearedValue + "')";
+                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + completefieldODataName+ "',PropertyValue='" + clearedValue + "')";
                                 break;
                         }
                         if (operatorFound === false) {
                             // default syntax: fieldname operator value
                             var clearedValue = "";
-                            var fieldName = filterField.oDataName;
+                            var fieldName = completefieldODataName;
 
                             if (DRB.Utilities.HasValue(filterField.value)) { clearedValue = filterField.value; }
                             if (filterField.type === "EntityName" || filterField.type === "String" || filterField.type === "Memo") {
@@ -360,7 +370,7 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                             }
 
                             if (filterField.type === "ManagedProperty") {
-                                fieldName = filterField.oDataName + "/Value";
+                                fieldName = completefieldODataName + "/Value";
                             }
 
                             partialQuery += fieldName + " " + filterField.operator + " " + clearedValue;

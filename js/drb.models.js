@@ -89,6 +89,30 @@ DRB.Models.Relationship = function (schemaName, type, sourceTable, targetTable, 
 }
 
 /**
+ * Models - Relationship Lookup
+ * @param {DRB.Models.Relationship} relationship Relationship
+ */
+DRB.Models.RelationshipLookup = function (relationship) {
+    this.Id = relationship.Id;
+    this.Name = relationship.Name;
+    this.SchemaName = relationship.SchemaName;
+    this.Type = relationship.Type;
+    this.SourceTable = relationship.SourceTable;
+    this.TargetTable = relationship.TargetTable;
+    this.TargetTableName = relationship.TargetTableName;
+    this.NavigationProperty = relationship.NavigationProperty;
+    this.NavigationAttribute = relationship.NavigationAttribute;
+    this.NavigationAttributeName = relationship.NavigationAttributeName;
+    this.IsHierarchical = relationship.IsHierarchical;
+
+    this.Columns = relationship.Columns;
+    this.ToDropdownOption = function () {
+        var subText = this.NavigationAttribute + " - Table: " + this.TargetTableName + " (" + this.TargetTable + ")";      
+        return new DRB.Models.DropdownOption(this.Id, this.NavigationAttributeName, subText);
+    }
+}
+
+/**
  * Models - Simple Relationship
  * @param {string} schemaName Schema Name
  * @param {string} type Type

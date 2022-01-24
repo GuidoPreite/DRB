@@ -184,11 +184,36 @@ DRB.Logic.RefreshColumns = function (columnType, domObject, metadataPath) {
             });
         } else {
             // For Filtering all the columns enabled for filtering must be shown, regardeless if they were used before
-            availableColumns = [];
-            DRB.Metadata.CurrentColumns.forEach(function (currentColumn) {
-                if (currentColumn[columnType] === true) { availableColumns.push(currentColumn); }
-            });
+            if ($("#" + DRB.DOM[domObject].LookupRelationshipDropdown.Id + uniqueIndex).length === 0) {
+                DRB.Metadata.CurrentColumns.forEach(function (currentColumn) {
+                    if (currentColumn[columnType] === true) { availableColumns.push(currentColumn); }
+                });
+            }
         }
+        // #region Relationships
+        if (columnType === "IsValidForFilter" && $("#" + DRB.DOM[domObject].LookupRelationshipDropdown.Id + uniqueIndex).length > 0) {
+            var relationshipName = $("#" + DRB.DOM[domObject].LookupRelationshipDropdown.Id + uniqueIndex).val();
+            // create the relationships to fill the dropdown
+            var availableRelationships = [];
+            DRB.Metadata.CurrentManyToOne.forEach(function (currentRelationship) { availableRelationships.push(new DRB.Models.RelationshipLookup(currentRelationship)); });
+            // fill dropdown
+            DRB.UI.FillDropdown(DRB.DOM[domObject].LookupRelationshipDropdown.Id + uniqueIndex, DRB.DOM[domObject].LookupRelationshipDropdown.Name, new DRB.Models.Records(availableRelationships).ToDropdown());
+            // set the previous value
+            $("#" + DRB.DOM[domObject].LookupRelationshipDropdown.Id + uniqueIndex).val(relationshipName);
+            // refresh dropdown
+            DRB.UI.RefreshDropdown(DRB.DOM[domObject].LookupRelationshipDropdown.Id + uniqueIndex);
+
+            var relationship = DRB.Utilities.GetRecordById(DRB.Metadata.CurrentManyToOne, relationshipName);
+            if (DRB.Utilities.HasValue(relationship)) {
+                var table = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, relationship.TargetTable);
+                if (DRB.Utilities.HasValue(table)) {
+                    table.Columns.forEach(function (currentColumn) {
+                        if (currentColumn[columnType] === true) { availableColumns.push(currentColumn); }
+                    });
+                }
+            }
+        }
+        // #endregion
 
         // fill dropdown
         DRB.UI.FillDropdown(DRB.DOM[domObject].Dropdown.Id + uniqueIndex, DRB.DOM[domObject].Dropdown.Name, new DRB.Models.Records(availableColumns).ToDropdown());
@@ -196,6 +221,11 @@ DRB.Logic.RefreshColumns = function (columnType, domObject, metadataPath) {
         $("#" + DRB.DOM[domObject].Dropdown.Id + uniqueIndex).val(originalColumnName);
         // refresh dropdown
         DRB.UI.RefreshDropdown(DRB.DOM[domObject].Dropdown.Id + uniqueIndex);
+
+        // if no columns available (for example relationship dropdown has not been selected) disable the dropdown
+        if (availableColumns.length === 0) {
+            DRB.UI.ResetDropdown(DRB.DOM[domObject].Dropdown.Id + uniqueIndex, DRB.DOM[domObject].Dropdown.Name);
+        }
     });
 }
 
@@ -267,7 +297,7 @@ DRB.Logic.RemoveColumn = function (index, columnType, domObject, metadataPath) {
  * @param {string} domObject DOM Object
  * @param {string} metadataPath Metadata Path
  */
-DRB.Logic.AddColumn = function (columnType, domObject, metadataPath) {
+DRB.Logic.AddColumn = function (columnType, domObject, metadataPath, fromRelationship) {
     // show the first tr (header)
     $("#" + DRB.DOM[domObject].Tr.Id + metadataPath).show();
 
@@ -309,6 +339,7 @@ DRB.Logic.AddColumn = function (columnType, domObject, metadataPath) {
     if (columnType === "IsValidForFilter") { tdOperator = DRB.UI.CreateTd(DRB.DOM[domObject].TdOperator.Id + uniqueIndex); }
     var tdValue = DRB.UI.CreateTd(DRB.DOM[domObject].TdValue.Id + uniqueIndex);
     $("#" + DRB.DOM[domObject].Table.Id + metadataPath).append(tr);
+
     tr.append(tdColumn);
     if (columnType === "IsValidForFilter") { tr.append(tdOperator); }
     tr.append(tdValue);
@@ -321,13 +352,17 @@ DRB.Logic.AddColumn = function (columnType, domObject, metadataPath) {
     tdColumn.append(DRB.UI.CreateEmptyArrowButton(DRB.DOM.ArrowAfterDown.Id + uniqueIndex));
 
     // create column dropdown selection
-    tdColumn.append(DRB.UI.CreateDropdown(DRB.DOM[domObject].Dropdown.Id + uniqueIndex));
 
-    // add only column values for the selected column type
-    var columnRecords = [];
-    DRB.Metadata.CurrentColumns.forEach(function (currentColumn) {
-        if (currentColumn[columnType] === true) { columnRecords.push(currentColumn); }
-    });
+    if (fromRelationship === true) {
+        $("#" + DRB.DOM[domObject].Tr.Id + uniqueIndex).prop("style", "background: #f0f7ff;");
+        tdColumn.append(DRB.UI.CreateDropdown(DRB.DOM[domObject].LookupRelationshipDropdown.Id + uniqueIndex));
+        tdColumn.append(DRB.UI.CreateSpacer());
+        tdColumn.append(DRB.UI.CreateEmptyRemoveButton(""));
+        tdColumn.append(DRB.UI.CreateEmptyArrowButton(""));
+        tdColumn.append(DRB.UI.CreateEmptyArrowButton(""));
+    }
+
+    tdColumn.append(DRB.UI.CreateDropdown(DRB.DOM[domObject].Dropdown.Id + uniqueIndex));
 
     switch (columnType) {
         case "IsValidForOrder":
@@ -335,6 +370,9 @@ DRB.Logic.AddColumn = function (columnType, domObject, metadataPath) {
             break;
         case "IsValidForFilter":
             DRB.Logic.BindFilterColumn(DRB.DOM[domObject].Dropdown.Id + uniqueIndex, columnType, domObject, metadataPath);
+            if (fromRelationship === true) {
+                DRB.Logic.BindFilterLookupRelationship(DRB.DOM[domObject].LookupRelationshipDropdown.Id + uniqueIndex, columnType, domObject, metadataPath);
+            }
             break;
         case "IsValidForCreate":
         case "IsValidForUpdate":

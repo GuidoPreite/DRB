@@ -158,14 +158,18 @@ DRB.Common.LookupSelect = function (settings, tableLogicalName, recordId) {
 
 DRB.Common.LookupSearch = function (settings) {
     var tableLogicalName = $("#" + DRB.DOM.Lookup.TableDropdown.Id).val();
-    var text = $("#" + DRB.DOM.Lookup.Input.Id).val();
-    if (!DRB.Utilities.HasValue(tableLogicalName) || !DRB.Utilities.HasValue(text)) { return; }
+    if (!DRB.Utilities.HasValue(tableLogicalName)) { return; }
+
 
     var checkTable = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, tableLogicalName);
     if (DRB.Utilities.HasValue(checkTable)) {
         $("#" + DRB.DOM.Lookup.DivResults.Id).empty();
         $("#" + DRB.DOM.Lookup.DivResults.Id).append(DRB.UI.CreateSpan("", "Retrieving Records..."));
-        DRB.Xrm.Retrieve(checkTable.EntitySetName, "$select=" + checkTable.PrimaryNameAttribute + "&$filter=contains(" + checkTable.PrimaryNameAttribute + ",'" + text + "')&$orderby=" + checkTable.PrimaryNameAttribute + " asc&$top=5")
+
+        var text = $("#" + DRB.DOM.Lookup.Input.Id).val();
+        var filterText = "";
+        if (DRB.Utilities.HasValue(text)) { filterText = "&$filter=contains(" + checkTable.PrimaryNameAttribute + ",'" + text + "')"; }
+        DRB.Xrm.Retrieve(checkTable.EntitySetName, "$select=" + checkTable.PrimaryNameAttribute + filterText + "&$orderby=" + checkTable.PrimaryNameAttribute + " asc&$top=5")
             .done(function (data) {
                 $("#" + DRB.DOM.Lookup.DivResults.Id).empty();
                 if (data.value.length > 0) {
@@ -252,8 +256,8 @@ DRB.Common.OpenLookup = function (lookupOptions, settings) {
     $(".modal-footer").remove();
     DRB.UI.FillDropdown(DRB.DOM.Lookup.TableDropdown.Id, DRB.DOM.Lookup.TableDropdown.Name, new DRB.Models.Records(lookupTables).ToDropdown());
     DRB.Common.BindLookupTable(DRB.DOM.Lookup.TableDropdown.Id);
-    DRB.Common.BindLookupInput(DRB.DOM.Lookup.Input.Id);
-    $("#" + DRB.DOM.Lookup.Input.Id).val("").trigger("input").change();
+    //DRB.Common.BindLookupInput(DRB.DOM.Lookup.Input.Id);
+    //$("#" + DRB.DOM.Lookup.Input.Id).val("").trigger("input").change();
 }
 
 /**

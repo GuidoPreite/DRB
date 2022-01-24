@@ -324,6 +324,7 @@ DRB.DOM.FilterColumns.MainSpan = { Id: "span_main_fc_", Name: "" };
 DRB.DOM.FilterColumns.Div = { Id: "div_fc_" };
 DRB.DOM.FilterColumns.Table = { Id: "table_fc_" };
 DRB.DOM.FilterColumns.Tr = { Id: "tr_fc_" };
+DRB.DOM.FilterColumns.LookupRelationshipDropdown = { Id: "cbx_lookupfc_", Name: "Select Relationship Lookup" };
 DRB.DOM.FilterColumns.Dropdown = { Id: "cbx_fc_", Name: "Select Column" };
 DRB.DOM.FilterColumns.TdColumn = { Id: "td_fclabel_", Name: "<b>Filter Column</b>" };
 DRB.DOM.FilterColumns.TdOperator = { Id: "td_fcoperator_", Name: "<b>Operator</b>" };
@@ -334,6 +335,7 @@ DRB.DOM.FilterColumns.DivValue = { Id: "div_fc_value_" };
 DRB.DOM.FilterColumns.ControlValue = { Id: "fc_value_" };
 
 DRB.DOM.FilterColumns.AddButton = { Id: "btn_addfc_", Name: "Add Column", Class: "btn-primary" };
+DRB.DOM.FilterColumns.AddLookupButton = { Id: "btn_addlookupfc_", Name: "Add Relationship Column", Class: "btn-primary" };
 DRB.DOM.FilterColumns.DivLogic = { Id: "div_fc_fl_", Class: "sameline" };
 DRB.DOM.FilterColumns.SpanLogic = { Id: "span_fc_", Name: "Logic between Columns" };
 DRB.DOM.FilterColumns.DropdownLogic = { Id: "cbx_fc_", Name: "Select Operator" };

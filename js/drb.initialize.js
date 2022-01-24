@@ -156,6 +156,9 @@ DRB.SetDefaultSettings = function () {
 
     DRB.Settings.OperatorsToStop = [optNeNull, optEqNull, optEqCurrentUser, optNeCurrentUser, optEqCurrentUserHierarchy, optEqCurrentUserHierarchyAndTeams, optEqCurrentUserTeams, optEqCurrentUserOrTeams, optEqCurrentBusinessUnit, optNeCurrentBusinessUnit,
         optYesterday, optToday, optTomorrow, optNext7Days, optLast7Days, optNextWeek, optLastWeek, optThisWeek, optNextMonth, optLastMonth, optThisMonth, optNextYear, optLastYear, optThisYear, optNextFiscalYear, optLastFiscalYear, optThisFiscalYear, optNextFiscalPeriod, optLastFiscalPeriod, optThisFiscalPeriod];
+
+    DRB.Settings.OperatorIdsAllowedDepth = [optNeNull.Id, optEqNull.Id, optEq.Id, optNe.Id, optContain.Id, optNotContain.Id, optBegin.Id, optNotBegin.Id, optEnd.Id, optNotEnd.Id, optGreater.Id, optGreaterEqual.Id,
+        optLess.Id, optLessEqual.Id, optOn.Id, optNotOn.Id, optAfter.Id, optOnOrAfter.Id, optBefore.Id, optOnOrBefore.Id];
     // #endregion
 
     // #region Postman Export Settings
@@ -500,7 +503,7 @@ DRB.InsertMainBodyContent = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.25";
+    var drbVersion = "1.0.0.26";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 

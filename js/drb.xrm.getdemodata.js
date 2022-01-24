@@ -20,7 +20,12 @@ DRB.Xrm.GetDemoDataBatch = function (queries) {
     columns_Contact.push({ "@odata.type": "#Microsoft.Dynamics.CRM.StringAttributeMetadata", SchemaName: "FirstName", LogicalName: "firstname", AttributeType: "String", IsPrimaryId: false, IsPrimaryName: false, IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, MaxLength: 100, DisplayName: { UserLocalizedLabel: { Label: "First Name" } } });
     columns_Contact.push({ "@odata.type": "#Microsoft.Dynamics.CRM.StringAttributeMetadata", SchemaName: "FullName", LogicalName: "fullname", AttributeType: "String", IsPrimaryId: false, IsPrimaryName: true, IsValidForRead: true, IsValidForCreate: false, IsValidForUpdate: false, DisplayName: { UserLocalizedLabel: { Label: "Full Name" } } });
     columns_Contact.push({ "@odata.type": "#Microsoft.Dynamics.CRM.StringAttributeMetadata", SchemaName: "LastName", LogicalName: "lastname", AttributeType: "String", IsPrimaryId: false, IsPrimaryName: false, IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, MaxLength: 100, DisplayName: { UserLocalizedLabel: { Label: "Last Name" } } });
+    columns_Contact.push({ "@odata.type": "#Microsoft.Dynamics.CRM.LookupAttributeMetadata", SchemaName: "ParentCustomerId", LogicalName: "parentcustomerid", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Customer", Targets: ["account", "contact"], IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, DisplayName: { UserLocalizedLabel: { Label: "Company Name" } } });
     columns_Contact.push({ SchemaName: "ContactId", LogicalName: "contactid", AttributeType: "Uniqueidentifier", IsPrimaryId: true, IsPrimaryName: false, IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: false, DisplayName: { UserLocalizedLabel: { Label: "Contact" } } });
+
+    var manyToOne_Contact = [];
+    manyToOne_Contact.push({ SchemaName: "contact_customer_accounts", ReferencingEntity: "contact", ReferencedEntity: "account", ReferencingAttribute: "parentcustomerid", ReferencedAttribute: "accountid", ReferencingEntityNavigationPropertyName: "parentcustomerid_account", ReferencedEntityNavigationPropertyName: "contact_customer_accounts" });
+    manyToOne_Contact.push({ SchemaName: "contact_customer_contacts", ReferencingEntity: "contact", ReferencedEntity: "contact", ReferencingAttribute: "parentcustomerid", ReferencedAttribute: "contactid", ReferencingEntityNavigationPropertyName: "parentcustomerid_contact", ReferencedEntityNavigationPropertyName: "contact_customer_contacts" });
 
     var columns_Team = [];
     columns_Team.push({ "@odata.type": "#Microsoft.Dynamics.CRM.StringAttributeMetadata", SchemaName: "Name", LogicalName: "name", AttributeType: "String", IsPrimaryId: false, IsPrimaryName: true, IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, DisplayName: { UserLocalizedLabel: { Label: "Name" } } });
@@ -135,6 +140,9 @@ DRB.Xrm.GetDemoDataBatch = function (queries) {
             var fakeColumns = [];
             columns_Contact.forEach(function (column) { fakeColumns.push(column); });
             fakeDataQuery.Attributes = fakeColumns;
+            var fakeManyToOne = [];
+            manyToOne_Contact.forEach(function (relationship) { fakeManyToOne.push(relationship); });
+            fakeDataQuery.ManyToOneRelationships = fakeManyToOne;
             fakeData += fakeHeaderStart + JSON.stringify(fakeDataQuery) + emptyLine;
         }
 

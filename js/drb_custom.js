@@ -353,6 +353,7 @@ DRB.DOM.FilterColumns.MainSpan = { Id: "span_main_fc_", Name: "" };
 DRB.DOM.FilterColumns.Div = { Id: "div_fc_" };
 DRB.DOM.FilterColumns.Table = { Id: "table_fc_" };
 DRB.DOM.FilterColumns.Tr = { Id: "tr_fc_" };
+DRB.DOM.FilterColumns.LookupRelationshipDropdown = { Id: "cbx_lookupfc_", Name: "Select Relationship Lookup" };
 DRB.DOM.FilterColumns.Dropdown = { Id: "cbx_fc_", Name: "Select Column" };
 DRB.DOM.FilterColumns.TdColumn = { Id: "td_fclabel_", Name: "<b>Filter Column</b>" };
 DRB.DOM.FilterColumns.TdOperator = { Id: "td_fcoperator_", Name: "<b>Operator</b>" };
@@ -363,6 +364,7 @@ DRB.DOM.FilterColumns.DivValue = { Id: "div_fc_value_" };
 DRB.DOM.FilterColumns.ControlValue = { Id: "fc_value_" };
 
 DRB.DOM.FilterColumns.AddButton = { Id: "btn_addfc_", Name: "Add Column", Class: "btn-primary" };
+DRB.DOM.FilterColumns.AddLookupButton = { Id: "btn_addlookupfc_", Name: "Add Relationship Column", Class: "btn-primary" };
 DRB.DOM.FilterColumns.DivLogic = { Id: "div_fc_fl_", Class: "sameline" };
 DRB.DOM.FilterColumns.SpanLogic = { Id: "span_fc_", Name: "Logic between Columns" };
 DRB.DOM.FilterColumns.DropdownLogic = { Id: "cbx_fc_", Name: "Select Operator" };
@@ -707,7 +709,12 @@ DRB.Xrm.GetDemoDataBatch = function (queries) {
     columns_Contact.push({ "@odata.type": "#Microsoft.Dynamics.CRM.StringAttributeMetadata", SchemaName: "FirstName", LogicalName: "firstname", AttributeType: "String", IsPrimaryId: false, IsPrimaryName: false, IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, MaxLength: 100, DisplayName: { UserLocalizedLabel: { Label: "First Name" } } });
     columns_Contact.push({ "@odata.type": "#Microsoft.Dynamics.CRM.StringAttributeMetadata", SchemaName: "FullName", LogicalName: "fullname", AttributeType: "String", IsPrimaryId: false, IsPrimaryName: true, IsValidForRead: true, IsValidForCreate: false, IsValidForUpdate: false, DisplayName: { UserLocalizedLabel: { Label: "Full Name" } } });
     columns_Contact.push({ "@odata.type": "#Microsoft.Dynamics.CRM.StringAttributeMetadata", SchemaName: "LastName", LogicalName: "lastname", AttributeType: "String", IsPrimaryId: false, IsPrimaryName: false, IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, MaxLength: 100, DisplayName: { UserLocalizedLabel: { Label: "Last Name" } } });
+    columns_Contact.push({ "@odata.type": "#Microsoft.Dynamics.CRM.LookupAttributeMetadata", SchemaName: "ParentCustomerId", LogicalName: "parentcustomerid", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Customer", Targets: ["account", "contact"], IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, DisplayName: { UserLocalizedLabel: { Label: "Company Name" } } });
     columns_Contact.push({ SchemaName: "ContactId", LogicalName: "contactid", AttributeType: "Uniqueidentifier", IsPrimaryId: true, IsPrimaryName: false, IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: false, DisplayName: { UserLocalizedLabel: { Label: "Contact" } } });
+
+    var manyToOne_Contact = [];
+    manyToOne_Contact.push({ SchemaName: "contact_customer_accounts", ReferencingEntity: "contact", ReferencedEntity: "account", ReferencingAttribute: "parentcustomerid", ReferencedAttribute: "accountid", ReferencingEntityNavigationPropertyName: "parentcustomerid_account", ReferencedEntityNavigationPropertyName: "contact_customer_accounts" });
+    manyToOne_Contact.push({ SchemaName: "contact_customer_contacts", ReferencingEntity: "contact", ReferencedEntity: "contact", ReferencingAttribute: "parentcustomerid", ReferencedAttribute: "contactid", ReferencingEntityNavigationPropertyName: "parentcustomerid_contact", ReferencedEntityNavigationPropertyName: "contact_customer_contacts" });
 
     var columns_Team = [];
     columns_Team.push({ "@odata.type": "#Microsoft.Dynamics.CRM.StringAttributeMetadata", SchemaName: "Name", LogicalName: "name", AttributeType: "String", IsPrimaryId: false, IsPrimaryName: true, IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, DisplayName: { UserLocalizedLabel: { Label: "Name" } } });
@@ -822,6 +829,9 @@ DRB.Xrm.GetDemoDataBatch = function (queries) {
             var fakeColumns = [];
             columns_Contact.forEach(function (column) { fakeColumns.push(column); });
             fakeDataQuery.Attributes = fakeColumns;
+            var fakeManyToOne = [];
+            manyToOne_Contact.forEach(function (relationship) { fakeManyToOne.push(relationship); });
+            fakeDataQuery.ManyToOneRelationships = fakeManyToOne;
             fakeData += fakeHeaderStart + JSON.stringify(fakeDataQuery) + emptyLine;
         }
 
@@ -1232,6 +1242,30 @@ DRB.Models.Relationship = function (schemaName, type, sourceTable, targetTable, 
                 subText += " - Source: " + this.NavigationAttributeName + " (" + this.NavigationAttribute + ")"; break;
         }
         return new DRB.Models.DropdownOption(this.Id, this.SchemaName, subText);
+    }
+}
+
+/**
+ * Models - Relationship Lookup
+ * @param {DRB.Models.Relationship} relationship Relationship
+ */
+DRB.Models.RelationshipLookup = function (relationship) {
+    this.Id = relationship.Id;
+    this.Name = relationship.Name;
+    this.SchemaName = relationship.SchemaName;
+    this.Type = relationship.Type;
+    this.SourceTable = relationship.SourceTable;
+    this.TargetTable = relationship.TargetTable;
+    this.TargetTableName = relationship.TargetTableName;
+    this.NavigationProperty = relationship.NavigationProperty;
+    this.NavigationAttribute = relationship.NavigationAttribute;
+    this.NavigationAttributeName = relationship.NavigationAttributeName;
+    this.IsHierarchical = relationship.IsHierarchical;
+
+    this.Columns = relationship.Columns;
+    this.ToDropdownOption = function () {
+        var subText = this.NavigationAttribute + " - Table: " + this.TargetTableName + " (" + this.TargetTable + ")";      
+        return new DRB.Models.DropdownOption(this.Id, this.NavigationAttributeName, subText);
     }
 }
 
@@ -3771,14 +3805,18 @@ DRB.Common.LookupSelect = function (settings, tableLogicalName, recordId) {
 
 DRB.Common.LookupSearch = function (settings) {
     var tableLogicalName = $("#" + DRB.DOM.Lookup.TableDropdown.Id).val();
-    var text = $("#" + DRB.DOM.Lookup.Input.Id).val();
-    if (!DRB.Utilities.HasValue(tableLogicalName) || !DRB.Utilities.HasValue(text)) { return; }
+    if (!DRB.Utilities.HasValue(tableLogicalName)) { return; }
+
 
     var checkTable = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, tableLogicalName);
     if (DRB.Utilities.HasValue(checkTable)) {
         $("#" + DRB.DOM.Lookup.DivResults.Id).empty();
         $("#" + DRB.DOM.Lookup.DivResults.Id).append(DRB.UI.CreateSpan("", "Retrieving Records..."));
-        DRB.Xrm.Retrieve(checkTable.EntitySetName, "$select=" + checkTable.PrimaryNameAttribute + "&$filter=contains(" + checkTable.PrimaryNameAttribute + ",'" + text + "')&$orderby=" + checkTable.PrimaryNameAttribute + " asc&$top=5")
+
+        var text = $("#" + DRB.DOM.Lookup.Input.Id).val();
+        var filterText = "";
+        if (DRB.Utilities.HasValue(text)) { filterText = "&$filter=contains(" + checkTable.PrimaryNameAttribute + ",'" + text + "')"; }
+        DRB.Xrm.Retrieve(checkTable.EntitySetName, "$select=" + checkTable.PrimaryNameAttribute + filterText + "&$orderby=" + checkTable.PrimaryNameAttribute + " asc&$top=5")
             .done(function (data) {
                 $("#" + DRB.DOM.Lookup.DivResults.Id).empty();
                 if (data.value.length > 0) {
@@ -3865,8 +3903,8 @@ DRB.Common.OpenLookup = function (lookupOptions, settings) {
     $(".modal-footer").remove();
     DRB.UI.FillDropdown(DRB.DOM.Lookup.TableDropdown.Id, DRB.DOM.Lookup.TableDropdown.Name, new DRB.Models.Records(lookupTables).ToDropdown());
     DRB.Common.BindLookupTable(DRB.DOM.Lookup.TableDropdown.Id);
-    DRB.Common.BindLookupInput(DRB.DOM.Lookup.Input.Id);
-    $("#" + DRB.DOM.Lookup.Input.Id).val("").trigger("input").change();
+    //DRB.Common.BindLookupInput(DRB.DOM.Lookup.Input.Id);
+    //$("#" + DRB.DOM.Lookup.Input.Id).val("").trigger("input").change();
 }
 
 /**
@@ -5503,6 +5541,16 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
             configurationObject.filterFields.forEach(function (filterField) {
                 if (JSON.stringify(filterField) !== JSON.stringify({})) {
                     partialQuery += " " + filterFieldsLogic + " ";
+
+
+                    var completefieldLogicalName = filterField.logicalName;
+                    var completefieldODataName = filterField.oDataName;
+
+                    if (DRB.Utilities.HasValue(filterField.relationship)) {
+                        completefieldLogicalName = filterField.relationship.navigationProperty + "/" + completefieldLogicalName;
+                        completefieldODataName = filterField.relationship.navigationProperty + "/" + completefieldODataName;
+                    }
+
                     if (filterField.requiredValue === false) {
                         var operatorFound = false;
                         // check for specific operators with the following syntax
@@ -5536,12 +5584,12 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                             case "LastFiscalPeriod": // Microsoft.Dynamics.CRM.LastFiscalPeriod(PropertyName='createdon')
                             case "ThisFiscalPeriod": // Microsoft.Dynamics.CRM.ThisFiscalPeriod(PropertyName='createdon')
                                 operatorFound = true;
-                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + filterField.logicalName + "')";
+                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + completefieldLogicalName + "')";
                                 break;
                         }
                         if (operatorFound === false) {
                             // default syntax
-                            partialQuery += filterField.oDataName + " " + filterField.operator;
+                            partialQuery += completefieldODataName + " " + filterField.operator;
                         }
                     }
 
@@ -5560,7 +5608,7 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                                 if (DRB.Utilities.HasValue(filterField.value)) {
                                     clearedValue = filterField.value.replace(/"/g, '\\"');
                                 }
-                                partialQuery += filterField.operator + "(" + filterField.oDataName + ",'" + clearedValue + "')";
+                                partialQuery += filterField.operator + "(" + completefieldODataName + ",'" + clearedValue + "')";
                                 break;
                             case "In": // Microsoft.Dynamics.CRM.ContainValues(PropertyName='sample_choices',PropertyValues=['1','2'])
                             case "NotIn": // Microsoft.Dynamics.CRM.ContainValues(PropertyName='sample_choices',PropertyValues=['1','2'])
@@ -5574,7 +5622,7 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                                     });
                                     if (filterField.value.length > 0) { clearedValue = clearedValue.slice(0, -1); }
                                 }
-                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + filterField.oDataName + "',PropertyValues=[" + clearedValue + "])";
+                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + completefieldODataName + "',PropertyValues=[" + clearedValue + "])";
                                 break;
 
                             case "NextXHours": // Microsoft.Dynamics.CRM.NextXHours(PropertyName='createdon',PropertyValue=1)
@@ -5599,7 +5647,7 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                             case "OlderThanXYears": // Microsoft.Dynamics.CRM.OlderThanXYears(PropertyName='createdon',PropertyValue=1)
                                 operatorFound = true;
                                 var clearedValue = filterField.value;
-                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + filterField.oDataName + "',PropertyValue=" + clearedValue + ")";
+                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + completefieldODataName + "',PropertyValue=" + clearedValue + ")";
                                 break;
 
                             case "Above": // Microsoft.Dynamics.CRM.Above(PropertyName='accountid',PropertyValue='51de97a6-f82e-1472-376d-11949cb13d52')
@@ -5609,13 +5657,13 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                             case "UnderOrEqual": // Microsoft.Dynamics.CRM.UnderOrEqual(PropertyName='accountid',PropertyValue='51de97a6-f82e-1472-376d-11949cb13d52')
                                 operatorFound = true;
                                 var clearedValue = filterField.value;
-                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + filterField.oDataName + "',PropertyValue='" + clearedValue + "')";
+                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + completefieldODataName+ "',PropertyValue='" + clearedValue + "')";
                                 break;
                         }
                         if (operatorFound === false) {
                             // default syntax: fieldname operator value
                             var clearedValue = "";
-                            var fieldName = filterField.oDataName;
+                            var fieldName = completefieldODataName;
 
                             if (DRB.Utilities.HasValue(filterField.value)) { clearedValue = filterField.value; }
                             if (filterField.type === "EntityName" || filterField.type === "String" || filterField.type === "Memo") {
@@ -5638,7 +5686,7 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                             }
 
                             if (filterField.type === "ManagedProperty") {
-                                fieldName = filterField.oDataName + "/Value";
+                                fieldName = completefieldODataName + "/Value";
                             }
 
                             partialQuery += fieldName + " " + filterField.operator + " " + clearedValue;
@@ -9904,6 +9952,10 @@ DRB.CustomUI.AddTypeColumns = function (container, columnType, domObject, metada
     // "Add" button
     $("#" + DRB.DOM[domObject].MainDiv.Id + metadataPath).append(DRB.UI.CreateButton(DRB.DOM[domObject].AddButton.Id + metadataPath, DRB.DOM[domObject].AddButton.Name, DRB.DOM[domObject].AddButton.Class, DRB.Logic.AddColumn, columnType, domObject, metadataPath));
 
+    if (columnType === "IsValidForFilter") {
+        $("#" + DRB.DOM[domObject].MainDiv.Id + metadataPath).append(DRB.UI.CreateButton(DRB.DOM[domObject].AddLookupButton.Id + metadataPath, DRB.DOM[domObject].AddLookupButton.Name, DRB.DOM[domObject].AddLookupButton.Class, DRB.Logic.AddColumn, columnType, domObject, metadataPath, true));
+    }
+
     // hide by default
     $("#" + DRB.DOM[domObject].MainDiv.Id + metadataPath).hide();
 }
@@ -10216,11 +10268,36 @@ DRB.Logic.RefreshColumns = function (columnType, domObject, metadataPath) {
             });
         } else {
             // For Filtering all the columns enabled for filtering must be shown, regardeless if they were used before
-            availableColumns = [];
-            DRB.Metadata.CurrentColumns.forEach(function (currentColumn) {
-                if (currentColumn[columnType] === true) { availableColumns.push(currentColumn); }
-            });
+            if ($("#" + DRB.DOM[domObject].LookupRelationshipDropdown.Id + uniqueIndex).length === 0) {
+                DRB.Metadata.CurrentColumns.forEach(function (currentColumn) {
+                    if (currentColumn[columnType] === true) { availableColumns.push(currentColumn); }
+                });
+            }
         }
+        // #region Relationships
+        if (columnType === "IsValidForFilter" && $("#" + DRB.DOM[domObject].LookupRelationshipDropdown.Id + uniqueIndex).length > 0) {
+            var relationshipName = $("#" + DRB.DOM[domObject].LookupRelationshipDropdown.Id + uniqueIndex).val();
+            // create the relationships to fill the dropdown
+            var availableRelationships = [];
+            DRB.Metadata.CurrentManyToOne.forEach(function (currentRelationship) { availableRelationships.push(new DRB.Models.RelationshipLookup(currentRelationship)); });
+            // fill dropdown
+            DRB.UI.FillDropdown(DRB.DOM[domObject].LookupRelationshipDropdown.Id + uniqueIndex, DRB.DOM[domObject].LookupRelationshipDropdown.Name, new DRB.Models.Records(availableRelationships).ToDropdown());
+            // set the previous value
+            $("#" + DRB.DOM[domObject].LookupRelationshipDropdown.Id + uniqueIndex).val(relationshipName);
+            // refresh dropdown
+            DRB.UI.RefreshDropdown(DRB.DOM[domObject].LookupRelationshipDropdown.Id + uniqueIndex);
+
+            var relationship = DRB.Utilities.GetRecordById(DRB.Metadata.CurrentManyToOne, relationshipName);
+            if (DRB.Utilities.HasValue(relationship)) {
+                var table = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, relationship.TargetTable);
+                if (DRB.Utilities.HasValue(table)) {
+                    table.Columns.forEach(function (currentColumn) {
+                        if (currentColumn[columnType] === true) { availableColumns.push(currentColumn); }
+                    });
+                }
+            }
+        }
+        // #endregion
 
         // fill dropdown
         DRB.UI.FillDropdown(DRB.DOM[domObject].Dropdown.Id + uniqueIndex, DRB.DOM[domObject].Dropdown.Name, new DRB.Models.Records(availableColumns).ToDropdown());
@@ -10228,6 +10305,11 @@ DRB.Logic.RefreshColumns = function (columnType, domObject, metadataPath) {
         $("#" + DRB.DOM[domObject].Dropdown.Id + uniqueIndex).val(originalColumnName);
         // refresh dropdown
         DRB.UI.RefreshDropdown(DRB.DOM[domObject].Dropdown.Id + uniqueIndex);
+
+        // if no columns available (for example relationship dropdown has not been selected) disable the dropdown
+        if (availableColumns.length === 0) {
+            DRB.UI.ResetDropdown(DRB.DOM[domObject].Dropdown.Id + uniqueIndex, DRB.DOM[domObject].Dropdown.Name);
+        }
     });
 }
 
@@ -10299,7 +10381,7 @@ DRB.Logic.RemoveColumn = function (index, columnType, domObject, metadataPath) {
  * @param {string} domObject DOM Object
  * @param {string} metadataPath Metadata Path
  */
-DRB.Logic.AddColumn = function (columnType, domObject, metadataPath) {
+DRB.Logic.AddColumn = function (columnType, domObject, metadataPath, fromRelationship) {
     // show the first tr (header)
     $("#" + DRB.DOM[domObject].Tr.Id + metadataPath).show();
 
@@ -10341,6 +10423,7 @@ DRB.Logic.AddColumn = function (columnType, domObject, metadataPath) {
     if (columnType === "IsValidForFilter") { tdOperator = DRB.UI.CreateTd(DRB.DOM[domObject].TdOperator.Id + uniqueIndex); }
     var tdValue = DRB.UI.CreateTd(DRB.DOM[domObject].TdValue.Id + uniqueIndex);
     $("#" + DRB.DOM[domObject].Table.Id + metadataPath).append(tr);
+
     tr.append(tdColumn);
     if (columnType === "IsValidForFilter") { tr.append(tdOperator); }
     tr.append(tdValue);
@@ -10353,13 +10436,17 @@ DRB.Logic.AddColumn = function (columnType, domObject, metadataPath) {
     tdColumn.append(DRB.UI.CreateEmptyArrowButton(DRB.DOM.ArrowAfterDown.Id + uniqueIndex));
 
     // create column dropdown selection
-    tdColumn.append(DRB.UI.CreateDropdown(DRB.DOM[domObject].Dropdown.Id + uniqueIndex));
 
-    // add only column values for the selected column type
-    var columnRecords = [];
-    DRB.Metadata.CurrentColumns.forEach(function (currentColumn) {
-        if (currentColumn[columnType] === true) { columnRecords.push(currentColumn); }
-    });
+    if (fromRelationship === true) {
+        $("#" + DRB.DOM[domObject].Tr.Id + uniqueIndex).prop("style", "background: #f0f7ff;");
+        tdColumn.append(DRB.UI.CreateDropdown(DRB.DOM[domObject].LookupRelationshipDropdown.Id + uniqueIndex));
+        tdColumn.append(DRB.UI.CreateSpacer());
+        tdColumn.append(DRB.UI.CreateEmptyRemoveButton(""));
+        tdColumn.append(DRB.UI.CreateEmptyArrowButton(""));
+        tdColumn.append(DRB.UI.CreateEmptyArrowButton(""));
+    }
+
+    tdColumn.append(DRB.UI.CreateDropdown(DRB.DOM[domObject].Dropdown.Id + uniqueIndex));
 
     switch (columnType) {
         case "IsValidForOrder":
@@ -10367,6 +10454,9 @@ DRB.Logic.AddColumn = function (columnType, domObject, metadataPath) {
             break;
         case "IsValidForFilter":
             DRB.Logic.BindFilterColumn(DRB.DOM[domObject].Dropdown.Id + uniqueIndex, columnType, domObject, metadataPath);
+            if (fromRelationship === true) {
+                DRB.Logic.BindFilterLookupRelationship(DRB.DOM[domObject].LookupRelationshipDropdown.Id + uniqueIndex, columnType, domObject, metadataPath);
+            }
             break;
         case "IsValidForCreate":
         case "IsValidForUpdate":
@@ -10525,7 +10615,23 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
         var metadataPath = splittedControlName.join("_");
         metadataPath += "_" + currentIndex;
 
-        var column = DRB.Utilities.GetRecordById(DRB.Metadata.CurrentColumns, columnLogicalName);
+        var currentColumns = DRB.Metadata.CurrentColumns;
+        var fromRelationship = false;
+        var fromRelationshipTableLogicalName = "";
+        if ($("#" + DRB.DOM[domObject].LookupRelationshipDropdown.Id + metadataPath).length > 0) {
+            var relationshipName = $("#" + DRB.DOM[domObject].LookupRelationshipDropdown.Id + metadataPath).val();
+            var relationship = DRB.Utilities.GetRecordById(DRB.Metadata.CurrentManyToOne, relationshipName);
+            if (DRB.Utilities.HasValue(relationship)) {
+                var tableLogicalName = relationship.TargetTable;
+                var table = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, tableLogicalName);
+                if (DRB.Utilities.HasValue(table)) {
+                    currentColumns = table.Columns;
+                    fromRelationshipTableLogicalName = tableLogicalName;
+                    fromRelationship = true;
+                }
+            }
+        }
+        var column = DRB.Utilities.GetRecordById(currentColumns, columnLogicalName);
         if (DRB.Utilities.HasValue(column)) {
             $("#" + DRB.DOM[domObject].TdValue.Id + metadataPath).html(""); // empty the cell
 
@@ -10539,6 +10645,7 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
                         DRB.Logic.BindFilterColumnValue("txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
                         if (column.IsPrimaryIdAttribute === true) {
                             var target = DRB.Metadata.CurrentNode.data.configuration.primaryEntity.logicalName;
+                            if (fromRelationship === true) { target = fromRelationshipTableLogicalName; }
                             var targetTable = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, target);
                             if (DRB.Utilities.HasValue(targetTable)) {
                                 var targets = [];
@@ -10719,36 +10826,68 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
 DRB.Logic.BindFilterColumn = function (id, columnType, domObject, metadataPath) {
     $("#" + id).on("change", function (e) {
         var columnLogicalName = $(this).val();
-        var column = DRB.Utilities.GetRecordById(DRB.Metadata.CurrentColumns, columnLogicalName);
+
+        var currentColumns = DRB.Metadata.CurrentColumns;
+        var fromRelationship = false;
+
+        // extract the index from the control name
+        var controlName = $(this).attr('id');
+        var elementIndex = DRB.Common.ExtractIndexFromControlName(controlName);
+        if (elementIndex === -1) { return; } // if index not found do nothing
+
+        // get full Metadata and configuration path
+        var refMetadata = DRB.Metadata;
+        var refConfiguration = DRB.Metadata.CurrentNode.data.configuration;
+        // get full Metadata and configuration path
+        metadataPath.split("_").forEach(function (path) {
+            if (isNaN(parseInt(path))) {
+                if (refMetadata.hasOwnProperty(path)) { refMetadata = refMetadata[path]; }
+                if (refConfiguration.hasOwnProperty(path)) { refConfiguration = refConfiguration[path]; }
+            } else {
+                // is a position number
+                var metadataIndex = parseInt(path);
+                refMetadata.forEach(function (refItem, refItemIndex) {
+                    if (refItem.Id === metadataIndex) {
+                        // this is the correct path to follow
+                        refMetadata = refMetadata[refItemIndex];
+                        refConfiguration = refConfiguration[refItemIndex];
+                    }
+                });
+            }
+        });
+        var uniqueIndex = metadataPath + "_" + elementIndex;
+        if ($("#" + DRB.DOM[domObject].LookupRelationshipDropdown.Id + uniqueIndex).length > 0) {
+            var relationshipName = $("#" + DRB.DOM[domObject].LookupRelationshipDropdown.Id + uniqueIndex).val();
+            var relationship = DRB.Utilities.GetRecordById(DRB.Metadata.CurrentManyToOne, relationshipName);
+            if (DRB.Utilities.HasValue(relationship)) {
+                var tableLogicalName = relationship.TargetTable;
+                var table = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, tableLogicalName);
+                if (DRB.Utilities.HasValue(table)) {
+                    currentColumns = table.Columns;
+                    fromRelationship = true;
+                }
+            }
+        }
+
+        var column = DRB.Utilities.GetRecordById(currentColumns, columnLogicalName);
+
+        if (!DRB.Utilities.HasValue(column)) {
+            // update Metadata and configuration
+            for (var i = 0; i < refMetadata.length; i++) {
+                if (refMetadata[i].Id === elementIndex) {
+                    refMetadata[i].Value = {};
+                    refConfiguration[i] = {};
+                    break;
+                }
+            }
+        }
+
         if (DRB.Utilities.HasValue(column)) {
             // define field
             var field = { logicalName: column.LogicalName, schemaName: column.SchemaName, label: column.Name, type: column.AttributeType, oDataName: column.ODataName, operator: null, requiredValue: false, value: null };
-
-            // extract the index from the control name
-            var controlName = $(this).attr('id');
-            var elementIndex = DRB.Common.ExtractIndexFromControlName(controlName);
-            if (elementIndex === -1) { return; } // if index not found do nothing
-
-            // get full Metadata and configuration path
-            var refMetadata = DRB.Metadata;
-            var refConfiguration = DRB.Metadata.CurrentNode.data.configuration;
-            // get full Metadata and configuration path
-            metadataPath.split("_").forEach(function (path) {
-                if (isNaN(parseInt(path))) {
-                    if (refMetadata.hasOwnProperty(path)) { refMetadata = refMetadata[path]; }
-                    if (refConfiguration.hasOwnProperty(path)) { refConfiguration = refConfiguration[path]; }
-                } else {
-                    // is a position number
-                    var metadataIndex = parseInt(path);
-                    refMetadata.forEach(function (refItem, refItemIndex) {
-                        if (refItem.Id === metadataIndex) {
-                            // this is the correct path to follow
-                            refMetadata = refMetadata[refItemIndex];
-                            refConfiguration = refConfiguration[refItemIndex];
-                        }
-                    });
-                }
-            });
+            if (fromRelationship === true) {
+                field.relationship = { schemaName: relationship.SchemaName, navigationProperty: relationship.NavigationProperty, targetEntity: relationship.TargetTable, targetEntityLabel: relationship.TargetTableName };
+            }
 
             // update Metadata and configuration
             for (var i = 0; i < refMetadata.length; i++) {
@@ -10758,8 +10897,6 @@ DRB.Logic.BindFilterColumn = function (id, columnType, domObject, metadataPath) 
                     break;
                 }
             }
-
-            var uniqueIndex = metadataPath + "_" + elementIndex;
 
             $("#" + DRB.DOM[domObject].TdOperator.Id + uniqueIndex).html(""); // empty the cell
             $("#" + DRB.DOM[domObject].TdValue.Id + uniqueIndex).html(""); // empty the cell
@@ -10809,9 +10946,64 @@ DRB.Logic.BindFilterColumn = function (id, columnType, domObject, metadataPath) 
                 }
             }
 
+            if (fromRelationship === true) {
+                // remove the operators not supported for depth
+
+                var filteredOptionsOperator = [];
+                optionsOperator.forEach(function (operator) {
+                    if (DRB.Settings.OperatorIdsAllowedDepth.indexOf(operator.Id) > -1) { filteredOptionsOperator.push(operator); }
+                });
+
+                optionsOperator = filteredOptionsOperator;
+            }
+
             DRB.UI.FillDropdown(currentId, "Select Operator", new DRB.Models.Records(optionsOperator).ToDropdown());
             DRB.Logic.BindFilterColumnOperator(currentId, domObject);
         }
+        DRB.Logic.RefreshColumns(columnType, domObject, metadataPath);
+    });
+}
+
+/**
+ * Logic - Bind Filter Lookup Relationship
+ * @param {string} id Id
+ * @param {string} columnType Column Type
+ * @param {string} domObject DOM Object
+ * @param {string} metadataPath Metadata Path
+ */
+DRB.Logic.BindFilterLookupRelationship = function (id, columnType, domObject, metadataPath) {
+    $("#" + id).on("change", function (e) {
+
+        // extract the index from the control name
+        var controlName = $(this).attr('id');
+        var index = DRB.Common.ExtractIndexFromControlName(controlName);
+        if (index === -1) { return; } // if index not found do nothing
+
+        // get full Metadata and configuration path
+        var refMetadata = DRB.Metadata;
+        var refConfiguration = DRB.Metadata.CurrentNode.data.configuration;
+        // get full Metadata and configuration path
+        metadataPath.split("_").forEach(function (path) {
+            if (isNaN(parseInt(path))) {
+                if (refMetadata.hasOwnProperty(path)) { refMetadata = refMetadata[path]; }
+                if (refConfiguration.hasOwnProperty(path)) { refConfiguration = refConfiguration[path]; }
+            } else {
+                // is a position number
+                var metadataIndex = parseInt(path);
+                refMetadata.forEach(function (refItem, refItemIndex) {
+                    if (refItem.Id === metadataIndex) {
+                        // this is the correct path to follow
+                        refMetadata = refMetadata[refItemIndex];
+                        refConfiguration = refConfiguration[refItemIndex];
+                    }
+                });
+            }
+        });
+        var uniqueIndex = metadataPath + "_" + index;
+
+        $("#" + DRB.DOM[domObject].TdOperator.Id + uniqueIndex).empty();
+        $("#" + DRB.DOM[domObject].TdValue.Id + uniqueIndex).empty();
+        $("#" + DRB.DOM[domObject].Dropdown.Id + uniqueIndex).val("").change();
         DRB.Logic.RefreshColumns(columnType, domObject, metadataPath);
     });
 }
@@ -11316,7 +11508,12 @@ DRB.Logic.RetrieveMultiple.AddFilterColumns = function (domObject, metadataPath)
     var fields = JSON.parse(JSON.stringify(refMetadata.filterFields));
     var clearedFields = [];
     fields.forEach(function (field) {
-        var checkColumn = DRB.Utilities.GetRecordById(DRB.Metadata.CurrentColumns, field.logicalName);
+        var currentColumns = DRB.Metadata.CurrentColumns;
+        if (DRB.Utilities.HasValue(field.relationship)) {
+            var table = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, field.relationship.targetEntity);
+            if (DRB.Utilities.HasValue(table)) { currentColumns = table.Columns; }
+        }
+        var checkColumn = DRB.Utilities.GetRecordById(currentColumns, field.logicalName);
         if (DRB.Utilities.HasValue(checkColumn)) { clearedFields.push(field); }
     });
 
@@ -11325,7 +11522,14 @@ DRB.Logic.RetrieveMultiple.AddFilterColumns = function (domObject, metadataPath)
     refConfiguration.filterFields = [];
 
     clearedFields.forEach(function (field, fieldIndex) {
-        DRB.Logic.AddColumn(columnsCriteria, domObject, metadataPath);
+        var fromRelationship = false;
+        if (DRB.Utilities.HasValue(field.relationship)) { fromRelationship = true; }
+        DRB.Logic.AddColumn(columnsCriteria, domObject, metadataPath, fromRelationship);
+
+        if (fromRelationship === true) {
+            $("#" + DRB.DOM[domObject].LookupRelationshipDropdown.Id + metadataPath + "_" + fieldIndex).val(field.relationship.schemaName).change();
+        }
+
         $("#" + DRB.DOM[domObject].Dropdown.Id + metadataPath + "_" + fieldIndex).val(field.logicalName).change();
         // set operator
         $("#" + DRB.DOM[domObject].ControlOperator.Id + metadataPath + "_" + fieldIndex).val(field.operator).change();
@@ -15693,6 +15897,9 @@ DRB.SetDefaultSettings = function () {
 
     DRB.Settings.OperatorsToStop = [optNeNull, optEqNull, optEqCurrentUser, optNeCurrentUser, optEqCurrentUserHierarchy, optEqCurrentUserHierarchyAndTeams, optEqCurrentUserTeams, optEqCurrentUserOrTeams, optEqCurrentBusinessUnit, optNeCurrentBusinessUnit,
         optYesterday, optToday, optTomorrow, optNext7Days, optLast7Days, optNextWeek, optLastWeek, optThisWeek, optNextMonth, optLastMonth, optThisMonth, optNextYear, optLastYear, optThisYear, optNextFiscalYear, optLastFiscalYear, optThisFiscalYear, optNextFiscalPeriod, optLastFiscalPeriod, optThisFiscalPeriod];
+
+    DRB.Settings.OperatorIdsAllowedDepth = [optNeNull.Id, optEqNull.Id, optEq.Id, optNe.Id, optContain.Id, optNotContain.Id, optBegin.Id, optNotBegin.Id, optEnd.Id, optNotEnd.Id, optGreater.Id, optGreaterEqual.Id,
+        optLess.Id, optLessEqual.Id, optOn.Id, optNotOn.Id, optAfter.Id, optOnOrAfter.Id, optBefore.Id, optOnOrBefore.Id];
     // #endregion
 
     // #region Postman Export Settings
@@ -16037,7 +16244,7 @@ DRB.InsertMainBodyContent = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.25";
+    var drbVersion = "1.0.0.26";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 

@@ -136,7 +136,23 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
         var metadataPath = splittedControlName.join("_");
         metadataPath += "_" + currentIndex;
 
-        var column = DRB.Utilities.GetRecordById(DRB.Metadata.CurrentColumns, columnLogicalName);
+        var currentColumns = DRB.Metadata.CurrentColumns;
+        var fromRelationship = false;
+        var fromRelationshipTableLogicalName = "";
+        if ($("#" + DRB.DOM[domObject].LookupRelationshipDropdown.Id + metadataPath).length > 0) {
+            var relationshipName = $("#" + DRB.DOM[domObject].LookupRelationshipDropdown.Id + metadataPath).val();
+            var relationship = DRB.Utilities.GetRecordById(DRB.Metadata.CurrentManyToOne, relationshipName);
+            if (DRB.Utilities.HasValue(relationship)) {
+                var tableLogicalName = relationship.TargetTable;
+                var table = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, tableLogicalName);
+                if (DRB.Utilities.HasValue(table)) {
+                    currentColumns = table.Columns;
+                    fromRelationshipTableLogicalName = tableLogicalName;
+                    fromRelationship = true;
+                }
+            }
+        }
+        var column = DRB.Utilities.GetRecordById(currentColumns, columnLogicalName);
         if (DRB.Utilities.HasValue(column)) {
             $("#" + DRB.DOM[domObject].TdValue.Id + metadataPath).html(""); // empty the cell
 
@@ -150,6 +166,7 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
                         DRB.Logic.BindFilterColumnValue("txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
                         if (column.IsPrimaryIdAttribute === true) {
                             var target = DRB.Metadata.CurrentNode.data.configuration.primaryEntity.logicalName;
+                            if (fromRelationship === true) { target = fromRelationshipTableLogicalName; }
                             var targetTable = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, target);
                             if (DRB.Utilities.HasValue(targetTable)) {
                                 var targets = [];
@@ -330,36 +347,68 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
 DRB.Logic.BindFilterColumn = function (id, columnType, domObject, metadataPath) {
     $("#" + id).on("change", function (e) {
         var columnLogicalName = $(this).val();
-        var column = DRB.Utilities.GetRecordById(DRB.Metadata.CurrentColumns, columnLogicalName);
+
+        var currentColumns = DRB.Metadata.CurrentColumns;
+        var fromRelationship = false;
+
+        // extract the index from the control name
+        var controlName = $(this).attr('id');
+        var elementIndex = DRB.Common.ExtractIndexFromControlName(controlName);
+        if (elementIndex === -1) { return; } // if index not found do nothing
+
+        // get full Metadata and configuration path
+        var refMetadata = DRB.Metadata;
+        var refConfiguration = DRB.Metadata.CurrentNode.data.configuration;
+        // get full Metadata and configuration path
+        metadataPath.split("_").forEach(function (path) {
+            if (isNaN(parseInt(path))) {
+                if (refMetadata.hasOwnProperty(path)) { refMetadata = refMetadata[path]; }
+                if (refConfiguration.hasOwnProperty(path)) { refConfiguration = refConfiguration[path]; }
+            } else {
+                // is a position number
+                var metadataIndex = parseInt(path);
+                refMetadata.forEach(function (refItem, refItemIndex) {
+                    if (refItem.Id === metadataIndex) {
+                        // this is the correct path to follow
+                        refMetadata = refMetadata[refItemIndex];
+                        refConfiguration = refConfiguration[refItemIndex];
+                    }
+                });
+            }
+        });
+        var uniqueIndex = metadataPath + "_" + elementIndex;
+        if ($("#" + DRB.DOM[domObject].LookupRelationshipDropdown.Id + uniqueIndex).length > 0) {
+            var relationshipName = $("#" + DRB.DOM[domObject].LookupRelationshipDropdown.Id + uniqueIndex).val();
+            var relationship = DRB.Utilities.GetRecordById(DRB.Metadata.CurrentManyToOne, relationshipName);
+            if (DRB.Utilities.HasValue(relationship)) {
+                var tableLogicalName = relationship.TargetTable;
+                var table = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, tableLogicalName);
+                if (DRB.Utilities.HasValue(table)) {
+                    currentColumns = table.Columns;
+                    fromRelationship = true;
+                }
+            }
+        }
+
+        var column = DRB.Utilities.GetRecordById(currentColumns, columnLogicalName);
+
+        if (!DRB.Utilities.HasValue(column)) {
+            // update Metadata and configuration
+            for (var i = 0; i < refMetadata.length; i++) {
+                if (refMetadata[i].Id === elementIndex) {
+                    refMetadata[i].Value = {};
+                    refConfiguration[i] = {};
+                    break;
+                }
+            }
+        }
+
         if (DRB.Utilities.HasValue(column)) {
             // define field
             var field = { logicalName: column.LogicalName, schemaName: column.SchemaName, label: column.Name, type: column.AttributeType, oDataName: column.ODataName, operator: null, requiredValue: false, value: null };
-
-            // extract the index from the control name
-            var controlName = $(this).attr('id');
-            var elementIndex = DRB.Common.ExtractIndexFromControlName(controlName);
-            if (elementIndex === -1) { return; } // if index not found do nothing
-
-            // get full Metadata and configuration path
-            var refMetadata = DRB.Metadata;
-            var refConfiguration = DRB.Metadata.CurrentNode.data.configuration;
-            // get full Metadata and configuration path
-            metadataPath.split("_").forEach(function (path) {
-                if (isNaN(parseInt(path))) {
-                    if (refMetadata.hasOwnProperty(path)) { refMetadata = refMetadata[path]; }
-                    if (refConfiguration.hasOwnProperty(path)) { refConfiguration = refConfiguration[path]; }
-                } else {
-                    // is a position number
-                    var metadataIndex = parseInt(path);
-                    refMetadata.forEach(function (refItem, refItemIndex) {
-                        if (refItem.Id === metadataIndex) {
-                            // this is the correct path to follow
-                            refMetadata = refMetadata[refItemIndex];
-                            refConfiguration = refConfiguration[refItemIndex];
-                        }
-                    });
-                }
-            });
+            if (fromRelationship === true) {
+                field.relationship = { schemaName: relationship.SchemaName, navigationProperty: relationship.NavigationProperty, targetEntity: relationship.TargetTable, targetEntityLabel: relationship.TargetTableName };
+            }
 
             // update Metadata and configuration
             for (var i = 0; i < refMetadata.length; i++) {
@@ -369,8 +418,6 @@ DRB.Logic.BindFilterColumn = function (id, columnType, domObject, metadataPath) 
                     break;
                 }
             }
-
-            var uniqueIndex = metadataPath + "_" + elementIndex;
 
             $("#" + DRB.DOM[domObject].TdOperator.Id + uniqueIndex).html(""); // empty the cell
             $("#" + DRB.DOM[domObject].TdValue.Id + uniqueIndex).html(""); // empty the cell
@@ -420,9 +467,64 @@ DRB.Logic.BindFilterColumn = function (id, columnType, domObject, metadataPath) 
                 }
             }
 
+            if (fromRelationship === true) {
+                // remove the operators not supported for depth
+
+                var filteredOptionsOperator = [];
+                optionsOperator.forEach(function (operator) {
+                    if (DRB.Settings.OperatorIdsAllowedDepth.indexOf(operator.Id) > -1) { filteredOptionsOperator.push(operator); }
+                });
+
+                optionsOperator = filteredOptionsOperator;
+            }
+
             DRB.UI.FillDropdown(currentId, "Select Operator", new DRB.Models.Records(optionsOperator).ToDropdown());
             DRB.Logic.BindFilterColumnOperator(currentId, domObject);
         }
+        DRB.Logic.RefreshColumns(columnType, domObject, metadataPath);
+    });
+}
+
+/**
+ * Logic - Bind Filter Lookup Relationship
+ * @param {string} id Id
+ * @param {string} columnType Column Type
+ * @param {string} domObject DOM Object
+ * @param {string} metadataPath Metadata Path
+ */
+DRB.Logic.BindFilterLookupRelationship = function (id, columnType, domObject, metadataPath) {
+    $("#" + id).on("change", function (e) {
+
+        // extract the index from the control name
+        var controlName = $(this).attr('id');
+        var index = DRB.Common.ExtractIndexFromControlName(controlName);
+        if (index === -1) { return; } // if index not found do nothing
+
+        // get full Metadata and configuration path
+        var refMetadata = DRB.Metadata;
+        var refConfiguration = DRB.Metadata.CurrentNode.data.configuration;
+        // get full Metadata and configuration path
+        metadataPath.split("_").forEach(function (path) {
+            if (isNaN(parseInt(path))) {
+                if (refMetadata.hasOwnProperty(path)) { refMetadata = refMetadata[path]; }
+                if (refConfiguration.hasOwnProperty(path)) { refConfiguration = refConfiguration[path]; }
+            } else {
+                // is a position number
+                var metadataIndex = parseInt(path);
+                refMetadata.forEach(function (refItem, refItemIndex) {
+                    if (refItem.Id === metadataIndex) {
+                        // this is the correct path to follow
+                        refMetadata = refMetadata[refItemIndex];
+                        refConfiguration = refConfiguration[refItemIndex];
+                    }
+                });
+            }
+        });
+        var uniqueIndex = metadataPath + "_" + index;
+
+        $("#" + DRB.DOM[domObject].TdOperator.Id + uniqueIndex).empty();
+        $("#" + DRB.DOM[domObject].TdValue.Id + uniqueIndex).empty();
+        $("#" + DRB.DOM[domObject].Dropdown.Id + uniqueIndex).val("").change();
         DRB.Logic.RefreshColumns(columnType, domObject, metadataPath);
     });
 }

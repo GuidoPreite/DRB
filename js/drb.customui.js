@@ -271,6 +271,10 @@ DRB.CustomUI.AddTypeColumns = function (container, columnType, domObject, metada
     // "Add" button
     $("#" + DRB.DOM[domObject].MainDiv.Id + metadataPath).append(DRB.UI.CreateButton(DRB.DOM[domObject].AddButton.Id + metadataPath, DRB.DOM[domObject].AddButton.Name, DRB.DOM[domObject].AddButton.Class, DRB.Logic.AddColumn, columnType, domObject, metadataPath));
 
+    if (columnType === "IsValidForFilter") {
+        $("#" + DRB.DOM[domObject].MainDiv.Id + metadataPath).append(DRB.UI.CreateButton(DRB.DOM[domObject].AddLookupButton.Id + metadataPath, DRB.DOM[domObject].AddLookupButton.Name, DRB.DOM[domObject].AddLookupButton.Class, DRB.Logic.AddColumn, columnType, domObject, metadataPath, true));
+    }
+
     // hide by default
     $("#" + DRB.DOM[domObject].MainDiv.Id + metadataPath).hide();
 }
