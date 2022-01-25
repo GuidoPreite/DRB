@@ -1,10 +1,10 @@
 # Dataverse REST Builder
 <img src="https://raw.githubusercontent.com/GuidoPreite/DRB/main/img/drb_icon.png" alt="Dataverse REST Builder" />
-Dataverse REST Builder (DRB) is an application to create and execute requests against the <a target="_blank" href="https://docs.microsoft.com/en-us/powerapps/developer/data-platform/webapi/overview">Dataverse Web API</a> endpoint.
+Dataverse REST Builder (DRB) is an application to create and execute requests against the <a target="_blank" href="https://docs.microsoft.com/en-us/powerapps/developer/data-platform/webapi/overview">Dataverse Web API</a> endpoint.<br/><br/>
 
-The tool is released as <a target="_blank" href="https://github.com/GuidoPreite/DRB/releases">Managed Solution</a> but there is also a version for <a target="_blank" href="https://www.xrmtoolbox.com">XrmToolBox</a> (listed inside the Tool Library).
+The tool is released as <a target="_blank" href="https://github.com/GuidoPreite/DRB/releases">Managed Solution</a>, for <a target="_blank" href="https://www.xrmtoolbox.com">XrmToolBox</a> (listed inside the Tool Library) or can be loaded inside <a target="_blank" href="https://marketplace.visualstudio.com/items?itemName=danish-naglekar.dataverse-devtools">Dataverse DevTools (VS Code extension)</a>.
 
-It is possible to export the requests to these applications:
+It is possible to export the requests in a format compatible with the following applications:
 - <a target="_blank" href="https://www.postman.com/">Postman</a>
 - <a target="_blank" href="https://marketplace.visualstudio.com/items?itemName=humao.rest-client">REST Client (VS Code extension)</a>
 - <a target="_blank" href="https://www.thunderclient.com/">Thunder Client (VS Code extension)</a>
