@@ -475,9 +475,15 @@ DRB.UI.CreateInputDateTime = function (id, behavior, placeholder) {
 }
 
 DRB.UI.CreateInputMemo = function (id, maxLength, placeholder) {
-    if (!DRB.Utilities.HasValue(maxLength)) { maxLength = 100; }
-    if (!DRB.Utilities.HasValue(placeholder)) { placeholder = "Multiline Text"; }
-    return $("<textarea>", { id: id, class: "form-control", style: "width: 340px; height: 34px; margin-left: 10px; display: inline;", type: "text", autocomplete: "off", maxlength: maxLength, title: placeholder, placeholder: placeholder });
+    var inputProperties = { id: id, class: "form-control", style: "width: 340px; height: 34px; margin-left: 10px; display: inline;", type: "text", autocomplete: "off", placeholder: "Text" };
+    if (DRB.Utilities.HasValue(maxLength)) { inputProperties.maxLength = maxLength; }
+    if (DRB.Utilities.HasValue(placeholder)) { inputProperties.placeholder = placeholder; }
+    return $("<textarea>", inputProperties);
+}
+
+DRB.UI.CreateInputToken = function (id) {
+    var inputProperties = { id: id, class: "form-control", disabled: "true", style: "height: 300px; display: inline; resize: none;", type: "text", autocomplete: "off" };
+    return $("<textarea>", inputProperties);
 }
 
 DRB.UI.CreateInputNumber = function (id, placeholder) {
@@ -645,7 +651,7 @@ DRB.UI.OpenLookup = function (settings) {
                 function (error) { DRB.UI.ShowError("Xrm.Utility.lookupObjects Error", error); });
         } else {
             // XTB, JWT, DVDT, Demo
-            DRB.Common.OpenLookup(lookupOptions, settings);          
+            DRB.Common.OpenLookup(lookupOptions, settings);
         }
     } else {
         DRB.UI.ShowError("Table not selected", "Please select a Table first");

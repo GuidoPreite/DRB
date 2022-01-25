@@ -39,6 +39,7 @@ DRB.DOM.Collection.ExportRESTClientEnvironmentButton = { Id: "btn_exportrestclie
 DRB.DOM.Collection.ExportRESTClientCollectionButton = { Id: "btn_exportrestclientcollection", Name: "Export as REST Client Collection (.http)", Class: "dropdown-item" };
 DRB.DOM.Collection.ExportThunderEnvironmentButton = { Id: "btn_exportthunderenvironment", Name: "Export Thunder Client Environment", Class: "dropdown-item" };
 DRB.DOM.Collection.ExportThunderCollectionButton = { Id: "btn_exportthundercollection", Name: "Export as Thunder Client Collection", Class: "dropdown-item" };
+DRB.DOM.Collection.ShowCurrentAccessTokenButton = { Id: "btn_showcurrentaccesstoken", Name: "Show Current Access Token", Class: "dropdown-item" };
 
 DRB.DOM.Collection.Postman = {};
 DRB.DOM.Collection.Postman.Div = { Id: "div_export_postman" };
@@ -120,6 +121,11 @@ DRB.DOM.Collection.ThunderClient.AccessTokenInput = { Id: "txt_thunder_accesstok
 DRB.DOM.Collection.ThunderClient.ScopeSpan = { Id: "span_thunder_scope", Name: "Scope" };
 DRB.DOM.Collection.ThunderClient.ScopeInput = { Id: "txt_thunder_scope" };
 
+// Show Token
+DRB.DOM.ShowToken = {};
+DRB.DOM.ShowToken.Div = { Id: "div_showtoken" };
+DRB.DOM.ShowToken.TitleSpan = { Id: "span_showtokentitle" };
+DRB.DOM.ShowToken.Input = { Id: "txt_showtokencontent" };
 // Request Type
 DRB.DOM.RequestType = {};
 DRB.DOM.RequestType.Div = { Id: "request_name", Name: "Request Name" };

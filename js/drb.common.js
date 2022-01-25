@@ -16,6 +16,24 @@ DRB.Common.GetErrorMessage = function (xhr) {
 }
 
 /**
+ * Common - Show Current Access Token
+ */
+DRB.Common.ShowCurrentAccessToken = function () {
+    var tokenDiv = DRB.UI.CreateEmptyDiv(DRB.DOM.ShowToken.Div.Id);
+    var title = "You can decode the token at <a href='https://jwt.io' target='_blank'>jwt.io</a>";
+    var token = DRB.Xrm.GetCurrentAccessToken();
+    DRB.UI.Show("Current Access Token", tokenDiv);
+
+    if (DRB.Xrm.IsInstanceMode()) { title = "Current Access Token is not available when Dataverse REST Builder is launched from the Managed Solution"; }
+    tokenDiv.append(DRB.UI.CreateSpan(DRB.DOM.ShowToken.TitleSpan.Id, title));
+    if (!DRB.Xrm.IsInstanceMode()) {
+        tokenDiv.append(DRB.UI.CreateSpacer());
+        tokenDiv.append(DRB.UI.CreateInputToken(DRB.DOM.ShowToken.Input.Id));
+        $("#" + DRB.DOM.ShowToken.Input.Id).val(token);
+    }
+}
+
+/**
  * Common - Extract Index From Control Name
  * @param {string} controlName Control Name
  */
@@ -218,18 +236,8 @@ DRB.Common.LookupSearch = function (settings) {
     }
 }
 
-DRB.Common.BindLookupInput = function (id) {
-    $("#" + id).on("change keyup", function (e) {
-        var text = $(this).val();
-        var disableButton = false;
-        if (!DRB.Utilities.HasValue(text)) { disableButton = true; }
-        $("#" + DRB.DOM.Lookup.SearchButton.Id).prop("disabled", disableButton);
-    });
-}
-
 DRB.Common.BindLookupTable = function (id) {
     $("#" + id).on("change", function (e) {
-        $("#" + DRB.DOM.Lookup.Input.Id).val("").trigger("input").change();
         $("#" + DRB.DOM.Lookup.DivResults.Id).empty();
     });
 }
@@ -256,8 +264,6 @@ DRB.Common.OpenLookup = function (lookupOptions, settings) {
     $(".modal-footer").remove();
     DRB.UI.FillDropdown(DRB.DOM.Lookup.TableDropdown.Id, DRB.DOM.Lookup.TableDropdown.Name, new DRB.Models.Records(lookupTables).ToDropdown());
     DRB.Common.BindLookupTable(DRB.DOM.Lookup.TableDropdown.Id);
-    //DRB.Common.BindLookupInput(DRB.DOM.Lookup.Input.Id);
-    //$("#" + DRB.DOM.Lookup.Input.Id).val("").trigger("input").change();
 }
 
 /**

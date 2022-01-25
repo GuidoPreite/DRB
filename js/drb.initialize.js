@@ -191,6 +191,8 @@ DRB.DefineOperations = function () {
     var btn_ExportThunderClientEnvironment = DRB.UI.CreateButton(DRB.DOM.Collection.ExportThunderEnvironmentButton.Id, DRB.DOM.Collection.ExportThunderEnvironmentButton.Name, DRB.DOM.Collection.ExportThunderEnvironmentButton.Class, DRB.Collection.ExportThunderClientEnvironment);
     var btn_ExportThunderClientCollection = DRB.UI.CreateButton(DRB.DOM.Collection.ExportThunderCollectionButton.Id, DRB.DOM.Collection.ExportThunderCollectionButton.Name, DRB.DOM.Collection.ExportThunderCollectionButton.Class, DRB.Collection.ExportThunderClientCollection);
 
+    var btn_ShowCurrentAccessToken = DRB.UI.CreateButton(DRB.DOM.Collection.ShowCurrentAccessTokenButton.Id, DRB.DOM.Collection.ShowCurrentAccessTokenButton.Name, DRB.DOM.Collection.ShowCurrentAccessTokenButton.Class, DRB.Common.ShowCurrentAccessToken);
+
     var menu = $("#" + DRB.DOM.Collection.Menu.Id);
     menu.append(inp_LoadFile);
     menu.append(btn_NewCollection);
@@ -204,6 +206,8 @@ DRB.DefineOperations = function () {
     menu.append(DRB.UI.CreateEmptyDiv(DRB.DOM.Collection.Separator.Id, DRB.DOM.Collection.Separator.Class));
     menu.append(btn_ExportThunderClientEnvironment);
     menu.append(btn_ExportThunderClientCollection);
+    menu.append(DRB.UI.CreateEmptyDiv(DRB.DOM.Collection.Separator.Id, DRB.DOM.Collection.Separator.Class));
+    menu.append(btn_ShowCurrentAccessToken);
     // #endregion
 
     // #region jsTree
@@ -503,7 +507,7 @@ DRB.InsertMainBodyContent = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.26";
+    var drbVersion = "1.0.0.27";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 

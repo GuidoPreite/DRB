@@ -1,20 +1,20 @@
 // #region DRB.Common.Xrm
 /**
- * Retrieve Tables
+ * Common - Retrieve Tables
  */
 DRB.Common.RetrieveTables = function () {
     return DRB.Xrm.Retrieve("EntityDefinitions", "$select=LogicalName,SchemaName,DisplayName,EntitySetName,PrimaryIdAttribute,PrimaryNameAttribute,ObjectTypeCode");
 }
 
 /**
- * Retrieve Users
+ * Common - Retrieve Users
  */
 DRB.Common.RetrieveUsers = function () {
     return DRB.Xrm.Retrieve("systemusers", "$select=systemuserid,fullname,azureactivedirectoryobjectid&$filter=azureactivedirectoryobjectid ne null");
 }
 
 /**
- * Retrieve System Views
+ * Common - Retrieve System Views
  * @param {string[]} tableLogicalNames Table Logical Names
  */
 DRB.Common.RetrieveSystemViews = function (tableLogicalNames) {
@@ -29,14 +29,14 @@ DRB.Common.RetrieveSystemViews = function (tableLogicalNames) {
 }
 
 /**
- * Retrieve Personal Views
+ * Common - Retrieve Personal Views
  */
 DRB.Common.RetrievePersonalViews = function () {
     return DRB.Xrm.Retrieve("userqueries", "$select=name,returnedtypecode,userqueryid");
 }
 
 /**
- * Retrieve Custom APIs
+ * Common - Retrieve Custom APIs
  */
 DRB.Common.RetrieveCustomAPIs = function () {
     var queries = [];
@@ -62,7 +62,7 @@ DRB.Common.RetrieveCustomAPIs = function () {
 }
 
 /**
- * Retrieve Custom Actions
+ * Common - Retrieve Custom Actions
  */
 DRB.Common.RetrieveCustomActions = function () {
     var queries = [];
@@ -145,14 +145,14 @@ DRB.Common.RetrieveCustomActions = function () {
 }
 
 /**
- * Retrieve Metadata
+ * Common - Retrieve Metadata
  */
 DRB.Common.RetrieveMetadata = function () {
     return DRB.Xrm.RetrieveMetadata();
 }
 
 /**
- * Retrieve Tables Details
+ * Common - Retrieve Tables Details
  * @param {string[]} tableLogicalNames Table Logical Names
  * @param {boolean} includeRelationships Include Relationships
  * @param {boolean} includeAlternateKeys Include Alternate Keys

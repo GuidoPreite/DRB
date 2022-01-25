@@ -71,6 +71,18 @@ DRB.Xrm.GetMetadataUrl = function () {
 }
 
 /**
+ * Xrm - Get Current Access Token
+ */
+DRB.Xrm.GetCurrentAccessToken = function () {
+    var token = "";
+    if (DRB.Xrm.IsXTBMode()) { token = DRB.Settings.XTBToken; }
+    if (DRB.Xrm.IsJWTMode()) { token = DRB.Settings.JWTToken; }
+    if (DRB.Xrm.IsDVDTMode()) { token = DRB.Settings.DVDTToken; }
+    if (DRB.Xrm.IsDemoMode()) { token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJEUkIiLCJpYXQiOjE2NDA5OTUyMDAsImV4cCI6MTY0MDk5NTIwMCwiYXVkIjoiaHR0cHM6Ly9kZW1vY2FsbCIsInN1YiI6IkRSQiJ9.niwjJ3XiFvsJkisbrcT7P27NK9v1ZfICpw5ITHP1mHo"; }
+    return token;
+}
+
+/**
  * Xrm - Get Version
  */
 DRB.Xrm.GetVersion = function () {
@@ -95,11 +107,8 @@ DRB.Xrm.GetVersion = function () {
 DRB.Xrm.Retrieve = function (entitySetName, filters) {
     var retrieveUrl = encodeURI(DRB.Xrm.GetClientUrl() + "/api/data/v9.0/" + entitySetName + "?" + filters);
 
-    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode() || DRB.Xrm.IsInstanceMode()) {
-        var token = "";
-        if (DRB.Xrm.IsXTBMode()) { token = DRB.Settings.XTBToken; }
-        if (DRB.Xrm.IsJWTMode()) { token = DRB.Settings.JWTToken; }
-        if (DRB.Xrm.IsDVDTMode()) { token = DRB.Settings.DVDTToken; }
+    if (!DRB.Xrm.IsDemoMode()) {
+        var token = DRB.Xrm.GetCurrentAccessToken();
         return $.ajax({
             type: "GET",
             contentType: "application/json; charset=utf-8",
@@ -110,7 +119,7 @@ DRB.Xrm.Retrieve = function (entitySetName, filters) {
                 xhr.setRequestHeader("OData-Version", "4.0");
                 xhr.setRequestHeader("Accept", "application/json");
                 xhr.setRequestHeader("Prefer", "odata.include-annotations=\"*\"");
-                if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) { xhr.setRequestHeader("Authorization", "Bearer " + token); }
+                if (DRB.Utilities.HasValue(token)) { xhr.setRequestHeader("Authorization", "Bearer " + token); }
             },
             url: retrieveUrl
         });
@@ -142,11 +151,8 @@ DRB.Xrm.RetrieveBatch = function (queries) {
     data.push("--" + batchDescription + "--");
     var payload = data.join("\r\n");
 
-    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode() || DRB.Xrm.IsInstanceMode()) {
-        var token = "";
-        if (DRB.Xrm.IsXTBMode()) { token = DRB.Settings.XTBToken; }
-        if (DRB.Xrm.IsJWTMode()) { token = DRB.Settings.JWTToken; }
-        if (DRB.Xrm.IsDVDTMode()) { token = DRB.Settings.DVDTToken; }
+    if (!DRB.Xrm.IsDemoMode()) {
+        var token = DRB.Xrm.GetCurrentAccessToken();
         return $.ajax({
             method: "POST",
             data: payload,
@@ -156,7 +162,7 @@ DRB.Xrm.RetrieveBatch = function (queries) {
                 xhr.setRequestHeader("OData-MaxVersion", "4.0");
                 xhr.setRequestHeader("OData-Version", "4.0");
                 xhr.setRequestHeader("Accept", "application/json");
-                if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) { xhr.setRequestHeader("Authorization", "Bearer " + token); }
+                if (DRB.Utilities.HasValue(token)) { xhr.setRequestHeader("Authorization", "Bearer " + token); }
             },
             url: DRB.Xrm.GetClientUrl() + "/api/data/v9.0/$batch"
         });
@@ -184,17 +190,14 @@ DRB.Xrm.RetrieveBatches = function (batchedQueries) {
  * Get $metadata content (XML)
  */
 DRB.Xrm.RetrieveMetadata = function () {
-    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode() || DRB.Xrm.IsInstanceMode()) {
-        var token = "";
-        if (DRB.Xrm.IsXTBMode()) { token = DRB.Settings.XTBToken; }
-        if (DRB.Xrm.IsJWTMode()) { token = DRB.Settings.JWTToken; }
-        if (DRB.Xrm.IsDVDTMode()) { token = DRB.Settings.DVDTToken; }
+    if (!DRB.Xrm.IsDemoMode()) {
+        var token = DRB.Xrm.GetCurrentAccessToken();
         return $.ajax({
             type: "GET",
             datatype: "xml",
             async: true,
             beforeSend: function (xhr) {
-                if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) { xhr.setRequestHeader("Authorization", "Bearer " + token); }
+                if (DRB.Utilities.HasValue(token)) { xhr.setRequestHeader("Authorization", "Bearer " + token); }
             },
             url: DRB.Xrm.GetMetadataUrl()
         });

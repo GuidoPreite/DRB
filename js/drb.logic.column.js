@@ -196,6 +196,7 @@ DRB.Logic.RefreshColumns = function (columnType, domObject, metadataPath) {
             // create the relationships to fill the dropdown
             var availableRelationships = [];
             DRB.Metadata.CurrentManyToOne.forEach(function (currentRelationship) { availableRelationships.push(new DRB.Models.RelationshipLookup(currentRelationship)); });
+            availableRelationships.sort(DRB.Utilities.CustomSort("NavigationAttribute"));
             // fill dropdown
             DRB.UI.FillDropdown(DRB.DOM[domObject].LookupRelationshipDropdown.Id + uniqueIndex, DRB.DOM[domObject].LookupRelationshipDropdown.Name, new DRB.Models.Records(availableRelationships).ToDropdown());
             // set the previous value
