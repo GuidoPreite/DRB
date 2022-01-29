@@ -767,8 +767,8 @@ DRB.Xrm.GetDemoDataBatch = function (queries) {
     columns_CustomTable.push({ "@odata.type": "#Microsoft.Dynamics.CRM.LookupAttributeMetadata", SchemaName: "sample_ContactId", LogicalName: "sample_contactid", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Lookup", Targets: ["contact"], IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, DisplayName: { UserLocalizedLabel: { Label: "Lookup (Contact)" } } });
     columns_CustomTable.push({ "@odata.type": "#Microsoft.Dynamics.CRM.LookupAttributeMetadata", SchemaName: "sample_CustomerId", LogicalName: "sample_customerid", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Customer", Targets: ["account", "contact"], IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, DisplayName: { UserLocalizedLabel: { Label: "Customer Lookup" } } });
     columns_CustomTable.push({ "@odata.type": "#Microsoft.Dynamics.CRM.DoubleAttributeMetadata", SchemaName: "sample_Float", LogicalName: "sample_float", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Double", IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, MinValue: 5, MaxValue: 10, Precision: 3, DisplayName: { UserLocalizedLabel: { Label: "Float" } } });
-    columns_CustomTable.push({ "@odata.type": "#Microsoft.Dynamics.CRM.ImageAttributeMetadata", SchemaName: "sample_Image", LogicalName: "sample_image", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Virtual", IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, MaxSizeInKB: 10240, CanStoreFullImage: true, DisplayName: { UserLocalizedLabel: { Label: "Image" } } });
-    columns_CustomTable.push({ "@odata.type": "#Microsoft.Dynamics.CRM.ImageAttributeMetadata", SchemaName: "sample_Image2", LogicalName: "sample_image2", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Virtual", IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, MaxSizeInKB: 1024, CanStoreFullImage: false, DisplayName: { UserLocalizedLabel: { Label: "Image 2" } } });
+    columns_CustomTable.push({ "@odata.type": "#Microsoft.Dynamics.CRM.ImageAttributeMetadata", SchemaName: "sample_Image", LogicalName: "sample_image", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Virtual", IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, MaxSizeInKB: 10240, CanStoreFullImage: true, IsPrimaryImage: true, DisplayName: { UserLocalizedLabel: { Label: "Image" } } });
+    columns_CustomTable.push({ "@odata.type": "#Microsoft.Dynamics.CRM.ImageAttributeMetadata", SchemaName: "sample_Image2", LogicalName: "sample_image2", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Virtual", IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, MaxSizeInKB: 1024, CanStoreFullImage: false, IsPrimaryImage: false, DisplayName: { UserLocalizedLabel: { Label: "Image 2" } } });
 
 
     var sample_Boolean_Values = { "OptionSetType": "Boolean", "TrueOption": { "Value": true, "Label": { "UserLocalizedLabel": { "Label": "Yes" } } }, "FalseOption": { "Value": false, "Label": { "UserLocalizedLabel": { "Label": "No" } } } };
@@ -930,7 +930,8 @@ DRB.Xrm.GetDemoDataBatch = function (queries) {
         if (query.EntitySetName.indexOf("customapis") > -1) {
             var fakeDataQuery = {
                 value: [
-                    { bindingtype: 0, boundentitylogicalname: null, name: "FetchXMLToSQL", uniquename: "FetchXMLToSQL", isfunction: true }
+                    { bindingtype: 0, boundentitylogicalname: null, name: "FetchXMLToSQL", uniquename: "FetchXMLToSQL", isfunction: true },
+                    { bindingtype: 0, boundentitylogicalname: null, name: "RetrieveEnvironmentVariableSecretValue", uniquename: "RetrieveEnvironmentVariableSecretValue", isfunction: false }
                 ]
             };
             fakeData += fakeHeaderStart + JSON.stringify(fakeDataQuery) + emptyLine;
@@ -939,7 +940,8 @@ DRB.Xrm.GetDemoDataBatch = function (queries) {
             var fakeDataQuery = {
                 value: [
                     { isoptional: false, name: "FetchXml", type: 10, uniquename: "FetchXml", CustomAPIId: { uniquename: "FetchXMLToSQL" } },
-                    { isoptional: true, name: "SubqueryCompatible", type: 0, uniquename: "SubqueryCompatible", CustomAPIId: { uniquename: "FetchXMLToSQL" } }
+                    { isoptional: true, name: "SubqueryCompatible", type: 0, uniquename: "SubqueryCompatible", CustomAPIId: { uniquename: "FetchXMLToSQL" } },
+                    { isoptional: false, name: "EnvironmentVariableName", type: 10, uniquename: "EnvironmentVariableName", CustomAPIId: { uniquename: "RetrieveEnvironmentVariableSecretValue" } }
                 ]
             };
 
@@ -947,7 +949,10 @@ DRB.Xrm.GetDemoDataBatch = function (queries) {
         }
         if (query.EntitySetName.indexOf("customapiresponseproperties") > -1) {
             var fakeDataQuery = {
-                value: [{ name: "Response", type: 10, uniquename: "Response", CustomAPIId: { uniquename: "FetchXMLToSQL" } }]
+                value: [
+                    { name: "Response", type: 10, uniquename: "Response", CustomAPIId: { uniquename: "FetchXMLToSQL" } },
+                    { name: "EnvironmentVariableSecretValue", type: 10, uniquename: "EnvironmentVariableSecretValue", CustomAPIId: { uniquename: "RetrieveEnvironmentVariableSecretValue" } }
+                ]
             };
             fakeData += fakeHeaderStart + JSON.stringify(fakeDataQuery) + emptyLine;
         }
@@ -955,13 +960,33 @@ DRB.Xrm.GetDemoDataBatch = function (queries) {
 
         // #region Demo Data for Custom Actions
         if (query.EntitySetName.indexOf("workflows") > -1) {
-            // TODO
+            var fakeDataQuery = {
+                value: [
+                    { "sdkmessage.name": "DetectLanguage", name: "DetectLanguage", primaryentity: "none" }
+                ]
+            };
+            fakeData += fakeHeaderStart + JSON.stringify(fakeDataQuery) + emptyLine;
         }
         if (query.EntitySetName.indexOf("sdkmessagerequestfields") > -1) {
-            // TODO
+            var fakeDataQuery = {
+                value: [
+                    { "sdkmessage.name": "DetectLanguage", name: "text", optional: false, position: 0, parser: "System.String, X" },
+                    { "sdkmessage.name": "DetectLanguage", name: "modelId", optional: true, position: 1, parser: "System.String, X" },
+                    { "sdkmessage.name": "DetectLanguage", name: "countryHint", optional: true, position: 2, parser: "System.String, X" }
+                ]
+            };
+
+            fakeData += fakeHeaderStart + JSON.stringify(fakeDataQuery) + emptyLine;
         }
         if (query.EntitySetName.indexOf("sdkmessageresponsefields") > -1) {
-            // TODO
+            var fakeDataQuery = {
+                value: [
+                    { "sdkmessage.name": "DetectLanguage", name: "language", position: 0, formatter: "System.String, X" },
+                    { "sdkmessage.name": "DetectLanguage", name: "score", position: 1, formatter: "System.Decimal, X" }
+                ]
+            };
+
+            fakeData += fakeHeaderStart + JSON.stringify(fakeDataQuery) + emptyLine;
         }
         // #endregion
 
@@ -1042,7 +1067,7 @@ DRB.Xrm.GetDemoData = function (entitySetName, filters, singleRecord) {
                 break;
             case "teams":
                 fakeData.value.push({ teamid: "c6f35754-6fa8-4e8b-8b58-d4ca958001f4", name: "Demo Team 1" });
-              break;
+                break;
         }
     }
     return fakeData;
@@ -3036,11 +3061,12 @@ DRB.Common.MapColumns = function (data, primaryIdAttribute, primaryNameAttribute
             var precisionSource = record.PrecisionSource; // Money
             var maxSizeInKB = record.MaxSizeInKB; // Image, File
             var canStoreFullImage = record.CanStoreFullImage; // Image
+            var isPrimaryImage = record.IsPrimaryImage; // Image
             var dateTimeFormat = record.Format; // DateTime
             var dateTimeBehavior = ""; // DateTime
 
             if (DRB.Utilities.HasValue(record.DateTimeBehavior) && DRB.Utilities.HasValue(record.DateTimeBehavior.Value)) { dateTimeBehavior = record.DateTimeBehavior.Value; }
-            var additionalProperties = { MaxLength: maxLength, MinValue: minValue, MaxValue: maxValue, Targets: targets, IsPolymorphic: isPolymorphic, Precision: precision, PrecisionSource: precisionSource, MaxSizeInKB: maxSizeInKB, CanStoreFullImage: canStoreFullImage, DateTimeFormat: dateTimeFormat, DateTimeBehavior: dateTimeBehavior };
+            var additionalProperties = { MaxLength: maxLength, MinValue: minValue, MaxValue: maxValue, Targets: targets, IsPolymorphic: isPolymorphic, Precision: precision, PrecisionSource: precisionSource, MaxSizeInKB: maxSizeInKB, CanStoreFullImage: canStoreFullImage, IsPrimaryImage: isPrimaryImage, DateTimeFormat: dateTimeFormat, DateTimeBehavior: dateTimeBehavior };
 
             // fix for type fields appearing as Virtual
             var oDataType = record["@odata.type"];
@@ -3050,7 +3076,10 @@ DRB.Common.MapColumns = function (data, primaryIdAttribute, primaryNameAttribute
                 // check if logical name ends with "type"
                 if (logicalName.length > 4 && logicalName.substring(logicalName.length - 4) === "type") { polyTypeColumns.push(attributeOf); }
             }
-            if (oDataType === "#Microsoft.Dynamics.CRM.ImageAttributeMetadata") { attributeType = "Image"; imageColumns.push(attributeOf); imageNameColumns.push(name); attributeOf = null; }
+            if (oDataType === "#Microsoft.Dynamics.CRM.ImageAttributeMetadata") {
+                attributeType = "Image"; imageColumns.push(attributeOf); imageNameColumns.push(name); attributeOf = null;
+                if (additionalProperties.IsPrimaryImage === false) { isValidForCreate = false; }
+            }
 
             if (logicalName === primaryIdAttribute) {
                 name = "(" + name + " ID)";
@@ -3491,7 +3520,6 @@ DRB.Common.MapCustomActionRequestParameters = function (data, customActions) {
                     case "Microsoft.Xrm.Sdk.EntityReference": parameterType = "mscrm.crmbaseentity"; break;
                 }
 
-
                 customAction.Parameters.push(new DRB.Models.DataverseParameter(parameterName, parameterType, parameterOptional, parameterPosition, parameterBinding));
             }
         });
@@ -3562,8 +3590,6 @@ DRB.Common.MapCustomActionRequestParameters = function (data, customActions) {
 
             customAction.Parameters = orderedParameters;
         });
-
-
     }
 }
 
@@ -5637,8 +5663,10 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                             case "LastXYears": // Microsoft.Dynamics.CRM.LastXYears(PropertyName='createdon',PropertyValue=1)
                             case "NextXFiscalYears": // Microsoft.Dynamics.CRM.NextXFiscalYears(PropertyName='createdon',PropertyValue=1)
                             case "LastXFiscalYears": // Microsoft.Dynamics.CRM.LastXFiscalYears(PropertyName='createdon',PropertyValue=1)
+                            case "InFiscalYear": // Microsoft.Dynamics.CRM.InFiscalYear(PropertyName='createdon',PropertyValue=2021)
                             case "NextXFiscalPeriods": // Microsoft.Dynamics.CRM.NextXFiscalPeriods(PropertyName='createdon',PropertyValue=1)
                             case "LastXFiscalPeriods": // Microsoft.Dynamics.CRM.LastXFiscalPeriods(PropertyName='createdon',PropertyValue=1)
+                            case "InFiscalPeriod": // Microsoft.Dynamics.CRM.InFiscalPeriod(PropertyName='createdon',PropertyValue=1)
                             case "OlderThanXMinutes": // Microsoft.Dynamics.CRM.OlderThanXMinutes(PropertyName='createdon',PropertyValue=1)
                             case "OlderThanXHours": // Microsoft.Dynamics.CRM.OlderThanXHours(PropertyName='createdon',PropertyValue=1)
                             case "OlderThanXDays": // Microsoft.Dynamics.CRM.OlderThanXDays(PropertyName='createdon',PropertyValue=1)
@@ -5657,7 +5685,15 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                             case "UnderOrEqual": // Microsoft.Dynamics.CRM.UnderOrEqual(PropertyName='accountid',PropertyValue='51de97a6-f82e-1472-376d-11949cb13d52')
                                 operatorFound = true;
                                 var clearedValue = filterField.value;
-                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + completefieldODataName+ "',PropertyValue='" + clearedValue + "')";
+                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + completefieldODataName + "',PropertyValue='" + clearedValue + "')";
+                                break;
+
+                            case "On": // Microsoft.Dynamics.CRM.On(PropertyName='createdon',PropertyValue='2022-01-01')
+                            case "OnOrAfter": // Microsoft.Dynamics.CRM.OnOrAfter(PropertyName='createdon',PropertyValue='2022-01-01')
+                            case "OnOrBefore": // Microsoft.Dynamics.CRM.OnOrBefore(PropertyName='createdon',PropertyValue='2022-01-01')
+                                operatorFound = true;
+                                var clearedValue = filterField.value;
+                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + completefieldODataName + "',PropertyValue='" + clearedValue + "')";
                                 break;
                         }
                         if (operatorFound === false) {
@@ -5679,6 +5715,7 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                                     clearedValue = new Date(clearedValue).toISOString();
                                 }
                             }
+
                             if (filterField.type === "Owner" || filterField.type === "Lookup" || filterField.type === "Customer") {
                                 if (DRB.Utilities.HasValue(filterField.value.id)) {
                                     clearedValue = filterField.value.id;
@@ -10776,8 +10813,10 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
                             case "LastXYears": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
                             case "NextXFiscalYears": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
                             case "LastXFiscalYears": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "InFiscalYear": datetimeOperatorFound = true; operatorMinValue = 1900; operatorMaxValue = 2100; break;
                             case "NextXFiscalPeriods": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
                             case "LastXFiscalPeriods": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "InFiscalPeriod": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 15; break;
                             case "OlderThanXMinutes": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 1440; break;
                             case "OlderThanXHours": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 2000; break;
                             case "OlderThanXDays": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 500; break;
@@ -10803,6 +10842,14 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
                             if (DRB.Utilities.HasValue(column.AdditionalProperties.DateTimeBehavior)) {
                                 dateTimeBehavior = column.AdditionalProperties.DateTimeBehavior;
                                 clearedDateTimeBehavior = column.AdditionalProperties.DateTimeBehavior.replace(/([A-Z])/g, ' $1').trim();
+                            }
+
+                            switch (operator) {
+                                case "On":
+                                case "OnOrAfter":
+                                case "OnOrBefore":
+                                    pickerFormat = "YYYY-MM-DD";
+                                    break;
                             }
 
                             if (clearedDateTimeBehavior === "Time Zone Independent") { clearedDateTimeBehavior = "TZI"; }
@@ -15853,6 +15900,10 @@ DRB.SetDefaultSettings = function () {
     var optThisFiscalPeriod = new DRB.Models.IdValue("ThisFiscalPeriod", "This Fiscal Period");
 
     // Datetime operators (required value)
+    var optOnDate = new DRB.Models.IdValue("On", "On (Date)");
+    var optOnOrAfterDate = new DRB.Models.IdValue("OnOrAfter", "On or After (Date)");
+    var optOnOrBeforeDate = new DRB.Models.IdValue("OnOrBefore", "On or Before (Date)");
+
     var optNextXHours = new DRB.Models.IdValue("NextXHours", "Next X Hours");
     var optLastXHours = new DRB.Models.IdValue("LastXHours", "Last X Hours");
     var optNextXDays = new DRB.Models.IdValue("NextXDays", "Next X Days");
@@ -15865,8 +15916,10 @@ DRB.SetDefaultSettings = function () {
     var optLastXYears = new DRB.Models.IdValue("LastXYears", "Last X Years");
     var optNextXFiscalYears = new DRB.Models.IdValue("NextXFiscalYears", "Next X Fiscal Years");
     var optLastXFiscalYears = new DRB.Models.IdValue("LastXFiscalYears", "Last X Fiscal Years");
+    var optInFiscalYear = new DRB.Models.IdValue("InFiscalYear", "In Fiscal Year");
     var optNextXFiscalPeriods = new DRB.Models.IdValue("NextXFiscalPeriods", "Next X Fiscal Periods");
     var optLastXFiscalPeriods = new DRB.Models.IdValue("LastXFiscalPeriods", "Last X Fiscal Periods");
+    var optInFiscalPeriod = new DRB.Models.IdValue("InFiscalPeriod", "In Fiscal Period");
     var optOlderThanXMinutes = new DRB.Models.IdValue("OlderThanXMinutes", "Older Than X Minutes");
     var optOlderThanXHours = new DRB.Models.IdValue("OlderThanXHours", "Older Than X Hours");
     var optOlderThanXDays = new DRB.Models.IdValue("OlderThanXDays", "Older Than X Days");
@@ -15891,16 +15944,16 @@ DRB.SetDefaultSettings = function () {
     DRB.Settings.OptionsOperatorPicklist = [optEq, optNe, optNeNull, optEqNull];
     DRB.Settings.OptionsOperatorMultiPicklist = [optIn, optNotIn, optContainValues, optNotContainValues, optNeNull, optEqNull];
     DRB.Settings.OptionsOperatorNumber = [optEq, optNe, optGreater, optGreaterEqual, optLess, optLessEqual, optNeNull, optEqNull];
-    DRB.Settings.OptionsOperatorDateTime = [optOn, optNotOn, optAfter, optOnOrAfter, optBefore, optOnOrBefore, optNeNull, optEqNull,
+    DRB.Settings.OptionsOperatorDateTime = [optOn, optOnDate, optNotOn, optAfter, optOnOrAfter, optOnOrAfterDate, optBefore, optOnOrBefore, optOnOrBeforeDate, optNeNull, optEqNull,
         optYesterday, optToday, optTomorrow, optNext7Days, optLast7Days, optNextWeek, optLastWeek, optThisWeek, optNextMonth, optLastMonth, optThisMonth, optNextYear, optLastYear, optThisYear, optNextFiscalYear, optLastFiscalYear, optThisFiscalYear, optNextFiscalPeriod, optLastFiscalPeriod, optThisFiscalPeriod,
-        optNextXHours, optLastXHours, optNextXDays, optLastXDays, optNextXWeeks, optLastXWeeks, optNextXMonths, optLastXMonths, optNextXYears, optLastXYears, optNextXFiscalYears, optLastXFiscalYears, optNextXFiscalPeriods, optLastXFiscalPeriods,
+        optNextXHours, optLastXHours, optNextXDays, optLastXDays, optNextXWeeks, optLastXWeeks, optNextXMonths, optLastXMonths, optNextXYears, optLastXYears, optNextXFiscalYears, optLastXFiscalYears, optInFiscalYear, optNextXFiscalPeriods, optLastXFiscalPeriods, optInFiscalPeriod,
         optOlderThanXMinutes, optOlderThanXHours, optOlderThanXDays, optOlderThanXWeeks, optOlderThanXMonths, optOlderThanXYears];
 
     DRB.Settings.OperatorsToStop = [optNeNull, optEqNull, optEqCurrentUser, optNeCurrentUser, optEqCurrentUserHierarchy, optEqCurrentUserHierarchyAndTeams, optEqCurrentUserTeams, optEqCurrentUserOrTeams, optEqCurrentBusinessUnit, optNeCurrentBusinessUnit,
         optYesterday, optToday, optTomorrow, optNext7Days, optLast7Days, optNextWeek, optLastWeek, optThisWeek, optNextMonth, optLastMonth, optThisMonth, optNextYear, optLastYear, optThisYear, optNextFiscalYear, optLastFiscalYear, optThisFiscalYear, optNextFiscalPeriod, optLastFiscalPeriod, optThisFiscalPeriod];
 
     DRB.Settings.OperatorIdsAllowedDepth = [optNeNull.Id, optEqNull.Id, optEq.Id, optNe.Id, optContain.Id, optNotContain.Id, optBegin.Id, optNotBegin.Id, optEnd.Id, optNotEnd.Id, optGreater.Id, optGreaterEqual.Id,
-        optLess.Id, optLessEqual.Id, optOn.Id, optNotOn.Id, optAfter.Id, optOnOrAfter.Id, optBefore.Id, optOnOrBefore.Id];
+    optLess.Id, optLessEqual.Id, optOn.Id, optNotOn.Id, optAfter.Id, optOnOrAfter.Id, optBefore.Id, optOnOrBefore.Id];
     // #endregion
 
     // #region Postman Export Settings
@@ -15911,7 +15964,6 @@ DRB.SetDefaultSettings = function () {
     // #region REST Client Export Settings
     DRB.Settings.RESTClientEndpoint = [new DRB.Models.IdValue("v1", "Token Endpoint V1"), new DRB.Models.IdValue("v2", "Token Endpoint V2")];
     // #endregion
-
 
     DRB.Settings.TimeoutDelay = 500; // used in the setTimout calls
 }
@@ -16249,7 +16301,7 @@ DRB.InsertMainBodyContent = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.27";
+    var drbVersion = "1.0.0.28";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 

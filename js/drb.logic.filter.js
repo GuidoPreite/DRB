@@ -296,8 +296,10 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
                             case "LastXYears": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
                             case "NextXFiscalYears": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
                             case "LastXFiscalYears": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "InFiscalYear": datetimeOperatorFound = true; operatorMinValue = 1900; operatorMaxValue = 2100; break;
                             case "NextXFiscalPeriods": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
                             case "LastXFiscalPeriods": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+                            case "InFiscalPeriod": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 15; break;
                             case "OlderThanXMinutes": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 1440; break;
                             case "OlderThanXHours": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 2000; break;
                             case "OlderThanXDays": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 500; break;
@@ -323,6 +325,14 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
                             if (DRB.Utilities.HasValue(column.AdditionalProperties.DateTimeBehavior)) {
                                 dateTimeBehavior = column.AdditionalProperties.DateTimeBehavior;
                                 clearedDateTimeBehavior = column.AdditionalProperties.DateTimeBehavior.replace(/([A-Z])/g, ' $1').trim();
+                            }
+
+                            switch (operator) {
+                                case "On":
+                                case "OnOrAfter":
+                                case "OnOrBefore":
+                                    pickerFormat = "YYYY-MM-DD";
+                                    break;
                             }
 
                             if (clearedDateTimeBehavior === "Time Zone Independent") { clearedDateTimeBehavior = "TZI"; }

@@ -89,11 +89,12 @@ DRB.Common.MapColumns = function (data, primaryIdAttribute, primaryNameAttribute
             var precisionSource = record.PrecisionSource; // Money
             var maxSizeInKB = record.MaxSizeInKB; // Image, File
             var canStoreFullImage = record.CanStoreFullImage; // Image
+            var isPrimaryImage = record.IsPrimaryImage; // Image
             var dateTimeFormat = record.Format; // DateTime
             var dateTimeBehavior = ""; // DateTime
 
             if (DRB.Utilities.HasValue(record.DateTimeBehavior) && DRB.Utilities.HasValue(record.DateTimeBehavior.Value)) { dateTimeBehavior = record.DateTimeBehavior.Value; }
-            var additionalProperties = { MaxLength: maxLength, MinValue: minValue, MaxValue: maxValue, Targets: targets, IsPolymorphic: isPolymorphic, Precision: precision, PrecisionSource: precisionSource, MaxSizeInKB: maxSizeInKB, CanStoreFullImage: canStoreFullImage, DateTimeFormat: dateTimeFormat, DateTimeBehavior: dateTimeBehavior };
+            var additionalProperties = { MaxLength: maxLength, MinValue: minValue, MaxValue: maxValue, Targets: targets, IsPolymorphic: isPolymorphic, Precision: precision, PrecisionSource: precisionSource, MaxSizeInKB: maxSizeInKB, CanStoreFullImage: canStoreFullImage, IsPrimaryImage: isPrimaryImage, DateTimeFormat: dateTimeFormat, DateTimeBehavior: dateTimeBehavior };
 
             // fix for type fields appearing as Virtual
             var oDataType = record["@odata.type"];
@@ -103,7 +104,10 @@ DRB.Common.MapColumns = function (data, primaryIdAttribute, primaryNameAttribute
                 // check if logical name ends with "type"
                 if (logicalName.length > 4 && logicalName.substring(logicalName.length - 4) === "type") { polyTypeColumns.push(attributeOf); }
             }
-            if (oDataType === "#Microsoft.Dynamics.CRM.ImageAttributeMetadata") { attributeType = "Image"; imageColumns.push(attributeOf); imageNameColumns.push(name); attributeOf = null; }
+            if (oDataType === "#Microsoft.Dynamics.CRM.ImageAttributeMetadata") {
+                attributeType = "Image"; imageColumns.push(attributeOf); imageNameColumns.push(name); attributeOf = null;
+                if (additionalProperties.IsPrimaryImage === false) { isValidForCreate = false; }
+            }
 
             if (logicalName === primaryIdAttribute) {
                 name = "(" + name + " ID)";
@@ -544,7 +548,6 @@ DRB.Common.MapCustomActionRequestParameters = function (data, customActions) {
                     case "Microsoft.Xrm.Sdk.EntityReference": parameterType = "mscrm.crmbaseentity"; break;
                 }
 
-
                 customAction.Parameters.push(new DRB.Models.DataverseParameter(parameterName, parameterType, parameterOptional, parameterPosition, parameterBinding));
             }
         });
@@ -615,8 +618,6 @@ DRB.Common.MapCustomActionRequestParameters = function (data, customActions) {
 
             customAction.Parameters = orderedParameters;
         });
-
-
     }
 }
 

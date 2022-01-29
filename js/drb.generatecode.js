@@ -321,8 +321,10 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                             case "LastXYears": // Microsoft.Dynamics.CRM.LastXYears(PropertyName='createdon',PropertyValue=1)
                             case "NextXFiscalYears": // Microsoft.Dynamics.CRM.NextXFiscalYears(PropertyName='createdon',PropertyValue=1)
                             case "LastXFiscalYears": // Microsoft.Dynamics.CRM.LastXFiscalYears(PropertyName='createdon',PropertyValue=1)
+                            case "InFiscalYear": // Microsoft.Dynamics.CRM.InFiscalYear(PropertyName='createdon',PropertyValue=2021)
                             case "NextXFiscalPeriods": // Microsoft.Dynamics.CRM.NextXFiscalPeriods(PropertyName='createdon',PropertyValue=1)
                             case "LastXFiscalPeriods": // Microsoft.Dynamics.CRM.LastXFiscalPeriods(PropertyName='createdon',PropertyValue=1)
+                            case "InFiscalPeriod": // Microsoft.Dynamics.CRM.InFiscalPeriod(PropertyName='createdon',PropertyValue=1)
                             case "OlderThanXMinutes": // Microsoft.Dynamics.CRM.OlderThanXMinutes(PropertyName='createdon',PropertyValue=1)
                             case "OlderThanXHours": // Microsoft.Dynamics.CRM.OlderThanXHours(PropertyName='createdon',PropertyValue=1)
                             case "OlderThanXDays": // Microsoft.Dynamics.CRM.OlderThanXDays(PropertyName='createdon',PropertyValue=1)
@@ -341,7 +343,15 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                             case "UnderOrEqual": // Microsoft.Dynamics.CRM.UnderOrEqual(PropertyName='accountid',PropertyValue='51de97a6-f82e-1472-376d-11949cb13d52')
                                 operatorFound = true;
                                 var clearedValue = filterField.value;
-                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + completefieldODataName+ "',PropertyValue='" + clearedValue + "')";
+                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + completefieldODataName + "',PropertyValue='" + clearedValue + "')";
+                                break;
+
+                            case "On": // Microsoft.Dynamics.CRM.On(PropertyName='createdon',PropertyValue='2022-01-01')
+                            case "OnOrAfter": // Microsoft.Dynamics.CRM.OnOrAfter(PropertyName='createdon',PropertyValue='2022-01-01')
+                            case "OnOrBefore": // Microsoft.Dynamics.CRM.OnOrBefore(PropertyName='createdon',PropertyValue='2022-01-01')
+                                operatorFound = true;
+                                var clearedValue = filterField.value;
+                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + completefieldODataName + "',PropertyValue='" + clearedValue + "')";
                                 break;
                         }
                         if (operatorFound === false) {
@@ -363,6 +373,7 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                                     clearedValue = new Date(clearedValue).toISOString();
                                 }
                             }
+
                             if (filterField.type === "Owner" || filterField.type === "Lookup" || filterField.type === "Customer") {
                                 if (DRB.Utilities.HasValue(filterField.value.id)) {
                                     clearedValue = filterField.value.id;

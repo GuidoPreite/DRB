@@ -72,8 +72,8 @@ DRB.Xrm.GetDemoDataBatch = function (queries) {
     columns_CustomTable.push({ "@odata.type": "#Microsoft.Dynamics.CRM.LookupAttributeMetadata", SchemaName: "sample_ContactId", LogicalName: "sample_contactid", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Lookup", Targets: ["contact"], IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, DisplayName: { UserLocalizedLabel: { Label: "Lookup (Contact)" } } });
     columns_CustomTable.push({ "@odata.type": "#Microsoft.Dynamics.CRM.LookupAttributeMetadata", SchemaName: "sample_CustomerId", LogicalName: "sample_customerid", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Customer", Targets: ["account", "contact"], IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, DisplayName: { UserLocalizedLabel: { Label: "Customer Lookup" } } });
     columns_CustomTable.push({ "@odata.type": "#Microsoft.Dynamics.CRM.DoubleAttributeMetadata", SchemaName: "sample_Float", LogicalName: "sample_float", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Double", IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, MinValue: 5, MaxValue: 10, Precision: 3, DisplayName: { UserLocalizedLabel: { Label: "Float" } } });
-    columns_CustomTable.push({ "@odata.type": "#Microsoft.Dynamics.CRM.ImageAttributeMetadata", SchemaName: "sample_Image", LogicalName: "sample_image", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Virtual", IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, MaxSizeInKB: 10240, CanStoreFullImage: true, DisplayName: { UserLocalizedLabel: { Label: "Image" } } });
-    columns_CustomTable.push({ "@odata.type": "#Microsoft.Dynamics.CRM.ImageAttributeMetadata", SchemaName: "sample_Image2", LogicalName: "sample_image2", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Virtual", IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, MaxSizeInKB: 1024, CanStoreFullImage: false, DisplayName: { UserLocalizedLabel: { Label: "Image 2" } } });
+    columns_CustomTable.push({ "@odata.type": "#Microsoft.Dynamics.CRM.ImageAttributeMetadata", SchemaName: "sample_Image", LogicalName: "sample_image", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Virtual", IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, MaxSizeInKB: 10240, CanStoreFullImage: true, IsPrimaryImage: true, DisplayName: { UserLocalizedLabel: { Label: "Image" } } });
+    columns_CustomTable.push({ "@odata.type": "#Microsoft.Dynamics.CRM.ImageAttributeMetadata", SchemaName: "sample_Image2", LogicalName: "sample_image2", IsPrimaryId: false, IsPrimaryName: false, AttributeType: "Virtual", IsValidForRead: true, IsValidForCreate: true, IsValidForUpdate: true, MaxSizeInKB: 1024, CanStoreFullImage: false, IsPrimaryImage: false, DisplayName: { UserLocalizedLabel: { Label: "Image 2" } } });
 
 
     var sample_Boolean_Values = { "OptionSetType": "Boolean", "TrueOption": { "Value": true, "Label": { "UserLocalizedLabel": { "Label": "Yes" } } }, "FalseOption": { "Value": false, "Label": { "UserLocalizedLabel": { "Label": "No" } } } };
@@ -235,7 +235,8 @@ DRB.Xrm.GetDemoDataBatch = function (queries) {
         if (query.EntitySetName.indexOf("customapis") > -1) {
             var fakeDataQuery = {
                 value: [
-                    { bindingtype: 0, boundentitylogicalname: null, name: "FetchXMLToSQL", uniquename: "FetchXMLToSQL", isfunction: true }
+                    { bindingtype: 0, boundentitylogicalname: null, name: "FetchXMLToSQL", uniquename: "FetchXMLToSQL", isfunction: true },
+                    { bindingtype: 0, boundentitylogicalname: null, name: "RetrieveEnvironmentVariableSecretValue", uniquename: "RetrieveEnvironmentVariableSecretValue", isfunction: false }
                 ]
             };
             fakeData += fakeHeaderStart + JSON.stringify(fakeDataQuery) + emptyLine;
@@ -244,7 +245,8 @@ DRB.Xrm.GetDemoDataBatch = function (queries) {
             var fakeDataQuery = {
                 value: [
                     { isoptional: false, name: "FetchXml", type: 10, uniquename: "FetchXml", CustomAPIId: { uniquename: "FetchXMLToSQL" } },
-                    { isoptional: true, name: "SubqueryCompatible", type: 0, uniquename: "SubqueryCompatible", CustomAPIId: { uniquename: "FetchXMLToSQL" } }
+                    { isoptional: true, name: "SubqueryCompatible", type: 0, uniquename: "SubqueryCompatible", CustomAPIId: { uniquename: "FetchXMLToSQL" } },
+                    { isoptional: false, name: "EnvironmentVariableName", type: 10, uniquename: "EnvironmentVariableName", CustomAPIId: { uniquename: "RetrieveEnvironmentVariableSecretValue" } }
                 ]
             };
 
@@ -252,7 +254,10 @@ DRB.Xrm.GetDemoDataBatch = function (queries) {
         }
         if (query.EntitySetName.indexOf("customapiresponseproperties") > -1) {
             var fakeDataQuery = {
-                value: [{ name: "Response", type: 10, uniquename: "Response", CustomAPIId: { uniquename: "FetchXMLToSQL" } }]
+                value: [
+                    { name: "Response", type: 10, uniquename: "Response", CustomAPIId: { uniquename: "FetchXMLToSQL" } },
+                    { name: "EnvironmentVariableSecretValue", type: 10, uniquename: "EnvironmentVariableSecretValue", CustomAPIId: { uniquename: "RetrieveEnvironmentVariableSecretValue" } }
+                ]
             };
             fakeData += fakeHeaderStart + JSON.stringify(fakeDataQuery) + emptyLine;
         }
@@ -260,13 +265,33 @@ DRB.Xrm.GetDemoDataBatch = function (queries) {
 
         // #region Demo Data for Custom Actions
         if (query.EntitySetName.indexOf("workflows") > -1) {
-            // TODO
+            var fakeDataQuery = {
+                value: [
+                    { "sdkmessage.name": "DetectLanguage", name: "DetectLanguage", primaryentity: "none" }
+                ]
+            };
+            fakeData += fakeHeaderStart + JSON.stringify(fakeDataQuery) + emptyLine;
         }
         if (query.EntitySetName.indexOf("sdkmessagerequestfields") > -1) {
-            // TODO
+            var fakeDataQuery = {
+                value: [
+                    { "sdkmessage.name": "DetectLanguage", name: "text", optional: false, position: 0, parser: "System.String, X" },
+                    { "sdkmessage.name": "DetectLanguage", name: "modelId", optional: true, position: 1, parser: "System.String, X" },
+                    { "sdkmessage.name": "DetectLanguage", name: "countryHint", optional: true, position: 2, parser: "System.String, X" }
+                ]
+            };
+
+            fakeData += fakeHeaderStart + JSON.stringify(fakeDataQuery) + emptyLine;
         }
         if (query.EntitySetName.indexOf("sdkmessageresponsefields") > -1) {
-            // TODO
+            var fakeDataQuery = {
+                value: [
+                    { "sdkmessage.name": "DetectLanguage", name: "language", position: 0, formatter: "System.String, X" },
+                    { "sdkmessage.name": "DetectLanguage", name: "score", position: 1, formatter: "System.Decimal, X" }
+                ]
+            };
+
+            fakeData += fakeHeaderStart + JSON.stringify(fakeDataQuery) + emptyLine;
         }
         // #endregion
 
@@ -347,7 +372,7 @@ DRB.Xrm.GetDemoData = function (entitySetName, filters, singleRecord) {
                 break;
             case "teams":
                 fakeData.value.push({ teamid: "c6f35754-6fa8-4e8b-8b58-d4ca958001f4", name: "Demo Team 1" });
-              break;
+                break;
         }
     }
     return fakeData;
