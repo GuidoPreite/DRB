@@ -1295,7 +1295,7 @@ DRB.Models.RelationshipLookup = function (relationship) {
 
     this.Columns = relationship.Columns;
     this.ToDropdownOption = function () {
-        var subText = this.NavigationAttribute + " - Table: " + this.TargetTableName + " (" + this.TargetTable + ")";      
+        var subText = this.NavigationAttribute + " - Table: " + this.TargetTableName + " (" + this.TargetTable + ")";
         return new DRB.Models.DropdownOption(this.Id, this.NavigationAttributeName, subText);
     }
 }
@@ -1389,7 +1389,35 @@ DRB.Models.RelationshipColumn = function (relationshipSchemaName, relationshipTy
     this.ColumnAdditionalProperties = columnAdditionalProperties;
 
     this.ToDropdownOption = function () {
-        var subText = this.ColumnLogicalName + " (" + this.ColumnAttributeType + ")";
+
+
+
+        // subText renaming
+        var renamedAttributeType = this.ColumnAttributeType;
+        switch (this.ColumnAttributeType) {
+            case "Uniqueidentifier": renamedAttributeType = "Guid"; break;
+            case "Picklist": renamedAttributeType = "Choice"; break;
+            case "MultiPicklist": renamedAttributeType = "Choices"; break;
+            case "DateTime": renamedAttributeType = "Date Time"; break;
+            case "Double": renamedAttributeType = "Float"; break;
+            case "Integer": renamedAttributeType = "Whole Number"; break;
+            case "Memo": renamedAttributeType = "Multiline Text"; break;
+            case "String": renamedAttributeType = "Text"; break;
+            case "Money": renamedAttributeType = "Currency"; break;
+            case "BigInt": renamedAttributeType = "Big Integer"; break;
+            case "EntityName": renamedAttributeType = "Entity Name"; break;
+            case "ManagedProperty": renamedAttributeType = "Managed Property"; break;
+        }
+        if (this.AttributeType === "Lookup" && this.AdditionalProperties.IsPolymorphic === true) { renamedAttributeType = "Polymorphic Lookup"; }
+
+        var subText = this.ColumnLogicalName + " (" + renamedAttributeType + ")";
+        if (this.ColumnRequiredLevel === "Recommended") { subText += " +"; }
+        if (this.ColumnRequiredLevel === "ApplicationRequired" || this.ColumnRequiredLevel === "SystemRequired") { subText += " *"; }
+        if (this.ColumnIsPrimaryNameAttribute === true) { subText += " (Primary Column)"; }
+        if (this.ColumnAttributeType === "Image" && this.ColumnAdditionalProperties.CanStoreFullImage === true) { subText += " (Can Store Full Image)"; }
+        if (this.ColumnAdditionalProperties.SourceType === 1) { subText += " (Calculated)"; }
+        if (this.ColumnAdditionalProperties.SourceType === 2) { subText += " (Rollup)"; }
+
         var subText2 = "Relationship: " + this.RelationshipSchemaName + " - Table: " + this.TargetTableName + " (" + this.TargetTableLogicalName + ")";
         switch (this.RelationshipType) {
             case "OneToMany":
@@ -1474,6 +1502,8 @@ DRB.Models.Column = function (logicalName, name, schemaName, attributeType, isPr
             case "String": renamedAttributeType = "Text"; break;
             case "Money": renamedAttributeType = "Currency"; break;
             case "BigInt": renamedAttributeType = "Big Integer"; break;
+            case "EntityName": renamedAttributeType = "Entity Name"; break;
+            case "ManagedProperty": renamedAttributeType = "Managed Property"; break;
         }
 
         if (this.AttributeType === "Lookup" && this.AdditionalProperties.IsPolymorphic === true) { renamedAttributeType = "Polymorphic Lookup"; }
@@ -1483,6 +1513,8 @@ DRB.Models.Column = function (logicalName, name, schemaName, attributeType, isPr
         if (this.RequiredLevel === "ApplicationRequired" || this.RequiredLevel === "SystemRequired") { subText += " *"; }
         if (this.IsPrimaryNameAttribute === true) { subText += " (Primary Column)"; }
         if (this.AttributeType === "Image" && this.AdditionalProperties.CanStoreFullImage === true) { subText += " (Can Store Full Image)"; }
+        if (this.AdditionalProperties.SourceType === 1) { subText += " (Calculated)"; }
+        if (this.AdditionalProperties.SourceType === 2) { subText += " (Rollup)"; }
         return new DRB.Models.DropdownOption(this.Id, this.Name, subText);
     }
 }
@@ -1515,7 +1547,7 @@ DRB.Models.AlternateKey = function (logicalName, name, schemaName, keyAttributes
  * @param {string} primaryNameAttribute Primary Name Attribute
  * @param {number} objectTypeCode Object Type Code
  */
-DRB.Models.Table = function (logicalName, name, schemaName, entitySetName, primaryIdAttribute, primaryNameAttribute, objectTypeCode) {
+DRB.Models.Table = function (logicalName, name, schemaName, entitySetName, primaryIdAttribute, primaryNameAttribute, objectTypeCode, isActivity, externalName, externalCollectionName) {
     this.Id = logicalName;
     this.Name = name;
     this.LogicalName = logicalName;
@@ -1524,7 +1556,9 @@ DRB.Models.Table = function (logicalName, name, schemaName, entitySetName, prima
     this.PrimaryIdAttribute = primaryIdAttribute;
     this.PrimaryNameAttribute = primaryNameAttribute;
     this.ObjectTypeCode = objectTypeCode;
-
+    this.IsActivity = isActivity;
+    this.IsVirtual = false;
+    if (DRB.Utilities.HasValue(externalName) && DRB.Utilities.HasValue(externalCollectionName)) { this.IsVirtual = true; }
     // additional properties
     this.Columns = [];
     this.OneToManyRelationships = [];
@@ -1542,7 +1576,10 @@ DRB.Models.Table = function (logicalName, name, schemaName, entitySetName, prima
     this.SystemViewsLoaded = false;
     this.PersonalViewsLoaded = false;
 
-    this.ToDropdownOption = function () { return new DRB.Models.DropdownOption(this.Id, this.Name, this.LogicalName); }
+    var subText = this.LogicalName;
+    if (this.IsActivity) { subText += " (Activity)"; }
+    if (this.IsVirtual) { subText += " (Virtual)"; }
+    this.ToDropdownOption = function () { return new DRB.Models.DropdownOption(this.Id, this.Name, subText); }
 }
 
 /**
@@ -2617,7 +2654,7 @@ DRB.Xrm.GetServerVersion = function (serverUrl, token) {
  * Common - Retrieve Tables
  */
 DRB.Common.RetrieveTables = function () {
-    return DRB.Xrm.Retrieve("EntityDefinitions", "$select=LogicalName,SchemaName,DisplayName,EntitySetName,PrimaryIdAttribute,PrimaryNameAttribute,ObjectTypeCode");
+    return DRB.Xrm.Retrieve("EntityDefinitions", "$select=LogicalName,SchemaName,DisplayName,EntitySetName,PrimaryIdAttribute,PrimaryNameAttribute,ObjectTypeCode,IsActivity,ExternalName,ExternalCollectionName");
 }
 
 /**
@@ -2990,7 +3027,10 @@ DRB.Common.MapTables = function (data, sortProperty) {
             var primaryIdAttribute = record.PrimaryIdAttribute;
             var primaryNameAttribute = record.PrimaryNameAttribute;
             var objectTypeCode = record.ObjectTypeCode;
-            tables.push(new DRB.Models.Table(logicalName, name, schemaName, entitySetName, primaryIdAttribute, primaryNameAttribute, objectTypeCode));
+            var isActivity = record.IsActivity;
+            var externalName = record.ExternalName;
+            var externalCollectionName = record.ExternalCollectionName;
+            tables.push(new DRB.Models.Table(logicalName, name, schemaName, entitySetName, primaryIdAttribute, primaryNameAttribute, objectTypeCode, isActivity, externalName, externalCollectionName));
         });
         // sort the array based on the provided sortProperty
         if (DRB.Utilities.HasValue(sortProperty)) { tables.sort(DRB.Utilities.CustomSort(sortProperty)); }
@@ -3064,9 +3104,10 @@ DRB.Common.MapColumns = function (data, primaryIdAttribute, primaryNameAttribute
             var isPrimaryImage = record.IsPrimaryImage; // Image
             var dateTimeFormat = record.Format; // DateTime
             var dateTimeBehavior = ""; // DateTime
+            var sourceType = record.SourceType; // Source Type (0 = Simple, 1 = Calculated, 2 = Rollup)
 
             if (DRB.Utilities.HasValue(record.DateTimeBehavior) && DRB.Utilities.HasValue(record.DateTimeBehavior.Value)) { dateTimeBehavior = record.DateTimeBehavior.Value; }
-            var additionalProperties = { MaxLength: maxLength, MinValue: minValue, MaxValue: maxValue, Targets: targets, IsPolymorphic: isPolymorphic, Precision: precision, PrecisionSource: precisionSource, MaxSizeInKB: maxSizeInKB, CanStoreFullImage: canStoreFullImage, IsPrimaryImage: isPrimaryImage, DateTimeFormat: dateTimeFormat, DateTimeBehavior: dateTimeBehavior };
+            var additionalProperties = { SourceType: sourceType, MaxLength: maxLength, MinValue: minValue, MaxValue: maxValue, Targets: targets, IsPolymorphic: isPolymorphic, Precision: precision, PrecisionSource: precisionSource, MaxSizeInKB: maxSizeInKB, CanStoreFullImage: canStoreFullImage, IsPrimaryImage: isPrimaryImage, DateTimeFormat: dateTimeFormat, DateTimeBehavior: dateTimeBehavior };
 
             // fix for type fields appearing as Virtual
             var oDataType = record["@odata.type"];
@@ -6049,19 +6090,19 @@ DRB.GenerateCode.GetCodeFields = function (settings) {
         codeFieldsFormatted.push('// One To Many Relationships');
     }
     settings.oneToMany.forEach(function (oneToMany) {
-        codeFields.push('for (var i = 0; i < result.' + oneToMany.schemaName + '.length; i++) {');
-        codeFieldsFormatted.push('for (var i = 0; i < result.' + oneToMany.schemaName + '.length; i++) {');
+        codeFields.push('for (var j = 0; j < result.' + oneToMany.schemaName + '.length; j++) {');
+        codeFieldsFormatted.push('for (var j = 0; j < result.' + oneToMany.schemaName + '.length; j++) {');
         oneToMany.fields.forEach(function (field) {
 
             var renamedFieldType = DRB.GenerateCode.ConvertFieldType(field.type);
 
-            codeFields.push('\tvar ' + oneToMany.schemaName + '_' + field.logicalName + ' = result.' + oneToMany.schemaName + '[i]["' + field.oDataName + '"]; // ' + renamedFieldType);
-            codeFieldsFormatted.push('\tvar ' + oneToMany.schemaName + '_' + field.logicalName + ' = result.' + oneToMany.schemaName + '[i]["' + field.oDataName + '"]; // ' + renamedFieldType);
+            codeFields.push('\tvar ' + oneToMany.schemaName + '_' + field.logicalName + ' = result.' + oneToMany.schemaName + '[j]["' + field.oDataName + '"]; // ' + renamedFieldType);
+            codeFieldsFormatted.push('\tvar ' + oneToMany.schemaName + '_' + field.logicalName + ' = result.' + oneToMany.schemaName + '[j]["' + field.oDataName + '"]; // ' + renamedFieldType);
             if (formattedTypes.indexOf(field.type) > -1) {
-                codeFieldsFormatted.push('\tvar ' + oneToMany.schemaName + '_' + field.logicalName + '_formatted = result.' + oneToMany.schemaName + '[i]["' + field.oDataName + '@OData.Community.Display.V1.FormattedValue"];');
+                codeFieldsFormatted.push('\tvar ' + oneToMany.schemaName + '_' + field.logicalName + '_formatted = result.' + oneToMany.schemaName + '[j]["' + field.oDataName + '@OData.Community.Display.V1.FormattedValue"];');
             }
             if (logicalNameTypes.indexOf(field.type) > -1) {
-                codeFieldsFormatted.push('\tvar ' + oneToMany.schemaName + '_' + field.logicalName + '_lookuplogicalname = result.' + oneToMany.schemaName + '[i]["' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname"];');
+                codeFieldsFormatted.push('\tvar ' + oneToMany.schemaName + '_' + field.logicalName + '_lookuplogicalname = result.' + oneToMany.schemaName + '[j]["' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname"];');
             }
         });
         codeFields.push('}');
@@ -6101,19 +6142,19 @@ DRB.GenerateCode.GetCodeFields = function (settings) {
         codeFieldsFormatted.push('// Many To Many Relationships');
     }
     settings.manyToMany.forEach(function (ManyToMany) {
-        codeFields.push('for (var i = 0; i < result.' + ManyToMany.schemaName + '.length; i++) {');
-        codeFieldsFormatted.push('for (var i = 0; i < result.' + ManyToMany.schemaName + '.length; i++) {');
+        codeFields.push('for (var j = 0; j < result.' + ManyToMany.schemaName + '.length; j++) {');
+        codeFieldsFormatted.push('for (var j = 0; j < result.' + ManyToMany.schemaName + '.length; j++) {');
         ManyToMany.fields.forEach(function (field) {
 
             var renamedFieldType = DRB.GenerateCode.ConvertFieldType(field.type);
 
-            codeFields.push('\tvar ' + ManyToMany.schemaName + '_' + field.logicalName + ' = result.' + ManyToMany.schemaName + '[i]["' + field.oDataName + '"]; // ' + renamedFieldType);
-            codeFieldsFormatted.push('\tvar ' + ManyToMany.schemaName + '_' + field.logicalName + ' = result.' + ManyToMany.schemaName + '[i]["' + field.oDataName + '"]; // ' + renamedFieldType);
+            codeFields.push('\tvar ' + ManyToMany.schemaName + '_' + field.logicalName + ' = result.' + ManyToMany.schemaName + '[j]["' + field.oDataName + '"]; // ' + renamedFieldType);
+            codeFieldsFormatted.push('\tvar ' + ManyToMany.schemaName + '_' + field.logicalName + ' = result.' + ManyToMany.schemaName + '[j]["' + field.oDataName + '"]; // ' + renamedFieldType);
             if (formattedTypes.indexOf(field.type) > -1) {
-                codeFieldsFormatted.push('\tvar ' + ManyToMany.schemaName + '_' + field.logicalName + '_formatted = result.' + ManyToMany.schemaName + '[i]["' + field.oDataName + '@OData.Community.Display.V1.FormattedValue"];');
+                codeFieldsFormatted.push('\tvar ' + ManyToMany.schemaName + '_' + field.logicalName + '_formatted = result.' + ManyToMany.schemaName + '[j]["' + field.oDataName + '@OData.Community.Display.V1.FormattedValue"];');
             }
             if (logicalNameTypes.indexOf(field.type) > -1) {
-                codeFieldsFormatted.push('\tvar ' + ManyToMany.schemaName + '_' + field.logicalName + '_lookuplogicalname = result.' + ManyToMany.schemaName + '[i]["' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname"];');
+                codeFieldsFormatted.push('\tvar ' + ManyToMany.schemaName + '_' + field.logicalName + '_lookuplogicalname = result.' + ManyToMany.schemaName + '[j]["' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname"];');
             }
         });
         codeFields.push('}');
@@ -16301,7 +16342,7 @@ DRB.InsertMainBodyContent = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.28";
+    var drbVersion = "1.0.0.29";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 

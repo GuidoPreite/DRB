@@ -107,7 +107,7 @@ DRB.Models.RelationshipLookup = function (relationship) {
 
     this.Columns = relationship.Columns;
     this.ToDropdownOption = function () {
-        var subText = this.NavigationAttribute + " - Table: " + this.TargetTableName + " (" + this.TargetTable + ")";      
+        var subText = this.NavigationAttribute + " - Table: " + this.TargetTableName + " (" + this.TargetTable + ")";
         return new DRB.Models.DropdownOption(this.Id, this.NavigationAttributeName, subText);
     }
 }
@@ -201,7 +201,35 @@ DRB.Models.RelationshipColumn = function (relationshipSchemaName, relationshipTy
     this.ColumnAdditionalProperties = columnAdditionalProperties;
 
     this.ToDropdownOption = function () {
-        var subText = this.ColumnLogicalName + " (" + this.ColumnAttributeType + ")";
+
+
+
+        // subText renaming
+        var renamedAttributeType = this.ColumnAttributeType;
+        switch (this.ColumnAttributeType) {
+            case "Uniqueidentifier": renamedAttributeType = "Guid"; break;
+            case "Picklist": renamedAttributeType = "Choice"; break;
+            case "MultiPicklist": renamedAttributeType = "Choices"; break;
+            case "DateTime": renamedAttributeType = "Date Time"; break;
+            case "Double": renamedAttributeType = "Float"; break;
+            case "Integer": renamedAttributeType = "Whole Number"; break;
+            case "Memo": renamedAttributeType = "Multiline Text"; break;
+            case "String": renamedAttributeType = "Text"; break;
+            case "Money": renamedAttributeType = "Currency"; break;
+            case "BigInt": renamedAttributeType = "Big Integer"; break;
+            case "EntityName": renamedAttributeType = "Entity Name"; break;
+            case "ManagedProperty": renamedAttributeType = "Managed Property"; break;
+        }
+        if (this.AttributeType === "Lookup" && this.AdditionalProperties.IsPolymorphic === true) { renamedAttributeType = "Polymorphic Lookup"; }
+
+        var subText = this.ColumnLogicalName + " (" + renamedAttributeType + ")";
+        if (this.ColumnRequiredLevel === "Recommended") { subText += " +"; }
+        if (this.ColumnRequiredLevel === "ApplicationRequired" || this.ColumnRequiredLevel === "SystemRequired") { subText += " *"; }
+        if (this.ColumnIsPrimaryNameAttribute === true) { subText += " (Primary Column)"; }
+        if (this.ColumnAttributeType === "Image" && this.ColumnAdditionalProperties.CanStoreFullImage === true) { subText += " (Can Store Full Image)"; }
+        if (this.ColumnAdditionalProperties.SourceType === 1) { subText += " (Calculated)"; }
+        if (this.ColumnAdditionalProperties.SourceType === 2) { subText += " (Rollup)"; }
+
         var subText2 = "Relationship: " + this.RelationshipSchemaName + " - Table: " + this.TargetTableName + " (" + this.TargetTableLogicalName + ")";
         switch (this.RelationshipType) {
             case "OneToMany":
@@ -286,6 +314,8 @@ DRB.Models.Column = function (logicalName, name, schemaName, attributeType, isPr
             case "String": renamedAttributeType = "Text"; break;
             case "Money": renamedAttributeType = "Currency"; break;
             case "BigInt": renamedAttributeType = "Big Integer"; break;
+            case "EntityName": renamedAttributeType = "Entity Name"; break;
+            case "ManagedProperty": renamedAttributeType = "Managed Property"; break;
         }
 
         if (this.AttributeType === "Lookup" && this.AdditionalProperties.IsPolymorphic === true) { renamedAttributeType = "Polymorphic Lookup"; }
@@ -295,6 +325,8 @@ DRB.Models.Column = function (logicalName, name, schemaName, attributeType, isPr
         if (this.RequiredLevel === "ApplicationRequired" || this.RequiredLevel === "SystemRequired") { subText += " *"; }
         if (this.IsPrimaryNameAttribute === true) { subText += " (Primary Column)"; }
         if (this.AttributeType === "Image" && this.AdditionalProperties.CanStoreFullImage === true) { subText += " (Can Store Full Image)"; }
+        if (this.AdditionalProperties.SourceType === 1) { subText += " (Calculated)"; }
+        if (this.AdditionalProperties.SourceType === 2) { subText += " (Rollup)"; }
         return new DRB.Models.DropdownOption(this.Id, this.Name, subText);
     }
 }
@@ -327,7 +359,7 @@ DRB.Models.AlternateKey = function (logicalName, name, schemaName, keyAttributes
  * @param {string} primaryNameAttribute Primary Name Attribute
  * @param {number} objectTypeCode Object Type Code
  */
-DRB.Models.Table = function (logicalName, name, schemaName, entitySetName, primaryIdAttribute, primaryNameAttribute, objectTypeCode) {
+DRB.Models.Table = function (logicalName, name, schemaName, entitySetName, primaryIdAttribute, primaryNameAttribute, objectTypeCode, isActivity, externalName, externalCollectionName) {
     this.Id = logicalName;
     this.Name = name;
     this.LogicalName = logicalName;
@@ -336,7 +368,9 @@ DRB.Models.Table = function (logicalName, name, schemaName, entitySetName, prima
     this.PrimaryIdAttribute = primaryIdAttribute;
     this.PrimaryNameAttribute = primaryNameAttribute;
     this.ObjectTypeCode = objectTypeCode;
-
+    this.IsActivity = isActivity;
+    this.IsVirtual = false;
+    if (DRB.Utilities.HasValue(externalName) && DRB.Utilities.HasValue(externalCollectionName)) { this.IsVirtual = true; }
     // additional properties
     this.Columns = [];
     this.OneToManyRelationships = [];
@@ -354,7 +388,10 @@ DRB.Models.Table = function (logicalName, name, schemaName, entitySetName, prima
     this.SystemViewsLoaded = false;
     this.PersonalViewsLoaded = false;
 
-    this.ToDropdownOption = function () { return new DRB.Models.DropdownOption(this.Id, this.Name, this.LogicalName); }
+    var subText = this.LogicalName;
+    if (this.IsActivity) { subText += " (Activity)"; }
+    if (this.IsVirtual) { subText += " (Virtual)"; }
+    this.ToDropdownOption = function () { return new DRB.Models.DropdownOption(this.Id, this.Name, subText); }
 }
 
 /**

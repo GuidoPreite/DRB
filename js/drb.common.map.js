@@ -18,7 +18,10 @@ DRB.Common.MapTables = function (data, sortProperty) {
             var primaryIdAttribute = record.PrimaryIdAttribute;
             var primaryNameAttribute = record.PrimaryNameAttribute;
             var objectTypeCode = record.ObjectTypeCode;
-            tables.push(new DRB.Models.Table(logicalName, name, schemaName, entitySetName, primaryIdAttribute, primaryNameAttribute, objectTypeCode));
+            var isActivity = record.IsActivity;
+            var externalName = record.ExternalName;
+            var externalCollectionName = record.ExternalCollectionName;
+            tables.push(new DRB.Models.Table(logicalName, name, schemaName, entitySetName, primaryIdAttribute, primaryNameAttribute, objectTypeCode, isActivity, externalName, externalCollectionName));
         });
         // sort the array based on the provided sortProperty
         if (DRB.Utilities.HasValue(sortProperty)) { tables.sort(DRB.Utilities.CustomSort(sortProperty)); }
@@ -92,9 +95,10 @@ DRB.Common.MapColumns = function (data, primaryIdAttribute, primaryNameAttribute
             var isPrimaryImage = record.IsPrimaryImage; // Image
             var dateTimeFormat = record.Format; // DateTime
             var dateTimeBehavior = ""; // DateTime
+            var sourceType = record.SourceType; // Source Type (0 = Simple, 1 = Calculated, 2 = Rollup)
 
             if (DRB.Utilities.HasValue(record.DateTimeBehavior) && DRB.Utilities.HasValue(record.DateTimeBehavior.Value)) { dateTimeBehavior = record.DateTimeBehavior.Value; }
-            var additionalProperties = { MaxLength: maxLength, MinValue: minValue, MaxValue: maxValue, Targets: targets, IsPolymorphic: isPolymorphic, Precision: precision, PrecisionSource: precisionSource, MaxSizeInKB: maxSizeInKB, CanStoreFullImage: canStoreFullImage, IsPrimaryImage: isPrimaryImage, DateTimeFormat: dateTimeFormat, DateTimeBehavior: dateTimeBehavior };
+            var additionalProperties = { SourceType: sourceType, MaxLength: maxLength, MinValue: minValue, MaxValue: maxValue, Targets: targets, IsPolymorphic: isPolymorphic, Precision: precision, PrecisionSource: precisionSource, MaxSizeInKB: maxSizeInKB, CanStoreFullImage: canStoreFullImage, IsPrimaryImage: isPrimaryImage, DateTimeFormat: dateTimeFormat, DateTimeBehavior: dateTimeBehavior };
 
             // fix for type fields appearing as Virtual
             var oDataType = record["@odata.type"];

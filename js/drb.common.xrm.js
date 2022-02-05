@@ -3,7 +3,7 @@
  * Common - Retrieve Tables
  */
 DRB.Common.RetrieveTables = function () {
-    return DRB.Xrm.Retrieve("EntityDefinitions", "$select=LogicalName,SchemaName,DisplayName,EntitySetName,PrimaryIdAttribute,PrimaryNameAttribute,ObjectTypeCode");
+    return DRB.Xrm.Retrieve("EntityDefinitions", "$select=LogicalName,SchemaName,DisplayName,EntitySetName,PrimaryIdAttribute,PrimaryNameAttribute,ObjectTypeCode,IsActivity,ExternalName,ExternalCollectionName");
 }
 
 /**

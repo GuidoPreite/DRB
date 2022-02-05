@@ -707,19 +707,19 @@ DRB.GenerateCode.GetCodeFields = function (settings) {
         codeFieldsFormatted.push('// One To Many Relationships');
     }
     settings.oneToMany.forEach(function (oneToMany) {
-        codeFields.push('for (var i = 0; i < result.' + oneToMany.schemaName + '.length; i++) {');
-        codeFieldsFormatted.push('for (var i = 0; i < result.' + oneToMany.schemaName + '.length; i++) {');
+        codeFields.push('for (var j = 0; j < result.' + oneToMany.schemaName + '.length; j++) {');
+        codeFieldsFormatted.push('for (var j = 0; j < result.' + oneToMany.schemaName + '.length; j++) {');
         oneToMany.fields.forEach(function (field) {
 
             var renamedFieldType = DRB.GenerateCode.ConvertFieldType(field.type);
 
-            codeFields.push('\tvar ' + oneToMany.schemaName + '_' + field.logicalName + ' = result.' + oneToMany.schemaName + '[i]["' + field.oDataName + '"]; // ' + renamedFieldType);
-            codeFieldsFormatted.push('\tvar ' + oneToMany.schemaName + '_' + field.logicalName + ' = result.' + oneToMany.schemaName + '[i]["' + field.oDataName + '"]; // ' + renamedFieldType);
+            codeFields.push('\tvar ' + oneToMany.schemaName + '_' + field.logicalName + ' = result.' + oneToMany.schemaName + '[j]["' + field.oDataName + '"]; // ' + renamedFieldType);
+            codeFieldsFormatted.push('\tvar ' + oneToMany.schemaName + '_' + field.logicalName + ' = result.' + oneToMany.schemaName + '[j]["' + field.oDataName + '"]; // ' + renamedFieldType);
             if (formattedTypes.indexOf(field.type) > -1) {
-                codeFieldsFormatted.push('\tvar ' + oneToMany.schemaName + '_' + field.logicalName + '_formatted = result.' + oneToMany.schemaName + '[i]["' + field.oDataName + '@OData.Community.Display.V1.FormattedValue"];');
+                codeFieldsFormatted.push('\tvar ' + oneToMany.schemaName + '_' + field.logicalName + '_formatted = result.' + oneToMany.schemaName + '[j]["' + field.oDataName + '@OData.Community.Display.V1.FormattedValue"];');
             }
             if (logicalNameTypes.indexOf(field.type) > -1) {
-                codeFieldsFormatted.push('\tvar ' + oneToMany.schemaName + '_' + field.logicalName + '_lookuplogicalname = result.' + oneToMany.schemaName + '[i]["' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname"];');
+                codeFieldsFormatted.push('\tvar ' + oneToMany.schemaName + '_' + field.logicalName + '_lookuplogicalname = result.' + oneToMany.schemaName + '[j]["' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname"];');
             }
         });
         codeFields.push('}');
@@ -759,19 +759,19 @@ DRB.GenerateCode.GetCodeFields = function (settings) {
         codeFieldsFormatted.push('// Many To Many Relationships');
     }
     settings.manyToMany.forEach(function (ManyToMany) {
-        codeFields.push('for (var i = 0; i < result.' + ManyToMany.schemaName + '.length; i++) {');
-        codeFieldsFormatted.push('for (var i = 0; i < result.' + ManyToMany.schemaName + '.length; i++) {');
+        codeFields.push('for (var j = 0; j < result.' + ManyToMany.schemaName + '.length; j++) {');
+        codeFieldsFormatted.push('for (var j = 0; j < result.' + ManyToMany.schemaName + '.length; j++) {');
         ManyToMany.fields.forEach(function (field) {
 
             var renamedFieldType = DRB.GenerateCode.ConvertFieldType(field.type);
 
-            codeFields.push('\tvar ' + ManyToMany.schemaName + '_' + field.logicalName + ' = result.' + ManyToMany.schemaName + '[i]["' + field.oDataName + '"]; // ' + renamedFieldType);
-            codeFieldsFormatted.push('\tvar ' + ManyToMany.schemaName + '_' + field.logicalName + ' = result.' + ManyToMany.schemaName + '[i]["' + field.oDataName + '"]; // ' + renamedFieldType);
+            codeFields.push('\tvar ' + ManyToMany.schemaName + '_' + field.logicalName + ' = result.' + ManyToMany.schemaName + '[j]["' + field.oDataName + '"]; // ' + renamedFieldType);
+            codeFieldsFormatted.push('\tvar ' + ManyToMany.schemaName + '_' + field.logicalName + ' = result.' + ManyToMany.schemaName + '[j]["' + field.oDataName + '"]; // ' + renamedFieldType);
             if (formattedTypes.indexOf(field.type) > -1) {
-                codeFieldsFormatted.push('\tvar ' + ManyToMany.schemaName + '_' + field.logicalName + '_formatted = result.' + ManyToMany.schemaName + '[i]["' + field.oDataName + '@OData.Community.Display.V1.FormattedValue"];');
+                codeFieldsFormatted.push('\tvar ' + ManyToMany.schemaName + '_' + field.logicalName + '_formatted = result.' + ManyToMany.schemaName + '[j]["' + field.oDataName + '@OData.Community.Display.V1.FormattedValue"];');
             }
             if (logicalNameTypes.indexOf(field.type) > -1) {
-                codeFieldsFormatted.push('\tvar ' + ManyToMany.schemaName + '_' + field.logicalName + '_lookuplogicalname = result.' + ManyToMany.schemaName + '[i]["' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname"];');
+                codeFieldsFormatted.push('\tvar ' + ManyToMany.schemaName + '_' + field.logicalName + '_lookuplogicalname = result.' + ManyToMany.schemaName + '[j]["' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname"];');
             }
         });
         codeFields.push('}');
