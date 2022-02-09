@@ -454,7 +454,9 @@ DRB.Logic.RetrieveMultiple.AddFilterColumns = function (domObject, metadataPath)
                 $("#" + controlPrefix + DRB.DOM[domObject].ControlValue.Id + metadataPath + "_" + fieldIndex).val(field.value).change();
                 break;
         }
-
+        if (DRB.Utilities.HasValue(field.value2)) {
+            $("#" + "second_" + controlPrefix + DRB.DOM[domObject].ControlValue.Id + metadataPath + "_" + fieldIndex).val(field.value2).change();
+        }
     });
     $("#" + DRB.DOM[domObject].MainDiv.Id + metadataPath).show();
 }

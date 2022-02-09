@@ -5650,6 +5650,7 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                             case "NextFiscalPeriod": // Microsoft.Dynamics.CRM.NextFiscalPeriod(PropertyName='createdon')
                             case "LastFiscalPeriod": // Microsoft.Dynamics.CRM.LastFiscalPeriod(PropertyName='createdon')
                             case "ThisFiscalPeriod": // Microsoft.Dynamics.CRM.ThisFiscalPeriod(PropertyName='createdon')
+                            case "EqualUserLanguage": // Microsoft.Dynamics.CRM.EqualUserLanguage(PropertyName='new_wholenumber')
                                 operatorFound = true;
                                 partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + completefieldLogicalName + "')";
                                 break;
@@ -5735,6 +5736,23 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                                 operatorFound = true;
                                 var clearedValue = filterField.value;
                                 partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + completefieldODataName + "',PropertyValue='" + clearedValue + "')";
+                                break;
+
+                            case "InFiscalPeriodAndYear":
+                            case "InOrAfterFiscalPeriodAndYear":
+                            case "InOrBeforeFiscalPeriodAndYear":
+                                operatorFound = true;
+                                var clearedValue = filterField.value;
+                                var clearedValue2 = filterField.value2;
+                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + completefieldODataName + "',PropertyValue1=" + clearedValue + ",PropertyValue2=" + clearedValue2 + ")";
+                                break;
+
+                            case "Between":
+                            case "NotBetween":
+                                operatorFound = true;
+                                var clearedValue = filterField.value;
+                                var clearedValue2 = filterField.value2;
+                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + completefieldODataName + "',PropertyValues=['" + clearedValue + "','" + clearedValue2 + "'])";
                                 break;
                         }
                         if (operatorFound === false) {
@@ -10629,6 +10647,14 @@ DRB.Logic.BindFilterColumnValue = function (id) {
                     currentField.value.entityType = controlValue;
                 }
 
+                // second parameter check
+                if (controlName.indexOf("second_txt_") === 0) { currentField.value2 = controlValue; }
+                if (controlName.indexOf("second_txtd_") === 0) {
+                    currentField.value2 = controlValue;
+                    currentField.dateTimeBehavior = $("#" + controlName).attr("data-datetimebehavior");
+                }
+                if (controlName.indexOf("second_cbx1_") === 0) { currentField.value2 = controlValue; }
+
                 // update DRB.Metadata and data.configuration
                 setColumn.Value = currentField;
                 refConfiguration[columnIndex] = currentField;
@@ -10678,9 +10704,11 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
 
         var columnLogicalName = "";
         var requiredValue = true;
+        var requiredValue2 = false;
         refMetadata.forEach(function (setColumn, columnIndex) {
             if (setColumn.Id === elementIndex) {
                 DRB.Settings.OperatorsToStop.forEach(function (operatorToStop) { if (operator === operatorToStop.Id) { requiredValue = false; } });
+                DRB.Settings.OperatorsTwoValues.forEach(function (operatorTwoValues) { if (operator === operatorTwoValues.Id) { requiredValue2 = true; } });
                 columnLogicalName = setColumn.Value.logicalName;
                 setColumn.Value.operator = operator;
                 setColumn.Value.requiredValue = requiredValue;
@@ -10688,6 +10716,14 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
                 refConfiguration[columnIndex].operator = operator;
                 refConfiguration[columnIndex].value = null;
                 refConfiguration[columnIndex].requiredValue = requiredValue;
+
+                if (requiredValue2 === true) {
+                    setColumn.Value.value2 = null;
+                    refConfiguration[columnIndex].value2 = null;
+                } else {
+                    delete setColumn.Value.value2;
+                    delete refConfiguration[columnIndex].value2;
+                }
             }
         });
 
@@ -10841,6 +10877,9 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
                         var datetimeOperatorFound = false;
                         var operatorMinValue = 0;
                         var operatorMaxValue = 0;
+                        var operator2MinValue = 0;
+                        var operator2MaxValue = 0;
+                        var datetimeTwoValues = false;
                         switch (operator) {
                             case "NextXHours": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 2000; break;
                             case "LastXHours": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 2000; break;
@@ -10864,12 +10903,31 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
                             case "OlderThanXWeeks": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
                             case "OlderThanXMonths": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
                             case "OlderThanXYears": datetimeOperatorFound = true; operatorMinValue = 1; operatorMaxValue = 100; break;
+
+                            case "InFiscalPeriodAndYear":
+                            case "InOrAfterFiscalPeriodAndYear":
+                            case "InOrBeforeFiscalPeriodAndYear":
+                                datetimeOperatorFound = true;
+                                datetimeTwoValues = true;
+                                operatorMinValue = 1;
+                                operatorMaxValue = 15;
+                                operator2MinValue = 1900;
+                                operator2MaxValue = 2100;
+                                break;
                         }
+
                         if (datetimeOperatorFound === true) {
                             divValue.append(DRB.UI.CreateInputNumber("txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath, "Min Value: " + operatorMinValue + " - Max Value: " + operatorMaxValue));
                             DRB.Common.BindInteger("txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath, operatorMinValue, operatorMaxValue);
                             DRB.Logic.BindFilterColumnValue("txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
+                            if (datetimeTwoValues === true) {
+                                divValue.append(DRB.UI.CreateSpacer());
+                                divValue.append(DRB.UI.CreateInputNumber("second_txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath, "Min Value: " + operator2MinValue + " - Max Value: " + operator2MaxValue));
+                                DRB.Common.BindInteger("second_txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath, operator2MinValue, operator2MaxValue);
+                                DRB.Logic.BindFilterColumnValue("second_txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
+                            }
                         }
+
                         if (datetimeOperatorFound === false) {
                             var clearedDateTimeFormat = "";
                             var pickerFormat = "YYYY-MM-DD HH:mm";
@@ -10899,6 +10957,72 @@ DRB.Logic.BindFilterColumnOperator = function (id, domObject) {
                             $("#txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath).datetimepicker({ format: pickerFormat, ignoreReadonly: true, showClear: true, showTodayButton: true }).on('dp.change', function (e) { $(e.target).change(); });
                         }
                         break;
+                }
+
+                var addSecondProperty = false;
+                switch (operator) {
+                    case "Between":
+                    case "NotBetween":
+                        addSecondProperty = true;
+                        break;
+                }
+                if (addSecondProperty === true) {
+                    divValue.append(DRB.UI.CreateSpacer());
+                    switch (column.AttributeType) {
+
+                        case "String":
+                            divValue.append(DRB.UI.CreateInputString("second_txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath, column.AdditionalProperties.MaxLength, "Max Length: " + column.AdditionalProperties.MaxLength));
+                            DRB.Logic.BindFilterColumnValue("second_txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
+                            break;
+                        case "Integer":
+                        case "BigInt":
+                            divValue.append(DRB.UI.CreateInputNumber("second_txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath, "Min Value: " + column.AdditionalProperties.MinValue + " - Max Value: " + column.AdditionalProperties.MaxValue));
+                            DRB.Common.BindInteger("second_txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath, column.AdditionalProperties.MinValue, column.AdditionalProperties.MaxValue);
+                            DRB.Logic.BindFilterColumnValue("second_txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
+                            break;
+
+                        case "Decimal":
+                        case "Double":
+                        case "Money":
+                            divValue.append(DRB.UI.CreateInputNumber("second_txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath, "Min Value: " + column.AdditionalProperties.MinValue + " - Max Value: " + column.AdditionalProperties.MaxValue + " - Precision: " + column.AdditionalProperties.Precision));
+                            DRB.Common.BindNumber("second_txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath, column.AdditionalProperties.MinValue, column.AdditionalProperties.MaxValue);
+                            DRB.Logic.BindFilterColumnValue("second_txt_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
+                            break;
+
+                        case "Picklist":
+                            var currentId = "second_cbx1_" + DRB.DOM[domObject].ControlValue.Id + metadataPath;
+                            divValue.append(DRB.UI.CreateDropdown(currentId));
+                            var options = [];
+                            if (DRB.Utilities.HasValue(column.OptionValues)) {
+                                column.OptionValues.forEach(function (option) {
+                                    options.push(new DRB.Models.OptionSetValue(option.Value, option.Label));
+                                });
+                            }
+                            DRB.UI.FillDropdown(currentId, "Select Value", new DRB.Models.Records(options).ToDropdown());
+                            DRB.Logic.BindFilterColumnValue("second_cbx1_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
+                            break;
+
+                        case "DateTime":
+                            var clearedDateTimeFormat = "";
+                            var pickerFormat = "YYYY-MM-DD HH:mm";
+                            if (DRB.Utilities.HasValue(column.AdditionalProperties.DateTimeFormat)) {
+                                if (column.AdditionalProperties.DateTimeFormat === "DateOnly") { pickerFormat = "YYYY-MM-DD"; }
+                                clearedDateTimeFormat = column.AdditionalProperties.DateTimeFormat.replace(/([A-Z])/g, ' $1').trim();
+                            }
+
+                            var dateTimeBehavior = "ND"; // not defined
+                            var clearedDateTimeBehavior = "";
+                            if (DRB.Utilities.HasValue(column.AdditionalProperties.DateTimeBehavior)) {
+                                dateTimeBehavior = column.AdditionalProperties.DateTimeBehavior;
+                                clearedDateTimeBehavior = column.AdditionalProperties.DateTimeBehavior.replace(/([A-Z])/g, ' $1').trim();
+                            }
+
+                            if (clearedDateTimeBehavior === "Time Zone Independent") { clearedDateTimeBehavior = "TZI"; }
+                            divValue.append(DRB.UI.CreateInputDateTime("second_txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath, dateTimeBehavior, "Behavior: " + clearedDateTimeBehavior + " - Format: " + clearedDateTimeFormat));
+                            DRB.Logic.BindFilterColumnValue("second_txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath);
+                            $("#second_txtd_" + DRB.DOM[domObject].ControlValue.Id + metadataPath).datetimepicker({ format: pickerFormat, ignoreReadonly: true, showClear: true, showTodayButton: true }).on('dp.change', function (e) { $(e.target).change(); });
+                            break;
+                    }
                 }
             }
         }
@@ -11002,6 +11126,7 @@ DRB.Logic.BindFilterColumn = function (id, columnType, domObject, metadataPath) 
                 case "String": optionsOperator = DRB.Settings.OptionsOperatorString; break;
                 case "Memo": optionsOperator = DRB.Settings.OptionsOperatorMemo; break;
                 case "DateTime": optionsOperator = DRB.Settings.OptionsOperatorDateTime; break;
+                case "Picklist": optionsOperator = DRB.Settings.OptionsOperatorPicklist; break;
                 case "MultiPicklist": optionsOperator = DRB.Settings.OptionsOperatorMultiPicklist; break;
                 case "BigInt":
                 case "Integer":
@@ -11674,7 +11799,9 @@ DRB.Logic.RetrieveMultiple.AddFilterColumns = function (domObject, metadataPath)
                 $("#" + controlPrefix + DRB.DOM[domObject].ControlValue.Id + metadataPath + "_" + fieldIndex).val(field.value).change();
                 break;
         }
-
+        if (DRB.Utilities.HasValue(field.value2)) {
+            $("#" + "second_" + controlPrefix + DRB.DOM[domObject].ControlValue.Id + metadataPath + "_" + fieldIndex).val(field.value2).change();
+        }
     });
     $("#" + DRB.DOM[domObject].MainDiv.Id + metadataPath).show();
 }
@@ -15961,6 +16088,9 @@ DRB.SetDefaultSettings = function () {
     var optNextXFiscalPeriods = new DRB.Models.IdValue("NextXFiscalPeriods", "Next X Fiscal Periods");
     var optLastXFiscalPeriods = new DRB.Models.IdValue("LastXFiscalPeriods", "Last X Fiscal Periods");
     var optInFiscalPeriod = new DRB.Models.IdValue("InFiscalPeriod", "In Fiscal Period");
+    var optInFiscalPeriodAndYear = new DRB.Models.IdValue("InFiscalPeriodAndYear", "In Fiscal Period and Year");
+    var optInOrAfterFiscalPeriodAndYear = new DRB.Models.IdValue("InOrAfterFiscalPeriodAndYear", "In or After Fiscal Period and Year");
+    var optInOrBeforeFiscalPeriodAndYear = new DRB.Models.IdValue("InOrBeforeFiscalPeriodAndYear", "In or Before Fiscal Period and Year");
     var optOlderThanXMinutes = new DRB.Models.IdValue("OlderThanXMinutes", "Older Than X Minutes");
     var optOlderThanXHours = new DRB.Models.IdValue("OlderThanXHours", "Older Than X Hours");
     var optOlderThanXDays = new DRB.Models.IdValue("OlderThanXDays", "Older Than X Days");
@@ -15975,23 +16105,29 @@ DRB.SetDefaultSettings = function () {
     var optUnder = new DRB.Models.IdValue("Under", "Under");
     var optUnderOrEqual = new DRB.Models.IdValue("UnderOrEqual", "Under Or Equals");
 
+    var optEqUserLanguage = new DRB.Models.IdValue("EqualUserLanguage", "Equals User Language"); // operator valid for number and choice
+    var optBetween = new DRB.Models.IdValue("Between", "Between");
+    var optNotBetween = new DRB.Models.IdValue("NotBetween", "Not Between");
+
     DRB.Settings.OptionsOperatorBasic = [optEq, optNe, optNeNull, optEqNull];
     DRB.Settings.OptionsOperatorHierarchyPrimaryKey = [optEq, optNe, optNeNull, optEqNull, optAbove, optAboveOrEqual, optNotUnder, optUnder, optUnderOrEqual];
     DRB.Settings.OptionsOperatorLookupBusinessUnit = [optEq, optNe, optNeNull, optEqNull, optEqCurrentBusinessUnit, optNeCurrentBusinessUnit];
     DRB.Settings.OptionsOperatorLookupUser = [optEq, optNe, optNeNull, optEqNull, optEqCurrentUser, optNeCurrentUser];
     DRB.Settings.OptionsOperatorOwner = [optEq, optNe, optNeNull, optEqNull, optEqCurrentUser, optNeCurrentUser, optEqCurrentUserHierarchy, optEqCurrentUserHierarchyAndTeams, optEqCurrentUserTeams, optEqCurrentUserOrTeams];
-    DRB.Settings.OptionsOperatorString = [optEq, optNe, optContain, optNotContain, optBegin, optNotBegin, optEnd, optNotEnd, optNeNull, optEqNull];
+    DRB.Settings.OptionsOperatorString = [optEq, optNe, optContain, optNotContain, optBegin, optNotBegin, optEnd, optNotEnd, optNeNull, optEqNull, optBetween, optNotBetween];
     DRB.Settings.OptionsOperatorMemo = [optContain, optNotContain, optBegin, optNotBegin, optEnd, optNotEnd, optNeNull, optEqNull];
-    DRB.Settings.OptionsOperatorPicklist = [optEq, optNe, optNeNull, optEqNull];
+    DRB.Settings.OptionsOperatorPicklist = [optEq, optNe, optNeNull, optEqNull, , optBetween, optNotBetween, optEqUserLanguage];
     DRB.Settings.OptionsOperatorMultiPicklist = [optIn, optNotIn, optContainValues, optNotContainValues, optNeNull, optEqNull];
-    DRB.Settings.OptionsOperatorNumber = [optEq, optNe, optGreater, optGreaterEqual, optLess, optLessEqual, optNeNull, optEqNull];
+    DRB.Settings.OptionsOperatorNumber = [optEq, optNe, optGreater, optGreaterEqual, optLess, optLessEqual, optNeNull, optEqNull, , optBetween, optNotBetween, optEqUserLanguage];
     DRB.Settings.OptionsOperatorDateTime = [optOn, optOnDate, optNotOn, optAfter, optOnOrAfter, optOnOrAfterDate, optBefore, optOnOrBefore, optOnOrBeforeDate, optNeNull, optEqNull,
         optYesterday, optToday, optTomorrow, optNext7Days, optLast7Days, optNextWeek, optLastWeek, optThisWeek, optNextMonth, optLastMonth, optThisMonth, optNextYear, optLastYear, optThisYear, optNextFiscalYear, optLastFiscalYear, optThisFiscalYear, optNextFiscalPeriod, optLastFiscalPeriod, optThisFiscalPeriod,
         optNextXHours, optLastXHours, optNextXDays, optLastXDays, optNextXWeeks, optLastXWeeks, optNextXMonths, optLastXMonths, optNextXYears, optLastXYears, optNextXFiscalYears, optLastXFiscalYears, optInFiscalYear, optNextXFiscalPeriods, optLastXFiscalPeriods, optInFiscalPeriod,
-        optOlderThanXMinutes, optOlderThanXHours, optOlderThanXDays, optOlderThanXWeeks, optOlderThanXMonths, optOlderThanXYears];
+        optInFiscalPeriodAndYear, optInOrAfterFiscalPeriodAndYear, optInOrBeforeFiscalPeriodAndYear, optOlderThanXMinutes, optOlderThanXHours, optOlderThanXDays, optOlderThanXWeeks, optOlderThanXMonths, optOlderThanXYears, optBetween, optNotBetween];
 
     DRB.Settings.OperatorsToStop = [optNeNull, optEqNull, optEqCurrentUser, optNeCurrentUser, optEqCurrentUserHierarchy, optEqCurrentUserHierarchyAndTeams, optEqCurrentUserTeams, optEqCurrentUserOrTeams, optEqCurrentBusinessUnit, optNeCurrentBusinessUnit,
-        optYesterday, optToday, optTomorrow, optNext7Days, optLast7Days, optNextWeek, optLastWeek, optThisWeek, optNextMonth, optLastMonth, optThisMonth, optNextYear, optLastYear, optThisYear, optNextFiscalYear, optLastFiscalYear, optThisFiscalYear, optNextFiscalPeriod, optLastFiscalPeriod, optThisFiscalPeriod];
+        optYesterday, optToday, optTomorrow, optNext7Days, optLast7Days, optNextWeek, optLastWeek, optThisWeek, optNextMonth, optLastMonth, optThisMonth, optNextYear, optLastYear, optThisYear, optNextFiscalYear, optLastFiscalYear, optThisFiscalYear, optNextFiscalPeriod, optLastFiscalPeriod, optThisFiscalPeriod, optEqUserLanguage];
+
+    DRB.Settings.OperatorsTwoValues = [optInFiscalPeriodAndYear, optInOrAfterFiscalPeriodAndYear, optInOrBeforeFiscalPeriodAndYear, optBetween, optNotBetween];
 
     DRB.Settings.OperatorIdsAllowedDepth = [optNeNull.Id, optEqNull.Id, optEq.Id, optNe.Id, optContain.Id, optNotContain.Id, optBegin.Id, optNotBegin.Id, optEnd.Id, optNotEnd.Id, optGreater.Id, optGreaterEqual.Id,
     optLess.Id, optLessEqual.Id, optOn.Id, optNotOn.Id, optAfter.Id, optOnOrAfter.Id, optBefore.Id, optOnOrBefore.Id];
@@ -16342,7 +16478,7 @@ DRB.InsertMainBodyContent = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.29";
+    var drbVersion = "1.0.0.30";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 

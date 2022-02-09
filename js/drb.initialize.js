@@ -131,6 +131,9 @@ DRB.SetDefaultSettings = function () {
     var optNextXFiscalPeriods = new DRB.Models.IdValue("NextXFiscalPeriods", "Next X Fiscal Periods");
     var optLastXFiscalPeriods = new DRB.Models.IdValue("LastXFiscalPeriods", "Last X Fiscal Periods");
     var optInFiscalPeriod = new DRB.Models.IdValue("InFiscalPeriod", "In Fiscal Period");
+    var optInFiscalPeriodAndYear = new DRB.Models.IdValue("InFiscalPeriodAndYear", "In Fiscal Period and Year");
+    var optInOrAfterFiscalPeriodAndYear = new DRB.Models.IdValue("InOrAfterFiscalPeriodAndYear", "In or After Fiscal Period and Year");
+    var optInOrBeforeFiscalPeriodAndYear = new DRB.Models.IdValue("InOrBeforeFiscalPeriodAndYear", "In or Before Fiscal Period and Year");
     var optOlderThanXMinutes = new DRB.Models.IdValue("OlderThanXMinutes", "Older Than X Minutes");
     var optOlderThanXHours = new DRB.Models.IdValue("OlderThanXHours", "Older Than X Hours");
     var optOlderThanXDays = new DRB.Models.IdValue("OlderThanXDays", "Older Than X Days");
@@ -145,23 +148,29 @@ DRB.SetDefaultSettings = function () {
     var optUnder = new DRB.Models.IdValue("Under", "Under");
     var optUnderOrEqual = new DRB.Models.IdValue("UnderOrEqual", "Under Or Equals");
 
+    var optEqUserLanguage = new DRB.Models.IdValue("EqualUserLanguage", "Equals User Language"); // operator valid for number and choice
+    var optBetween = new DRB.Models.IdValue("Between", "Between");
+    var optNotBetween = new DRB.Models.IdValue("NotBetween", "Not Between");
+
     DRB.Settings.OptionsOperatorBasic = [optEq, optNe, optNeNull, optEqNull];
     DRB.Settings.OptionsOperatorHierarchyPrimaryKey = [optEq, optNe, optNeNull, optEqNull, optAbove, optAboveOrEqual, optNotUnder, optUnder, optUnderOrEqual];
     DRB.Settings.OptionsOperatorLookupBusinessUnit = [optEq, optNe, optNeNull, optEqNull, optEqCurrentBusinessUnit, optNeCurrentBusinessUnit];
     DRB.Settings.OptionsOperatorLookupUser = [optEq, optNe, optNeNull, optEqNull, optEqCurrentUser, optNeCurrentUser];
     DRB.Settings.OptionsOperatorOwner = [optEq, optNe, optNeNull, optEqNull, optEqCurrentUser, optNeCurrentUser, optEqCurrentUserHierarchy, optEqCurrentUserHierarchyAndTeams, optEqCurrentUserTeams, optEqCurrentUserOrTeams];
-    DRB.Settings.OptionsOperatorString = [optEq, optNe, optContain, optNotContain, optBegin, optNotBegin, optEnd, optNotEnd, optNeNull, optEqNull];
+    DRB.Settings.OptionsOperatorString = [optEq, optNe, optContain, optNotContain, optBegin, optNotBegin, optEnd, optNotEnd, optNeNull, optEqNull, optBetween, optNotBetween];
     DRB.Settings.OptionsOperatorMemo = [optContain, optNotContain, optBegin, optNotBegin, optEnd, optNotEnd, optNeNull, optEqNull];
-    DRB.Settings.OptionsOperatorPicklist = [optEq, optNe, optNeNull, optEqNull];
+    DRB.Settings.OptionsOperatorPicklist = [optEq, optNe, optNeNull, optEqNull, , optBetween, optNotBetween, optEqUserLanguage];
     DRB.Settings.OptionsOperatorMultiPicklist = [optIn, optNotIn, optContainValues, optNotContainValues, optNeNull, optEqNull];
-    DRB.Settings.OptionsOperatorNumber = [optEq, optNe, optGreater, optGreaterEqual, optLess, optLessEqual, optNeNull, optEqNull];
+    DRB.Settings.OptionsOperatorNumber = [optEq, optNe, optGreater, optGreaterEqual, optLess, optLessEqual, optNeNull, optEqNull, , optBetween, optNotBetween, optEqUserLanguage];
     DRB.Settings.OptionsOperatorDateTime = [optOn, optOnDate, optNotOn, optAfter, optOnOrAfter, optOnOrAfterDate, optBefore, optOnOrBefore, optOnOrBeforeDate, optNeNull, optEqNull,
         optYesterday, optToday, optTomorrow, optNext7Days, optLast7Days, optNextWeek, optLastWeek, optThisWeek, optNextMonth, optLastMonth, optThisMonth, optNextYear, optLastYear, optThisYear, optNextFiscalYear, optLastFiscalYear, optThisFiscalYear, optNextFiscalPeriod, optLastFiscalPeriod, optThisFiscalPeriod,
         optNextXHours, optLastXHours, optNextXDays, optLastXDays, optNextXWeeks, optLastXWeeks, optNextXMonths, optLastXMonths, optNextXYears, optLastXYears, optNextXFiscalYears, optLastXFiscalYears, optInFiscalYear, optNextXFiscalPeriods, optLastXFiscalPeriods, optInFiscalPeriod,
-        optOlderThanXMinutes, optOlderThanXHours, optOlderThanXDays, optOlderThanXWeeks, optOlderThanXMonths, optOlderThanXYears];
+        optInFiscalPeriodAndYear, optInOrAfterFiscalPeriodAndYear, optInOrBeforeFiscalPeriodAndYear, optOlderThanXMinutes, optOlderThanXHours, optOlderThanXDays, optOlderThanXWeeks, optOlderThanXMonths, optOlderThanXYears, optBetween, optNotBetween];
 
     DRB.Settings.OperatorsToStop = [optNeNull, optEqNull, optEqCurrentUser, optNeCurrentUser, optEqCurrentUserHierarchy, optEqCurrentUserHierarchyAndTeams, optEqCurrentUserTeams, optEqCurrentUserOrTeams, optEqCurrentBusinessUnit, optNeCurrentBusinessUnit,
-        optYesterday, optToday, optTomorrow, optNext7Days, optLast7Days, optNextWeek, optLastWeek, optThisWeek, optNextMonth, optLastMonth, optThisMonth, optNextYear, optLastYear, optThisYear, optNextFiscalYear, optLastFiscalYear, optThisFiscalYear, optNextFiscalPeriod, optLastFiscalPeriod, optThisFiscalPeriod];
+        optYesterday, optToday, optTomorrow, optNext7Days, optLast7Days, optNextWeek, optLastWeek, optThisWeek, optNextMonth, optLastMonth, optThisMonth, optNextYear, optLastYear, optThisYear, optNextFiscalYear, optLastFiscalYear, optThisFiscalYear, optNextFiscalPeriod, optLastFiscalPeriod, optThisFiscalPeriod, optEqUserLanguage];
+
+    DRB.Settings.OperatorsTwoValues = [optInFiscalPeriodAndYear, optInOrAfterFiscalPeriodAndYear, optInOrBeforeFiscalPeriodAndYear, optBetween, optNotBetween];
 
     DRB.Settings.OperatorIdsAllowedDepth = [optNeNull.Id, optEqNull.Id, optEq.Id, optNe.Id, optContain.Id, optNotContain.Id, optBegin.Id, optNotBegin.Id, optEnd.Id, optNotEnd.Id, optGreater.Id, optGreaterEqual.Id,
     optLess.Id, optLessEqual.Id, optOn.Id, optNotOn.Id, optAfter.Id, optOnOrAfter.Id, optBefore.Id, optOnOrBefore.Id];
@@ -512,7 +521,7 @@ DRB.InsertMainBodyContent = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.29";
+    var drbVersion = "1.0.0.30";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 

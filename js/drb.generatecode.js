@@ -267,6 +267,7 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                             case "NextFiscalPeriod": // Microsoft.Dynamics.CRM.NextFiscalPeriod(PropertyName='createdon')
                             case "LastFiscalPeriod": // Microsoft.Dynamics.CRM.LastFiscalPeriod(PropertyName='createdon')
                             case "ThisFiscalPeriod": // Microsoft.Dynamics.CRM.ThisFiscalPeriod(PropertyName='createdon')
+                            case "EqualUserLanguage": // Microsoft.Dynamics.CRM.EqualUserLanguage(PropertyName='new_wholenumber')
                                 operatorFound = true;
                                 partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + completefieldLogicalName + "')";
                                 break;
@@ -352,6 +353,23 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                                 operatorFound = true;
                                 var clearedValue = filterField.value;
                                 partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + completefieldODataName + "',PropertyValue='" + clearedValue + "')";
+                                break;
+
+                            case "InFiscalPeriodAndYear":
+                            case "InOrAfterFiscalPeriodAndYear":
+                            case "InOrBeforeFiscalPeriodAndYear":
+                                operatorFound = true;
+                                var clearedValue = filterField.value;
+                                var clearedValue2 = filterField.value2;
+                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + completefieldODataName + "',PropertyValue1=" + clearedValue + ",PropertyValue2=" + clearedValue2 + ")";
+                                break;
+
+                            case "Between":
+                            case "NotBetween":
+                                operatorFound = true;
+                                var clearedValue = filterField.value;
+                                var clearedValue2 = filterField.value2;
+                                partialQuery += "Microsoft.Dynamics.CRM." + filterField.operator + "(PropertyName='" + completefieldODataName + "',PropertyValues=['" + clearedValue + "','" + clearedValue2 + "'])";
                                 break;
                         }
                         if (operatorFound === false) {
