@@ -2831,7 +2831,7 @@ DRB.Common.RetrieveTablesDetails = function (tableLogicalNames, includeRelations
                 queryTable.Filters +=
                     ",OneToManyRelationships($select=SchemaName,ReferencingEntity,ReferencedEntity,ReferencingAttribute,ReferencedAttribute,ReferencingEntityNavigationPropertyName,ReferencedEntityNavigationPropertyName,IsHierarchical)" +
                     ",ManyToOneRelationships($select=SchemaName,ReferencingEntity,ReferencedEntity,ReferencingAttribute,ReferencedAttribute,ReferencingEntityNavigationPropertyName,ReferencedEntityNavigationPropertyName)" +
-                    ",ManyToManyRelationships($select=Entity1LogicalName,Entity2LogicalName,Entity1NavigationPropertyName,Entity2NavigationPropertyName,SchemaName)";
+                    ",ManyToManyRelationships($select=Entity1LogicalName,Entity2LogicalName,Entity1NavigationPropertyName,Entity2NavigationPropertyName,SchemaName,IntersectEntityName,Entity1IntersectAttribute,Entity2IntersectAttribute)";
             }
 
             if (includeAlternateKeys === true) {
@@ -3267,6 +3267,7 @@ DRB.Common.MapRelationships = function (data, type, sortProperty, sourceTable) {
             var entity1NavigationPropertyName = record.Entity1NavigationPropertyName;
             var entity2NavigationPropertyName = record.Entity2NavigationPropertyName;
             var isHierarchical = record.IsHierarchical;
+            var interestEntityName = record.IntersectEntityName;
             switch (type) {
                 case "OneToMany":
                     relationships.push(new DRB.Models.Relationship(schemaName, type, sourceTable, referencingEntity, referencedEntityNavigationPropertyName, referencingAttribute, isHierarchical));
@@ -3277,7 +3278,7 @@ DRB.Common.MapRelationships = function (data, type, sortProperty, sourceTable) {
                 case "ManyToMany":
                     var targetTable = entity2LogicalName;
                     if (targetTable === sourceTable) { targetTable = entity1LogicalName; }
-                    relationships.push(new DRB.Models.Relationship(schemaName, type, sourceTable, targetTable, schemaName));
+                    relationships.push(new DRB.Models.Relationship(schemaName, type, sourceTable, targetTable, schemaName, interestEntityName));
                     break;
             }
         });
@@ -4147,7 +4148,7 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
     DRB.UI.ShowLoading("Executing code...");
     setTimeout(function () {
         try {
-            console.log(codeValue);
+            // console.log(codeValue);
             eval(codeValue);
             $("#a_" + DRB.Settings.TabResults).click();
             DRB.UI.HideLoading();
@@ -4205,6 +4206,25 @@ DRB.Logic.CopyCodeFromEditor = function (sectionName) {
     // show message to the user
     DRB.UI.ShowMessage(contentText + " copied to Clipboard");
     setTimeout(function () { DRB.UI.HideLoading(); }, DRB.Settings.TimeoutDelay * 1.5);
+}
+
+/**
+ * Logic - Send Code To FetchXML Builder
+ * @param {string} sectionName Section Name
+*/
+DRB.Logic.SendCodeToFetchXMLBuilder = function (sectionName) {
+    if (DRB.Xrm.IsXTBMode()) {
+        var checkTab = DRB.Utilities.GetRecordById(DRB.Settings.Tabs, sectionName);
+        if (DRB.Utilities.HasValue(checkTab)) {
+            if (checkTab.SendFetchXML === true) {
+                codeValue = DRB.Settings.Editors[checkTab.Id].session.getValue();
+            }
+        }
+        if (DRB.Utilities.HasValue(chrome) && DRB.Utilities.HasValue(chrome.webview)) {
+            var message = { action: "sendtofxb", data: codeValue };
+            chrome.webview.postMessage(JSON.stringify(message));
+        }
+    }
 }
 
 DRB.Logic.CopyCodeForPowerAutomate = function (id, name) {
@@ -4285,7 +4305,7 @@ DRB.Logic.CompleteInitialize = function () {
                         var warningPortals = "NOTE: Inside DRB, Portals endpoint (<i>/_api/</i>) is routed to the default Web API endpoint";
                         var warningEditor = "NOTE: console.log messages will appear inside the Results tab";
                         var warningResults = "NOTE: Due to asynchronous calls the output can appear later";
-
+                        var warningFetchXML = "NOTE: Inside DRB for XrmToolBox you can send the code to <a target='_blank' href='https://fetchxmlbuilder.com'>FetchXML Builder</a>";
                         // warnings when DRB is running outside a managed solution
                         if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) {
                             if (DRB.Xrm.IsXTBMode()) {
@@ -4319,6 +4339,16 @@ DRB.Logic.CompleteInitialize = function () {
                                 }
                                 if (DRB.Utilities.HasValue(tab.WarningResults) && tab.WarningResults === true) {
                                     $("#" + DRB.DOM.TabsWarning.Id + tab.Id).html(warningResults);
+                                }
+                                if (DRB.Utilities.HasValue(tab.WarningFetchXML) && tab.WarningFetchXML === true) {
+                                    if (!DRB.Xrm.IsXTBMode()) {
+                                        $("#" + DRB.DOM.TabsWarning.Id + tab.Id).html(warningFetchXML);
+                                    } else {
+                                        if (DRB.Utilities.HasValue(tab.SendFetchXML) && tab.SendFetchXML === true) {
+                                            var btn_copyFetchXML = DRB.UI.CreateButton("btn_" + tab.Id + "_copyfetchxml", "Open in FetchXML Builder", "btn-secondary", DRB.Logic.SendCodeToFetchXMLBuilder, tab.Id);
+                                            $("#" + DRB.DOM.TabsWarning.Id + tab.Id).append(btn_copyFetchXML);
+                                        }
+                                    }
                                 }
                             }
                         });
@@ -4582,10 +4612,12 @@ DRB.Logic.ExportRelationships = function (values, relationshipMetadata) {
         var relationship = DRB.Utilities.GetRecordById(relationshipMetadata, relationshipExport.schemaName);
         if (DRB.Utilities.HasValue(relationship)) {
             relationshipExport.navigationProperty = relationship.NavigationProperty;
+            relationshipExport.navigationAttribute = relationship.NavigationAttribute;
             var relationshipTable = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, relationship.TargetTable);
             if (DRB.Utilities.HasValue(relationshipTable)) {
                 relationshipExport.targetEntity = relationshipTable.LogicalName;
                 relationshipExport.targetEntityLabel = relationshipTable.Name;
+                relationshipExport.targetEntityPrimaryIdField = relationshipTable.PrimaryIdAttribute;
                 relationshipExport.fields.forEach(function (relationshipExportField) {
                     var relationshipTableColumn = DRB.Utilities.GetRecordById(relationshipTable.Columns, relationshipExportField.logicalName);
                     relationshipExportField.schemaName = relationshipTableColumn.SchemaName;
@@ -5391,13 +5423,14 @@ DRB.Logic.ClickSelectRelationshipColumns = function (relationshipType) {
  * @param {string[]} codeFetchAPI Code Fetch API
  * @param {string[]} codePortals Code Portals
  */
-DRB.GenerateCode.SetCodeEditors = function (codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals) {
+DRB.GenerateCode.SetCodeEditors = function (codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, codeFetchXML) {
     if (!DRB.Utilities.HasValue(codeXrmWebApi)) { codeXrmWebApi = []; }
     if (!DRB.Utilities.HasValue(codeXrmWebApiExecute)) { codeXrmWebApiExecute = []; } // Xrm.WebApi execute is available only for Retrieve Single, Create, Update, Delete
     if (!DRB.Utilities.HasValue(codejQuery)) { codejQuery = []; }
     if (!DRB.Utilities.HasValue(codeXMLHttpRequest)) { codeXMLHttpRequest = []; }
     if (!DRB.Utilities.HasValue(codeFetchAPI)) { codeFetchAPI = []; }
     if (!DRB.Utilities.HasValue(codePortals)) { codePortals = []; } // Portals is available only for Retrieve Single, Retrieve Multiple, Create, Update, Delete, Associate, Disassociate
+    if (!DRB.Utilities.HasValue(codeFetchXML)) { codeFetchXML = []; }
 
     DRB.Settings.Editors["code_xrmwebapi"].session.setValue(codeXrmWebApi.join('\n'));
     DRB.Settings.Editors["code_xrmwebapiexecute"].session.setValue(codeXrmWebApiExecute.join('\n'));
@@ -5405,6 +5438,7 @@ DRB.GenerateCode.SetCodeEditors = function (codeXrmWebApi, codeXrmWebApiExecute,
     DRB.Settings.Editors["code_jquery"].session.setValue(codejQuery.join('\n'));
     DRB.Settings.Editors["code_xmlhttprequest"].session.setValue(codeXMLHttpRequest.join('\n'));
     DRB.Settings.Editors["code_portals"].session.setValue(codePortals.join('\n'));
+    DRB.Settings.Editors["code_fetchxml"].session.setValue(codeFetchXML.join('\n'));
 }
 
 /**
@@ -5429,14 +5463,14 @@ DRB.GenerateCode.GetUrlFields = function (settings) {
         urlFields += oneToMany.schemaName + '($select=' + relFieldLogicalNames.join() + '),';
     });
 
-    settings.manyToOne.forEach(function (ManyToOne) {
-        var relFieldLogicalNames = ManyToOne.fields.map(function (field) { return field.oDataName; });
-        urlFields += ManyToOne.navigationProperty + '($select=' + relFieldLogicalNames.join() + '),';
+    settings.manyToOne.forEach(function (manyToOne) {
+        var relFieldLogicalNames = manyToOne.fields.map(function (field) { return field.oDataName; });
+        urlFields += manyToOne.navigationProperty + '($select=' + relFieldLogicalNames.join() + '),';
     });
 
-    settings.manyToMany.forEach(function (ManyToMany) {
-        var relFieldLogicalNames = ManyToMany.fields.map(function (field) { return field.oDataName; });
-        urlFields += ManyToMany.schemaName + '($select=' + relFieldLogicalNames.join() + '),';
+    settings.manyToMany.forEach(function (manyToMany) {
+        var relFieldLogicalNames = manyToMany.fields.map(function (field) { return field.oDataName; });
+        urlFields += manyToMany.schemaName + '($select=' + relFieldLogicalNames.join() + '),';
     });
 
     if (urlFields !== '') {
@@ -5605,11 +5639,11 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
 
         var partialQuery = "";
         if (configurationObject.filterFields.length > 0) {
-            configurationObject.filterFields.forEach(function (filterField) {
+            partialQuery += "(";
+
+            configurationObject.filterFields.forEach(function (filterField, filterFieldIndex) {
                 if (JSON.stringify(filterField) !== JSON.stringify({})) {
-                    partialQuery += " " + filterFieldsLogic + " ";
-
-
+                    if (filterFieldIndex !== 0) { partialQuery += " " + filterFieldsLogic + " "; }
                     var completefieldLogicalName = filterField.logicalName;
                     var completefieldODataName = filterField.oDataName;
 
@@ -5791,10 +5825,8 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                     }
                 }
             });
-
+            partialQuery += ")";
         }
-        // remove initial logic filter
-        if (partialQuery !== "") { partialQuery = partialQuery.substring((" " + filterFieldsLogic + " ").length); }
         query += partialQuery;
         return query;
     }
@@ -5802,16 +5834,16 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
     if (configurationObject.filterType === "groups") {
         var filterGroupsLogic = "and";
         if (configurationObject.hasOwnProperty("filterGroupsLogic")) { filterGroupsLogic = configurationObject.filterGroupsLogic; }
-
-        configurationObject.filterGroups.forEach(function (filterGroup, filterGroupIndex) {
-            if (JSON.stringify(filterGroup) !== JSON.stringify({})) {
-                // use "{" and "}" for differentiate groups from fields, they will replaced inside GetFilterFields function
-                if (filterGroupIndex === 0) { query += "{"; }
-                else { query += " " + filterGroupsLogic + " {"; }
-                query = DRB.GenerateCode.ParseFilterCriteria(query, filterGroup);
-                query += "}";
+        query += "(";
+        configurationObject.filterGroups.forEach(function (filterItem, filterItemIndex) {
+            if (JSON.stringify(filterItem) !== JSON.stringify({})) {
+                if (filterItemIndex > 0) {
+                    query += " " + filterGroupsLogic + " ";
+                }
+                query = DRB.GenerateCode.ParseFilterCriteria(query, filterItem);
             }
         });
+        query += ")";
     }
     return query;
 }
@@ -5824,46 +5856,17 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
 DRB.GenerateCode.GetFilterFields = function (settings) {
     // parse filterCriteria
     var filterFields = DRB.GenerateCode.ParseFilterCriteria("", settings.filterCriteria);
-
-    // clear filterFields (removing empty clauses, change {} to () and remove empty logic operators)
     if (filterFields !== "") {
-        // replace {} with '', while due to situations like {{{}}} 
-        var countEmpty = (filterFields.match(/{}/g) || []).length;
-        while (countEmpty > 0) {
-            filterFields = filterFields.replace(/{}/g, "");
-            countEmpty = (filterFields.match(/{}/g) || []).length;
-        }
-
-        filterFields = filterFields.replace(/{/g, "("); // replace "{" to "("
-        filterFields = filterFields.replace(/}/g, ")"); // replace "}" to ")"
-
-        filterFields = filterFields.replace(/or  or/g, "or"); // replace "or  or" with "or"
-        filterFields = filterFields.replace(/and  and/g, "and"); // replace "and  and" with "and"
-
-        if (filterFields.indexOf(" or ") === 0) { filterFields = filterFields.substring(4); } // remove wrong initial " or "
-        if (filterFields.indexOf(" and ") === 0) { filterFields = filterFields.substring(5); } // remove wrong initial " and "
-
-        // check final " or "
-        if (filterFields.length > 3) {
-            var finalString = filterFields.substring(filterFields.length - 4);
-            if (finalString === " or ") { filterFields = filterFields.substring(0, filterFields.length - 4); }
-        }
-        // check final " and "
-        if (filterFields.length > 4) {
-            var finalString = filterFields.substring(filterFields.length - 5);
-            if (finalString === " and ") { filterFields = filterFields.substring(0, filterFields.length - 5); }
-        }
+        // remove ( at begin
+        filterFields = filterFields.substring(1);
+        // remove ) at end
+        if (filterFields.slice(-1) === ')') { filterFields = filterFields.slice(0, -1); }
     }
 
     if (filterFields !== "") {
-        // clear () if they are the only one at first char and last char
-        if (filterFields.lastIndexOf("(") === 0 && filterFields.indexOf(")") === filterFields.length - 1) {
-            filterFields = filterFields.substring(1, filterFields.length - 1);
-        }
         // add $filter= clause
         filterFields = '$filter=' + filterFields;
     }
-
     return filterFields;
 }
 
@@ -6159,20 +6162,20 @@ DRB.GenerateCode.GetCodeFields = function (settings) {
         codeFieldsFormatted.push('');
         codeFieldsFormatted.push('// Many To Many Relationships');
     }
-    settings.manyToMany.forEach(function (ManyToMany) {
-        codeFields.push('for (var j = 0; j < result.' + ManyToMany.schemaName + '.length; j++) {');
-        codeFieldsFormatted.push('for (var j = 0; j < result.' + ManyToMany.schemaName + '.length; j++) {');
-        ManyToMany.fields.forEach(function (field) {
+    settings.manyToMany.forEach(function (manyToMany) {
+        codeFields.push('for (var j = 0; j < result.' + manyToMany.schemaName + '.length; j++) {');
+        codeFieldsFormatted.push('for (var j = 0; j < result.' + manyToMany.schemaName + '.length; j++) {');
+        manyToMany.fields.forEach(function (field) {
 
             var renamedFieldType = DRB.GenerateCode.ConvertFieldType(field.type);
 
-            codeFields.push('\tvar ' + ManyToMany.schemaName + '_' + field.logicalName + ' = result.' + ManyToMany.schemaName + '[j]["' + field.oDataName + '"]; // ' + renamedFieldType);
-            codeFieldsFormatted.push('\tvar ' + ManyToMany.schemaName + '_' + field.logicalName + ' = result.' + ManyToMany.schemaName + '[j]["' + field.oDataName + '"]; // ' + renamedFieldType);
+            codeFields.push('\tvar ' + manyToMany.schemaName + '_' + field.logicalName + ' = result.' + manyToMany.schemaName + '[j]["' + field.oDataName + '"]; // ' + renamedFieldType);
+            codeFieldsFormatted.push('\tvar ' + manyToMany.schemaName + '_' + field.logicalName + ' = result.' + manyToMany.schemaName + '[j]["' + field.oDataName + '"]; // ' + renamedFieldType);
             if (formattedTypes.indexOf(field.type) > -1) {
-                codeFieldsFormatted.push('\tvar ' + ManyToMany.schemaName + '_' + field.logicalName + '_formatted = result.' + ManyToMany.schemaName + '[j]["' + field.oDataName + '@OData.Community.Display.V1.FormattedValue"];');
+                codeFieldsFormatted.push('\tvar ' + manyToMany.schemaName + '_' + field.logicalName + '_formatted = result.' + manyToMany.schemaName + '[j]["' + field.oDataName + '@OData.Community.Display.V1.FormattedValue"];');
             }
             if (logicalNameTypes.indexOf(field.type) > -1) {
-                codeFieldsFormatted.push('\tvar ' + ManyToMany.schemaName + '_' + field.logicalName + '_lookuplogicalname = result.' + ManyToMany.schemaName + '[j]["' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname"];');
+                codeFieldsFormatted.push('\tvar ' + manyToMany.schemaName + '_' + field.logicalName + '_lookuplogicalname = result.' + manyToMany.schemaName + '[j]["' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname"];');
             }
         });
         codeFields.push('}');
@@ -6248,7 +6251,6 @@ DRB.GenerateCode.GetXrmWebApiDefinitionParameters = function (settings, isBound,
     }
     return definitionParameters;
 }
-
 
 /**
  * Generate Code - Get Code Parameters
@@ -6635,6 +6637,453 @@ DRB.GenerateCode.GetReturnType = function (settings) {
 }
 
 /**
+ * Generate Code - Get FetchXML Begin Table
+ * @param {any} settings Configuration
+ */
+DRB.GenerateCode.GetFetchXMLBeginTable = function (settings) {
+    var fetchXMLBeginTable = [];
+    var topCountSyntax = "";
+    var retrieveCountSyntax = "";
+    if (DRB.Utilities.HasValue(settings.topCount)) {
+        topCountSyntax = ' top="' + settings.topCount + '"';
+    }
+    if (DRB.Utilities.HasValue(settings.retrieveCount) && settings.retrieveCount === true) {
+        retrieveCountSyntax = ' returntotalrecordcount="true"';
+    }
+
+    fetchXMLBeginTable.push('<fetch' + topCountSyntax + retrieveCountSyntax + '>');
+    fetchXMLBeginTable.push('\t<!-- Table -->');
+    fetchXMLBeginTable.push('\t<entity name="' + settings.primaryEntity.logicalName + '">');
+
+    return fetchXMLBeginTable;
+}
+
+/**
+ * Generate Code - Get FetchXML End Table
+ */
+DRB.GenerateCode.GetFetchXMLEndTable = function () {
+    var fetchXMLEndTable = [];
+    fetchXMLEndTable.push('\t</entity>');
+    fetchXMLEndTable.push('</fetch>');
+    return fetchXMLEndTable;
+}
+
+/**
+ * Generate Code - Get FetchXML Full Columns
+  * @param {any} settings Configuration
+  * @param {any} fields Fields
+ */
+DRB.GenerateCode.GetFetchXMLFullColumns = function (settings, fields, spacing) {
+    var fetchXMLFullColumns = [];
+    var formattedTypes = ["Picklist", "MultiPicklist", "State", "Status", "Owner", "Lookup", "Customer", "Boolean"];
+    //var lookupTypes = ["Owner", "Customer"]; // Lookup should be done only for Polymorphic, needs to check
+    fields.forEach(function (field) {
+        fetchXMLFullColumns.push(spacing + '<attribute name="' + field.logicalName + '" />');
+        if (settings.hasOwnProperty("formattedValues") && settings.formattedValues === true) {
+            if (formattedTypes.indexOf(field.type) > -1) {
+                fetchXMLFullColumns.push(spacing + '<attribute name="' + field.logicalName + 'name" />');
+            }
+            //if (lookupTypes.indexOf(field.type) > -1) {
+            //    fetchXMLFullColumns.push(spacing + '<attribute name="' + field.logicalName + 'type" />');
+            //}
+        }
+    });
+    return fetchXMLFullColumns;
+}
+
+/**
+ * Generate Code - Get FetchXML Columns
+  * @param {any} settings Configuration
+ */
+DRB.GenerateCode.GetFetchXMLColumns = function (settings) {
+    var fetchXMLColumns = [];
+    if (settings.fields.length > 0) {
+        fetchXMLColumns.push('<!-- Columns -->');
+        var fieldLogicalNames = settings.fields.map(function (field) { return field.logicalName; });
+        if (fieldLogicalNames.indexOf(settings.primaryIdField) === -1) {
+            fetchXMLColumns.push('<attribute name="' + settings.primaryIdField + '" />');
+        }
+        var fetchXMLFullColumns = DRB.GenerateCode.GetFetchXMLFullColumns(settings, settings.fields, "");
+        fetchXMLFullColumns.forEach(function (fetchXMLFullColumn) { fetchXMLColumns.push(fetchXMLFullColumn); });
+    }
+    return fetchXMLColumns;
+}
+
+/**
+ * Generate Code - Get FetchXML Primary Filter
+  * @param {any} settings Configuration
+ */
+DRB.GenerateCode.GetFetchXMLPrimaryFilter = function (settings) {
+    var fetchXMLPrimaryFilter = [];
+
+    fetchXMLPrimaryFilter.push('<filter>');
+    if (settings.useAlternateKey === false) {
+        fetchXMLPrimaryFilter.push('\t<!-- Primary Id -->');
+        fetchXMLPrimaryFilter.push('\t<condition attribute="' + settings.primaryIdField + '" operator="eq" value="' + settings.primaryId + '"/>');
+    } else {
+        fetchXMLPrimaryFilter.push('\t<!-- Alternate Key -->');
+        settings.alternateKeyFields.forEach(function (field) {
+
+            var keyValue = field.value;
+            if (keyValue === "" || keyValue === null) {
+                keyValue = "";
+            } else {
+                switch (field.type) {
+                    case "String":
+                        keyValue = keyValue.replace(/"/g, '&quot;');
+                        break;
+                    case "DateTime":
+                        if (field.dateTimeBehavior !== "DateOnly") {
+                            try {
+                                var isoString = new Date(keyValue).toISOString();
+                                keyValue = isoString;
+                            } catch { }
+                        }
+                        break;
+                    case "Lookup":
+                        if (DRB.Utilities.HasValue(field.value.id)) { keyValue = field.value.id; }
+                        else { keyValue = ""; }
+                        break;
+                }
+            }
+            fetchXMLPrimaryFilter.push('\t<condition attribute="' + field.logicalName + '" operator="eq" value="' + keyValue + '" />');
+        });
+    }
+
+    fetchXMLPrimaryFilter.push('</filter>');
+
+    return fetchXMLPrimaryFilter;
+}
+/**
+ * Generate Code - Get FetchXML Operator
+ * @param {string} webApiOperator Web API Operator
+ */
+DRB.GenerateCode.GetFetchXMLOperator = function (webApiOperator) {
+    var fetchXMLOperator = "";
+    switch (webApiOperator) {
+        case "ne null": fetchXMLOperator = "not-null"; break;
+        case "eq null": fetchXMLOperator = "null"; break;
+        case "eq": fetchXMLOperator = "eq"; break;
+        case "ne": fetchXMLOperator = "ne"; break;
+        case "contains": fetchXMLOperator = "like"; break;
+        case "not contains": fetchXMLOperator = "not-like"; break;
+        case "startswith": fetchXMLOperator = "begins-with"; break;
+        case "not startswith": fetchXMLOperator = "not-begin-with"; break;
+        case "endswith": fetchXMLOperator = "ends-with"; break;
+        case "not endswith": fetchXMLOperator = "not-end-with"; break;
+        case "gt": fetchXMLOperator = "gt"; break;
+        case "ge": fetchXMLOperator = "ge"; break;
+        case "lt": fetchXMLOperator = "lt"; break;
+        case "le": fetchXMLOperator = "le"; break;
+        case "In": fetchXMLOperator = "in"; break;
+        case "NotIn": fetchXMLOperator = "not-in"; break;
+        case "ContainValues": fetchXMLOperator = "contain-values"; break;
+        case "DoesNotContainValues": fetchXMLOperator = "does-not-contain-values"; break;
+        case "EqualUserId": fetchXMLOperator = "eq-userid"; break;
+        case "NotEqualUserId": fetchXMLOperator = "ne-userid"; break;
+        case "EqualUserOrUserHierarchy": fetchXMLOperator = "eq-useroruserhierarchy"; break;
+        case "EqualUserOrUserHierarchyAndTeams": fetchXMLOperator = "eq-useroruserhierarchyandteams"; break;
+        case "EqualUserTeams": fetchXMLOperator = "eq-userteams"; break;
+        case "EqualUserOrUserTeams": fetchXMLOperator = "eq-useroruserteams"; break;
+        case "EqualBusinessId": fetchXMLOperator = "eq-businessid"; break;
+        case "NotEqualBusinessId": fetchXMLOperator = "ne-businessid"; break;
+        case "Yesterday": fetchXMLOperator = "yesterday"; break;
+        case "Today": fetchXMLOperator = "today"; break;
+        case "Tomorrow": fetchXMLOperator = "tomorrow"; break;
+        case "Next7Days": fetchXMLOperator = "next-seven-days"; break;
+        case "Last7Days": fetchXMLOperator = "last-seven-days"; break;
+        case "NextWeek": fetchXMLOperator = "next-week"; break;
+        case "LastWeek": fetchXMLOperator = "last-week"; break;
+        case "ThisWeek": fetchXMLOperator = "this-week"; break;
+        case "NextMonth": fetchXMLOperator = "next-month"; break;
+        case "LastMonth": fetchXMLOperator = "last-month"; break;
+        case "ThisMonth": fetchXMLOperator = "this-month"; break;
+        case "NextYear": fetchXMLOperator = "next-year"; break;
+        case "LastYear": fetchXMLOperator = "last-year"; break;
+        case "ThisYear": fetchXMLOperator = "this-year"; break;
+        case "NextFiscalYear": fetchXMLOperator = "next-fiscal-year"; break;
+        case "LastFiscalYear": fetchXMLOperator = "last-fiscal-year"; break;
+        case "ThisFiscalYear": fetchXMLOperator = "this-fiscal-year"; break;
+        case "NextFiscalPeriod": fetchXMLOperator = "next-fiscal-period"; break;
+        case "LastFiscalPeriod": fetchXMLOperator = "last-fiscal-period"; break;
+        case "ThisFiscalPeriod": fetchXMLOperator = "this-fiscal-period"; break;
+        case "On": fetchXMLOperator = "on"; break;
+        case "OnOrAfter": fetchXMLOperator = "on-or-after"; break;
+        case "OnOrBefore": fetchXMLOperator = "on-or-before"; break;
+        case "NextXHours": fetchXMLOperator = "next-x-hours"; break;
+        case "LastXHours": fetchXMLOperator = "last-x-hours"; break;
+        case "NextXDays": fetchXMLOperator = "next-x-days"; break;
+        case "LastXDays": fetchXMLOperator = "last-x-days"; break;
+        case "NextXWeeks": fetchXMLOperator = "next-x-weeks"; break;
+        case "LastXWeeks": fetchXMLOperator = "last-x-weeks"; break;
+        case "NextXMonths": fetchXMLOperator = "next-x-months"; break;
+        case "LastXMonths": fetchXMLOperator = "last-x-months"; break;
+        case "NextXYears": fetchXMLOperator = "next-x-years"; break;
+        case "LastXYears": fetchXMLOperator = "last-x-years"; break;
+        case "NextXFiscalYears": fetchXMLOperator = "next-x-fiscal-years"; break;
+        case "LastXFiscalYears": fetchXMLOperator = "last-x-fiscal-years"; break;
+        case "InFiscalYear": fetchXMLOperator = "in-fiscal-year"; break;
+        case "NextXFiscalPeriods": fetchXMLOperator = "next-x-fiscal-periods"; break;
+        case "LastXFiscalPeriods": fetchXMLOperator = "last-x-fiscal-periods"; break;
+        case "InFiscalPeriod": fetchXMLOperator = "in-fiscal-period"; break;
+        case "InFiscalPeriodAndYear": fetchXMLOperator = "in-fiscal-period-and-year"; break;
+        case "InOrAfterFiscalPeriodAndYear": fetchXMLOperator = "in-or-after-fiscal-period-and-year"; break;
+        case "InOrBeforeFiscalPeriodAndYear": fetchXMLOperator = "in-or-before-fiscal-period-and-year"; break;
+        case "OlderThanXMinutes": fetchXMLOperator = "olderthan-x-minutes"; break;
+        case "OlderThanXHours": fetchXMLOperator = "olderthan-x-hours"; break;
+        case "OlderThanXDays": fetchXMLOperator = "olderthan-x-days"; break;
+        case "OlderThanXWeeks": fetchXMLOperator = "olderthan-x-weeks"; break;
+        case "OlderThanXMonths": fetchXMLOperator = "olderthan-x-months"; break;
+        case "OlderThanXYears": fetchXMLOperator = "olderthan-x-years"; break;
+        case "Above": fetchXMLOperator = "above"; break;
+        case "AboveOrEqual": fetchXMLOperator = "eq-or-above"; break;
+        case "NotUnder": fetchXMLOperator = "not-under"; break;
+        case "Under": fetchXMLOperator = "under"; break;
+        case "UnderOrEqual": fetchXMLOperator = "eq-or-under"; break;
+        case "EqualUserLanguage": fetchXMLOperator = "eq-userlanguage"; break;
+        case "Between": fetchXMLOperator = "between"; break;
+        case "NotBetween": fetchXMLOperator = "not-between"; break;
+    }
+    return fetchXMLOperator;
+}
+
+/**
+ * Generate Code - FetchXML Parse Filter Criteria
+ * @param {any} configurationObject Configuration Object
+ */
+DRB.GenerateCode.FetchXMLParseFilterCriteria = function (query, configurationObject, depth) {
+    // filterType must be "fields" or "groups", otherwise return
+    if (!configurationObject.hasOwnProperty("filterType")) { return []; }
+    if (configurationObject.filterType !== "fields" && configurationObject.filterType !== "groups") { return []; }
+
+    var spacing = Array(depth + 1).join('\t');
+
+    // fields are always leaves
+    if (configurationObject.filterType === "fields") {
+        var filterFieldsLogic = "and";
+        if (configurationObject.hasOwnProperty("filterFieldsLogic")) { filterFieldsLogic = configurationObject.filterFieldsLogic; }
+        var partialQuery = [];
+        if (configurationObject.filterFields.length > 0) {
+            partialQuery.push(spacing + '<filter type="' + filterFieldsLogic + '">');
+            configurationObject.filterFields.forEach(function (filterField) {
+                if (JSON.stringify(filterField) !== JSON.stringify({})) {
+                    var fetchXMLOperator = DRB.GenerateCode.GetFetchXMLOperator(filterField.operator);
+
+                    var partialCondition = spacing + '\t<condition';
+                    if (DRB.Utilities.HasValue(filterField.relationship)) { partialCondition += ' entityname="' + filterField.relationship.navigationProperty + '"'; }
+                    partialCondition += ' attribute="' + filterField.logicalName + '" operator="' + fetchXMLOperator + '"';
+                    if (filterField.requiredValue === false) {
+                        partialCondition += ' />';
+                        partialQuery.push(partialCondition);
+                    }
+                    if (filterField.requiredValue === true) {
+                        var operatorFound = false;
+
+                        switch (filterField.operator) {
+                            case "Between":
+                            case "NotBetween":
+                            case "InFiscalPeriodAndYear":
+                            case "InOrAfterFiscalPeriodAndYear":
+                            case "InOrBeforeFiscalPeriodAndYear":
+                                operatorFound = true;
+                                partialCondition += '>';
+                                partialQuery.push(partialCondition);
+                                partialQuery.push(spacing + '\t\t<value>' + filterField.value + '</value>');
+                                partialQuery.push(spacing + '\t\t<value>' + filterField.value2 + '</value>');
+                                partialQuery.push(spacing + '\t</condition>');
+                                break;
+                            case "In":
+                            case "NotIn":
+                            case "ContainValues":
+                            case "DoesNotContainValues":
+                                operatorFound = true;
+                                partialCondition += '>';
+                                partialQuery.push(partialCondition);
+                                filterField.value.forEach(function (currentValue) {
+                                    partialQuery.push(spacing + '\t\t<value>' + currentValue + '</value>');
+                                });
+                                partialQuery.push(spacing + '\t</condition>');
+                                break;
+                        }
+
+                        if (operatorFound === false) {
+                            partialCondition += ' value="';
+                            var clearedValue = "";
+
+                            if (filterField.type === "Owner" || filterField.type === "Lookup" || filterField.type === "Customer") {
+                                if (DRB.Utilities.HasValue(filterField.value.id)) { clearedValue = filterField.value.id; }
+                            } else {
+                                clearedValue = filterField.value.replace(/"/g, '&quot;');
+                            }
+
+                            if (filterField.type === "ManagedProperty" || filterField.type === "Boolean") {
+                                if (clearedValue === "false") { clearedValue = "0"; }
+                                if (clearedValue === "true") { clearedValue = "1"; }
+                            }
+
+                            if (filterField.operator === "contains" || filterField.operator === "not contains") {
+                                clearedValue = "%" + clearedValue + "%";
+                            }
+
+                            partialCondition += clearedValue + '" />';
+                            partialQuery.push(partialCondition);
+                        }
+                    }
+                }
+            });
+            partialQuery.push(spacing + '</filter>');
+        }
+        partialQuery.forEach(function (partial) { query.push(partial); });
+    }
+
+    if (configurationObject.filterType === "groups") {
+        var filterGroupsLogic = "and";
+        if (configurationObject.hasOwnProperty("filterGroupsLogic")) { filterGroupsLogic = configurationObject.filterGroupsLogic; }
+        query.push(spacing + '<filter type="' + filterGroupsLogic + '">');
+        depth++;
+        configurationObject.filterGroups.forEach(function (filterItem) {
+            if (JSON.stringify(filterItem) !== JSON.stringify({})) {
+                DRB.GenerateCode.FetchXMLParseFilterCriteria(query, filterItem, depth);
+            }
+        });
+        query.push(spacing + '</filter>');
+    }
+    return query;
+}
+
+/**
+ * Generate Code - Get FetchXML Filters
+ * Used in Retrieve Multiple
+ * @param {any} settings Configuration
+ */
+DRB.GenerateCode.GetFetchXMLFilters = function (settings) {
+    var fetchXMLFilters = [];
+    var filterFields = DRB.GenerateCode.FetchXMLParseFilterCriteria([], settings.filterCriteria, 0);
+    if (filterFields.length > 0) { fetchXMLFilters.push('<!-- Filter By -->'); }
+    filterFields.forEach(function (filterField) { fetchXMLFilters.push(filterField); });
+    return fetchXMLFilters;
+}
+
+/**
+ * Generate Code - FetchXML Parse Filter Relationships Criteria
+ * @param {any} configurationObject Configuration Object
+ */
+DRB.GenerateCode.FetchXMLParseFilterRelationshipsCriteria = function (query, configurationObject) {
+    // filterType must be "fields" or "groups", otherwise return
+    if (!configurationObject.hasOwnProperty("filterType")) { return ""; }
+    if (configurationObject.filterType !== "fields" && configurationObject.filterType !== "groups") { return ""; }
+
+    // fields are always leaves
+    if (configurationObject.filterType === "fields") {
+        configurationObject.filterFields.forEach(function (filterField) {
+            if (JSON.stringify(filterField) !== JSON.stringify({})) {
+                if (DRB.Utilities.HasValue(filterField.relationship)) {
+                    query.push(filterField.relationship);
+                }
+            }
+        });
+    }
+
+    if (configurationObject.filterType === "groups") {
+        configurationObject.filterGroups.forEach(function (filterItem) {
+            if (JSON.stringify(filterItem) !== JSON.stringify({})) {
+                DRB.GenerateCode.FetchXMLParseFilterRelationshipsCriteria(query, filterItem);
+            }
+        });
+    }
+    return query;
+}
+
+/**
+ * Generate Code - Get FetchXML Filter Relationships
+ * Used in Retrieve Multiple
+ * @param {any} settings Configuration
+ */
+DRB.GenerateCode.GetFetchXMLFilterRelationships = function (settings) {
+    var fetchXMLFilterRelationships = DRB.GenerateCode.FetchXMLParseFilterRelationshipsCriteria([], settings.filterCriteria);
+    return fetchXMLFilterRelationships;
+}
+
+/**
+ * Generate Code - Get FetchXML Relationships
+  * @param {any} settings Configuration
+ */
+DRB.GenerateCode.GetFetchXMLRelationships = function (settings, asOuter) {
+    var fetchXMLRelationships = [];
+    var outerSyntax = "";
+    if (asOuter === true) { outerSyntax = ' link-type="outer"'; }
+    if (settings.oneToMany.length > 0) { fetchXMLRelationships.push('<!-- One To Many Relationships -->'); }
+    settings.oneToMany.forEach(function (oneToMany) {
+        var linkName = oneToMany.targetEntity;
+        var linkFrom = oneToMany.navigationAttribute;
+        var linkTo = settings.primaryIdField;
+        var linkAlias = oneToMany.navigationProperty;
+        fetchXMLRelationships.push('<link-entity name="' + linkName + '" from="' + linkFrom + '" to="' + linkTo + '" alias="' + linkAlias + '"' + outerSyntax + '>');
+        var fetchXMLFullColumns = DRB.GenerateCode.GetFetchXMLFullColumns(settings, oneToMany.fields, "\t");
+        fetchXMLFullColumns.forEach(function (fetchXMLFullColumn) { fetchXMLRelationships.push(fetchXMLFullColumn); });
+        fetchXMLRelationships.push('</link-entity>');
+    });
+
+    if (settings.manyToOne.length > 0) { fetchXMLRelationships.push('<!-- Many To One Relationships -->'); }
+    settings.manyToOne.forEach(function (manyToOne) {
+        var linkName = manyToOne.targetEntity;
+        var linkFrom = manyToOne.targetEntityPrimaryIdField;
+        var linkTo = manyToOne.navigationAttribute;
+        var linkAlias = manyToOne.navigationProperty;
+        fetchXMLRelationships.push('<link-entity name="' + linkName + '" from="' + linkFrom + '" to="' + linkTo + '" alias="' + linkAlias + '"' + outerSyntax + '>');
+        var fetchXMLFullColumns = DRB.GenerateCode.GetFetchXMLFullColumns(settings, manyToOne.fields, "\t");
+        fetchXMLFullColumns.forEach(function (fetchXMLFullColumn) { fetchXMLRelationships.push(fetchXMLFullColumn); });
+        fetchXMLRelationships.push('</link-entity>');
+    });
+
+    if (settings.manyToMany.length > 0) { fetchXMLRelationships.push('<!-- Many To Many Relationships -->'); }
+    settings.manyToMany.forEach(function (manyToMany) {
+        var linkName = manyToMany.navigationAttribute;
+        var linkFrom = settings.primaryIdField;
+        var linkTo = settings.primaryIdField;
+        var linkInnerName = manyToMany.targetEntity;
+        var linkInnerFrom = manyToMany.targetEntityPrimaryIdField;
+        var linkInnerTo = manyToMany.targetEntityPrimaryIdField;
+        var linkInnerAlias = manyToMany.navigationProperty;
+
+        if (settings.primaryEntity.logicalName === manyToMany.targetEntity) {
+            linkFrom += "one";
+            linkInnerTo += "two";
+        }
+
+        fetchXMLRelationships.push('<link-entity name="' + linkName + '" from="' + linkFrom + '" to="' + linkTo + '"' + outerSyntax + ' intersect="true">');
+        fetchXMLRelationships.push('\t<link-entity name="' + linkInnerName + '" from="' + linkInnerFrom + '" to="' + linkInnerTo + '" alias="' + linkInnerAlias + '"' + outerSyntax + ' intersect="true">');
+        var fetchXMLFullColumns = DRB.GenerateCode.GetFetchXMLFullColumns(settings, manyToMany.fields, "\t\t");
+        fetchXMLFullColumns.forEach(function (fetchXMLFullColumn) { fetchXMLRelationships.push(fetchXMLFullColumn); });
+        fetchXMLRelationships.push('\t</link-entity>');
+        fetchXMLRelationships.push('</link-entity>');
+    });
+
+    return fetchXMLRelationships;
+}
+
+/**
+ * Generate Code - Get FetchXML Order By
+  * @param {any} settings Configuration
+ */
+DRB.GenerateCode.GetFetchXMLOrderBy = function (settings) {
+    var fetchXMLOrderBy = [];
+
+    if (settings.orderFields.length > 0) {
+        fetchXMLOrderBy.push('<!-- Order By -->');
+    }
+
+    settings.orderFields.forEach(function (orderField) {
+        if (orderField.value === "desc") {
+            fetchXMLOrderBy.push('<order attribute="' + orderField.logicalName + '" descending="true" />');
+        } else {
+            fetchXMLOrderBy.push('<order attribute="' + orderField.logicalName + '" />');
+        }
+    });
+    return fetchXMLOrderBy;
+}
+
+/**
  * Generate Code - Retrieve Single
  */
 DRB.GenerateCode.RetrieveSingle = function () {
@@ -6646,6 +7095,7 @@ DRB.GenerateCode.RetrieveSingle = function () {
     var codeXMLHttpRequest = [];
     var codeFetchAPI = [];
     var codePortals = [];
+    var codeFetchXML = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity)) {
         // Don't generate the code if a table is not selected
@@ -6656,8 +7106,8 @@ DRB.GenerateCode.RetrieveSingle = function () {
         codeXMLHttpRequest.push(errorMessage);
         codeFetchAPI.push(errorMessage);
         codePortals.push(errorMessage);
-
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
+        codeFetchXML.push(errorMessage);
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, codeFetchXML);
         return;
     }
 
@@ -6863,7 +7313,24 @@ DRB.GenerateCode.RetrieveSingle = function () {
     codePortals.push('});');
     // #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
+    // #region FetchXML
+    var fetchXMLBeginTable = DRB.GenerateCode.GetFetchXMLBeginTable(settings);
+    fetchXMLBeginTable.forEach(function (beginTable) { codeFetchXML.push(beginTable); });
+
+    var fetchXMLColumns = DRB.GenerateCode.GetFetchXMLColumns(settings);
+    fetchXMLColumns.forEach(function (fetchXMLColumn) { codeFetchXML.push('\t\t' + fetchXMLColumn); });
+
+    var fetchXMLPrimaryFilter = DRB.GenerateCode.GetFetchXMLPrimaryFilter(settings);
+    fetchXMLPrimaryFilter.forEach(function (primaryFilter) { codeFetchXML.push('\t\t' + primaryFilter); });
+
+    var fetchXMLRelationships = DRB.GenerateCode.GetFetchXMLRelationships(settings, true);
+    fetchXMLRelationships.forEach(function (fetchXMLRelationship) { codeFetchXML.push('\t\t' + fetchXMLRelationship); });
+
+    var fetchXMLEndTable = DRB.GenerateCode.GetFetchXMLEndTable();
+    fetchXMLEndTable.forEach(function (endTable) { codeFetchXML.push(endTable); });
+    // #endregion
+
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, codeFetchXML);
 }
 
 /**
@@ -6878,6 +7345,7 @@ DRB.GenerateCode.RetrieveMultiple = function () {
     var codeXMLHttpRequest = [];
     var codeFetchAPI = [];
     var codePortals = [];
+    var codeFetchXML = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity)) {
         // Don't generate the code if a table is not selected
@@ -6887,8 +7355,9 @@ DRB.GenerateCode.RetrieveMultiple = function () {
         codeXMLHttpRequest.push(errorMessage);
         codeFetchAPI.push(errorMessage);
         codePortals.push(errorMessage);
+        codeFetchXML.push(errorMessage);
 
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, codeFetchXML);
         return;
     }
 
@@ -7060,7 +7529,43 @@ DRB.GenerateCode.RetrieveMultiple = function () {
     codePortals.push('});');
     // #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
+    // #region FetchXML
+    var fetchXMLBeginTable = DRB.GenerateCode.GetFetchXMLBeginTable(settings);
+    fetchXMLBeginTable.forEach(function (beginTable) { codeFetchXML.push(beginTable); });
+
+    var fetchXMLColumns = DRB.GenerateCode.GetFetchXMLColumns(settings);
+    fetchXMLColumns.forEach(function (fetchXMLColumn) { codeFetchXML.push('\t\t' + fetchXMLColumn); });
+
+    var fetchXMLFilters = DRB.GenerateCode.GetFetchXMLFilters(settings);
+    fetchXMLFilters.forEach(function (fetchXMLFilter) { codeFetchXML.push('\t\t' + fetchXMLFilter); });
+
+    var requiredRelationships = DRB.GenerateCode.GetFetchXMLFilterRelationships(settings);
+    var clonedSettings = JSON.parse(JSON.stringify(settings));
+
+    if (requiredRelationships.length > 0) {
+        requiredRelationships.forEach(function (requiredRelationship) {
+            var relationshipFound = false;
+            clonedSettings.manyToOne.forEach(function (manyToOne) {
+                if (requiredRelationship.schemaName === manyToOne.schemaName) { relationshipFound = true; }
+            });
+
+            if (relationshipFound === false) {
+                clonedSettings.manyToOne.push({ fields: [{ logicalName: requiredRelationship.targetEntityPrimaryIdField }], targetEntity: requiredRelationship.targetEntity, targetEntityPrimaryIdField: requiredRelationship.targetEntityPrimaryIdField, navigationAttribute: requiredRelationship.navigationAttribute, navigationProperty: requiredRelationship.navigationProperty });
+            }
+        });
+    }
+
+    var fetchXMLRelationships = DRB.GenerateCode.GetFetchXMLRelationships(clonedSettings, true);
+    fetchXMLRelationships.forEach(function (fetchXMLRelationship) { codeFetchXML.push('\t\t' + fetchXMLRelationship); });
+
+    var fetchXMLOrderBy = DRB.GenerateCode.GetFetchXMLOrderBy(settings);
+    fetchXMLOrderBy.forEach(function (orderBy) { codeFetchXML.push('\t\t' + orderBy); });
+
+    var fetchXMLEndTable = DRB.GenerateCode.GetFetchXMLEndTable();
+    fetchXMLEndTable.forEach(function (endTable) { codeFetchXML.push(endTable); });
+    // #endregion
+
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, codeFetchXML);
 }
 
 /**
@@ -9102,14 +9607,14 @@ DRB.GenerateCode.PowerAutomate = function (requestType) {
             expandQuery += oneToMany.schemaName + '($select=' + relFieldLogicalNames.join() + '),';
         });
 
-        settings.manyToOne.forEach(function (ManyToOne) {
-            var relFieldLogicalNames = ManyToOne.fields.map(function (field) { return field.oDataName; });
-            expandQuery += ManyToOne.navigationProperty + '($select=' + relFieldLogicalNames.join() + '),';
+        settings.manyToOne.forEach(function (manyToOne) {
+            var relFieldLogicalNames = manyToOne.fields.map(function (field) { return field.oDataName; });
+            expandQuery += manyToOne.navigationProperty + '($select=' + relFieldLogicalNames.join() + '),';
         });
 
-        settings.manyToMany.forEach(function (ManyToMany) {
-            var relFieldLogicalNames = ManyToMany.fields.map(function (field) { return field.oDataName; });
-            expandQuery += ManyToMany.schemaName + '($select=' + relFieldLogicalNames.join() + '),';
+        settings.manyToMany.forEach(function (manyToMany) {
+            var relFieldLogicalNames = manyToMany.fields.map(function (field) { return field.oDataName; });
+            expandQuery += manyToMany.schemaName + '($select=' + relFieldLogicalNames.join() + '),';
         });
 
         if (expandQuery.slice(-1) === ',') { expandQuery = expandQuery.slice(0, -1); }
@@ -11042,7 +11547,7 @@ DRB.Logic.BindFilterColumn = function (id, columnType, domObject, metadataPath) 
 
         var currentColumns = DRB.Metadata.CurrentColumns;
         var fromRelationship = false;
-
+        var fromRelationshipPrimaryId = "";
         // extract the index from the control name
         var controlName = $(this).attr('id');
         var elementIndex = DRB.Common.ExtractIndexFromControlName(controlName);
@@ -11078,6 +11583,7 @@ DRB.Logic.BindFilterColumn = function (id, columnType, domObject, metadataPath) 
                 if (DRB.Utilities.HasValue(table)) {
                     currentColumns = table.Columns;
                     fromRelationship = true;
+                    fromRelationshipPrimaryId = table.PrimaryIdAttribute;
                 }
             }
         }
@@ -11099,7 +11605,7 @@ DRB.Logic.BindFilterColumn = function (id, columnType, domObject, metadataPath) 
             // define field
             var field = { logicalName: column.LogicalName, schemaName: column.SchemaName, label: column.Name, type: column.AttributeType, oDataName: column.ODataName, operator: null, requiredValue: false, value: null };
             if (fromRelationship === true) {
-                field.relationship = { schemaName: relationship.SchemaName, navigationProperty: relationship.NavigationProperty, targetEntity: relationship.TargetTable, targetEntityLabel: relationship.TargetTableName };
+                field.relationship = { schemaName: relationship.SchemaName, navigationProperty: relationship.NavigationProperty, navigationAttribute: relationship.NavigationAttribute, targetEntity: relationship.TargetTable, targetEntityLabel: relationship.TargetTableName, targetEntityPrimaryIdField: fromRelationshipPrimaryId };
             }
 
             // update Metadata and configuration
@@ -16356,6 +16862,7 @@ DRB.DefineOperations = function () {
     DRB.Settings.Tabs.push({ Id: "code_results", Name: "Results", ShowEditor: true, EditorMode: "json", CopyCode: true, Results: true, ShowWarning: true, WarningResults: true });
     // DRB.Settings.Tabs.push({ Id: "code_typescript", Name: "TypeScript", GenerateCode: true, ShowEditor: true, EditorMode: "typescript", CopyCode: true, ShowWarning: true, WarningClientUrl: true });
     DRB.Settings.Tabs.push({ Id: "code_powerautomate", Name: "Power Automate", GenerateCode: true, EmptyDiv: true, EnabledRequests: ["retrievesingle", "retrievemultiple"] });
+    DRB.Settings.Tabs.push({ Id: "code_fetchxml", Name: "FetchXML", GenerateCode: true, ShowEditor: true, EditorMode: "xml", CopyCode: true, SendFetchXML: true, ShowWarning: true, WarningFetchXML: true, EnabledRequests: ["retrievesingle", "retrievemultiple"] });
 
     var tabs_Request = DRB.UI.CreateTabs(DRB.DOM.TabsRequest.Id, DRB.Settings.Tabs);
     var tabs_Content = DRB.UI.CreateTabContents(DRB.DOM.TabsContent.Id, DRB.Settings.Tabs);
@@ -16478,7 +16985,7 @@ DRB.InsertMainBodyContent = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.30";
+    var drbVersion = "1.0.0.31";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 

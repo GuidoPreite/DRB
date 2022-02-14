@@ -258,6 +258,7 @@ DRB.Common.MapRelationships = function (data, type, sortProperty, sourceTable) {
             var entity1NavigationPropertyName = record.Entity1NavigationPropertyName;
             var entity2NavigationPropertyName = record.Entity2NavigationPropertyName;
             var isHierarchical = record.IsHierarchical;
+            var interestEntityName = record.IntersectEntityName;
             switch (type) {
                 case "OneToMany":
                     relationships.push(new DRB.Models.Relationship(schemaName, type, sourceTable, referencingEntity, referencedEntityNavigationPropertyName, referencingAttribute, isHierarchical));
@@ -268,7 +269,7 @@ DRB.Common.MapRelationships = function (data, type, sortProperty, sourceTable) {
                 case "ManyToMany":
                     var targetTable = entity2LogicalName;
                     if (targetTable === sourceTable) { targetTable = entity1LogicalName; }
-                    relationships.push(new DRB.Models.Relationship(schemaName, type, sourceTable, targetTable, schemaName));
+                    relationships.push(new DRB.Models.Relationship(schemaName, type, sourceTable, targetTable, schemaName, interestEntityName));
                     break;
             }
         });

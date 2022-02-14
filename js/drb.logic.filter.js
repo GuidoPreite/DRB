@@ -466,7 +466,7 @@ DRB.Logic.BindFilterColumn = function (id, columnType, domObject, metadataPath) 
 
         var currentColumns = DRB.Metadata.CurrentColumns;
         var fromRelationship = false;
-
+        var fromRelationshipPrimaryId = "";
         // extract the index from the control name
         var controlName = $(this).attr('id');
         var elementIndex = DRB.Common.ExtractIndexFromControlName(controlName);
@@ -502,6 +502,7 @@ DRB.Logic.BindFilterColumn = function (id, columnType, domObject, metadataPath) 
                 if (DRB.Utilities.HasValue(table)) {
                     currentColumns = table.Columns;
                     fromRelationship = true;
+                    fromRelationshipPrimaryId = table.PrimaryIdAttribute;
                 }
             }
         }
@@ -523,7 +524,7 @@ DRB.Logic.BindFilterColumn = function (id, columnType, domObject, metadataPath) 
             // define field
             var field = { logicalName: column.LogicalName, schemaName: column.SchemaName, label: column.Name, type: column.AttributeType, oDataName: column.ODataName, operator: null, requiredValue: false, value: null };
             if (fromRelationship === true) {
-                field.relationship = { schemaName: relationship.SchemaName, navigationProperty: relationship.NavigationProperty, targetEntity: relationship.TargetTable, targetEntityLabel: relationship.TargetTableName };
+                field.relationship = { schemaName: relationship.SchemaName, navigationProperty: relationship.NavigationProperty, navigationAttribute: relationship.NavigationAttribute, targetEntity: relationship.TargetTable, targetEntityLabel: relationship.TargetTableName, targetEntityPrimaryIdField: fromRelationshipPrimaryId };
             }
 
             // update Metadata and configuration

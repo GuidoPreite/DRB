@@ -399,6 +399,7 @@ DRB.DefineOperations = function () {
     DRB.Settings.Tabs.push({ Id: "code_results", Name: "Results", ShowEditor: true, EditorMode: "json", CopyCode: true, Results: true, ShowWarning: true, WarningResults: true });
     // DRB.Settings.Tabs.push({ Id: "code_typescript", Name: "TypeScript", GenerateCode: true, ShowEditor: true, EditorMode: "typescript", CopyCode: true, ShowWarning: true, WarningClientUrl: true });
     DRB.Settings.Tabs.push({ Id: "code_powerautomate", Name: "Power Automate", GenerateCode: true, EmptyDiv: true, EnabledRequests: ["retrievesingle", "retrievemultiple"] });
+    DRB.Settings.Tabs.push({ Id: "code_fetchxml", Name: "FetchXML", GenerateCode: true, ShowEditor: true, EditorMode: "xml", CopyCode: true, SendFetchXML: true, ShowWarning: true, WarningFetchXML: true, EnabledRequests: ["retrievesingle", "retrievemultiple"] });
 
     var tabs_Request = DRB.UI.CreateTabs(DRB.DOM.TabsRequest.Id, DRB.Settings.Tabs);
     var tabs_Content = DRB.UI.CreateTabContents(DRB.DOM.TabsContent.Id, DRB.Settings.Tabs);
@@ -521,7 +522,7 @@ DRB.InsertMainBodyContent = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.30";
+    var drbVersion = "1.0.0.31";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 

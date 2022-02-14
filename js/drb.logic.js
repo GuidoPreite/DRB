@@ -71,7 +71,7 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
     DRB.UI.ShowLoading("Executing code...");
     setTimeout(function () {
         try {
-            console.log(codeValue);
+            // console.log(codeValue);
             eval(codeValue);
             $("#a_" + DRB.Settings.TabResults).click();
             DRB.UI.HideLoading();
@@ -129,6 +129,25 @@ DRB.Logic.CopyCodeFromEditor = function (sectionName) {
     // show message to the user
     DRB.UI.ShowMessage(contentText + " copied to Clipboard");
     setTimeout(function () { DRB.UI.HideLoading(); }, DRB.Settings.TimeoutDelay * 1.5);
+}
+
+/**
+ * Logic - Send Code To FetchXML Builder
+ * @param {string} sectionName Section Name
+*/
+DRB.Logic.SendCodeToFetchXMLBuilder = function (sectionName) {
+    if (DRB.Xrm.IsXTBMode()) {
+        var checkTab = DRB.Utilities.GetRecordById(DRB.Settings.Tabs, sectionName);
+        if (DRB.Utilities.HasValue(checkTab)) {
+            if (checkTab.SendFetchXML === true) {
+                codeValue = DRB.Settings.Editors[checkTab.Id].session.getValue();
+            }
+        }
+        if (DRB.Utilities.HasValue(chrome) && DRB.Utilities.HasValue(chrome.webview)) {
+            var message = { action: "sendtofxb", data: codeValue };
+            chrome.webview.postMessage(JSON.stringify(message));
+        }
+    }
 }
 
 DRB.Logic.CopyCodeForPowerAutomate = function (id, name) {
@@ -209,7 +228,7 @@ DRB.Logic.CompleteInitialize = function () {
                         var warningPortals = "NOTE: Inside DRB, Portals endpoint (<i>/_api/</i>) is routed to the default Web API endpoint";
                         var warningEditor = "NOTE: console.log messages will appear inside the Results tab";
                         var warningResults = "NOTE: Due to asynchronous calls the output can appear later";
-
+                        var warningFetchXML = "NOTE: Inside DRB for XrmToolBox you can send the code to <a target='_blank' href='https://fetchxmlbuilder.com'>FetchXML Builder</a>";
                         // warnings when DRB is running outside a managed solution
                         if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) {
                             if (DRB.Xrm.IsXTBMode()) {
@@ -243,6 +262,16 @@ DRB.Logic.CompleteInitialize = function () {
                                 }
                                 if (DRB.Utilities.HasValue(tab.WarningResults) && tab.WarningResults === true) {
                                     $("#" + DRB.DOM.TabsWarning.Id + tab.Id).html(warningResults);
+                                }
+                                if (DRB.Utilities.HasValue(tab.WarningFetchXML) && tab.WarningFetchXML === true) {
+                                    if (!DRB.Xrm.IsXTBMode()) {
+                                        $("#" + DRB.DOM.TabsWarning.Id + tab.Id).html(warningFetchXML);
+                                    } else {
+                                        if (DRB.Utilities.HasValue(tab.SendFetchXML) && tab.SendFetchXML === true) {
+                                            var btn_copyFetchXML = DRB.UI.CreateButton("btn_" + tab.Id + "_copyfetchxml", "Open in FetchXML Builder", "btn-secondary", DRB.Logic.SendCodeToFetchXMLBuilder, tab.Id);
+                                            $("#" + DRB.DOM.TabsWarning.Id + tab.Id).append(btn_copyFetchXML);
+                                        }
+                                    }
                                 }
                             }
                         });
@@ -506,10 +535,12 @@ DRB.Logic.ExportRelationships = function (values, relationshipMetadata) {
         var relationship = DRB.Utilities.GetRecordById(relationshipMetadata, relationshipExport.schemaName);
         if (DRB.Utilities.HasValue(relationship)) {
             relationshipExport.navigationProperty = relationship.NavigationProperty;
+            relationshipExport.navigationAttribute = relationship.NavigationAttribute;
             var relationshipTable = DRB.Utilities.GetRecordById(DRB.Metadata.Tables, relationship.TargetTable);
             if (DRB.Utilities.HasValue(relationshipTable)) {
                 relationshipExport.targetEntity = relationshipTable.LogicalName;
                 relationshipExport.targetEntityLabel = relationshipTable.Name;
+                relationshipExport.targetEntityPrimaryIdField = relationshipTable.PrimaryIdAttribute;
                 relationshipExport.fields.forEach(function (relationshipExportField) {
                     var relationshipTableColumn = DRB.Utilities.GetRecordById(relationshipTable.Columns, relationshipExportField.logicalName);
                     relationshipExportField.schemaName = relationshipTableColumn.SchemaName;
