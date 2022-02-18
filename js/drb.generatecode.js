@@ -117,7 +117,10 @@ DRB.GenerateCode.GetFunctionUrl = function (settings) {
                             case "Collection(Edm.Guid)":
                             case "Collection(Edm.String)":
                                 typeFound = true;
-                                parameter.value.forEach(function (v) { printedArray += encodeURIComponent('"' + v + '"') + ', '; });
+                                parameter.value.forEach(function (v) {
+                                    var encodedV = v.replace(/'/g, "''");
+                                    printedArray += encodeURIComponent('"' + encodedV + '"') + ', ';
+                                });
                                 break;
 
                             case "Collection(Edm.Boolean)":
@@ -184,7 +187,11 @@ DRB.GenerateCode.GetFunctionUrl = function (settings) {
                             if (DRB.Utilities.HasValue(parameter.value)) { value = parameter.value; }
                             break;
                         case "Edm.String":
-                            if (DRB.Utilities.HasValue(parameter.value)) { value = "'" + encodeURIComponent(parameter.value) + "'"; }
+                            if (DRB.Utilities.HasValue(parameter.value)) {
+                                var encodedValue = encodeURIComponent(parameter.value);
+                                encodedValue = encodedValue.replace(/'/g, "''");
+                                value = "'" + encodedValue + "'";
+                            }
                             break;
                         case "Edm.Int32":
                         case "Edm.Int64":
@@ -224,7 +231,7 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
 
         var partialQuery = "";
         if (configurationObject.filterFields.length > 0) {
-            partialQuery += "(";
+            if (configurationObject.filterFields.length > 1) { partialQuery += "("; }
 
             configurationObject.filterFields.forEach(function (filterField, filterFieldIndex) {
                 if (JSON.stringify(filterField) !== JSON.stringify({})) {
@@ -294,6 +301,7 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                                 var clearedValue = "";
                                 if (DRB.Utilities.HasValue(filterField.value)) {
                                     clearedValue = filterField.value.replace(/"/g, '\\"');
+                                    clearedValue = clearedValue.replace(/'/g, "''");
                                 }
                                 partialQuery += filterField.operator + "(" + completefieldODataName + ",'" + clearedValue + "')";
                                 break;
@@ -410,7 +418,7 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                     }
                 }
             });
-            partialQuery += ")";
+            if (configurationObject.filterFields.length > 1) { partialQuery += ")"; }
         }
         query += partialQuery;
         return query;
@@ -419,7 +427,10 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
     if (configurationObject.filterType === "groups") {
         var filterGroupsLogic = "and";
         if (configurationObject.hasOwnProperty("filterGroupsLogic")) { filterGroupsLogic = configurationObject.filterGroupsLogic; }
-        query += "(";
+
+        var skipGrouping = false;
+        if (configurationObject.filterGroups.length === 1) { skipGrouping = true; }
+        if (skipGrouping === false) { query += "("; }
         configurationObject.filterGroups.forEach(function (filterItem, filterItemIndex) {
             if (JSON.stringify(filterItem) !== JSON.stringify({})) {
                 if (filterItemIndex > 0) {
@@ -428,7 +439,8 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                 query = DRB.GenerateCode.ParseFilterCriteria(query, filterItem);
             }
         });
-        query += ")";
+        if (skipGrouping === false) { query += ")"; }
+
     }
     return query;
 }
@@ -441,13 +453,6 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
 DRB.GenerateCode.GetFilterFields = function (settings) {
     // parse filterCriteria
     var filterFields = DRB.GenerateCode.ParseFilterCriteria("", settings.filterCriteria);
-    if (filterFields !== "") {
-        // remove ( at begin
-        filterFields = filterFields.substring(1);
-        // remove ) at end
-        if (filterFields.slice(-1) === ')') { filterFields = filterFields.slice(0, -1); }
-    }
-
     if (filterFields !== "") {
         // add $filter= clause
         filterFields = '$filter=' + filterFields;
@@ -1449,12 +1454,16 @@ DRB.GenerateCode.FetchXMLParseFilterCriteria = function (query, configurationObj
         if (configurationObject.hasOwnProperty("filterFieldsLogic")) { filterFieldsLogic = configurationObject.filterFieldsLogic; }
         var partialQuery = [];
         if (configurationObject.filterFields.length > 0) {
-            partialQuery.push(spacing + '<filter type="' + filterFieldsLogic + '">');
+            if (configurationObject.filterFields.length > 1) { partialQuery.push(spacing + '<filter type="' + filterFieldsLogic + '">'); }
             configurationObject.filterFields.forEach(function (filterField) {
                 if (JSON.stringify(filterField) !== JSON.stringify({})) {
                     var fetchXMLOperator = DRB.GenerateCode.GetFetchXMLOperator(filterField.operator);
-
-                    var partialCondition = spacing + '\t<condition';
+                    var partialCondition = '';
+                    if (configurationObject.filterFields.length > 1) {
+                        partialCondition = spacing + '\t<condition';
+                    } else {
+                        partialCondition = spacing + '<condition';
+                    }
                     if (DRB.Utilities.HasValue(filterField.relationship)) { partialCondition += ' entityname="' + filterField.relationship.navigationProperty + '"'; }
                     partialCondition += ' attribute="' + filterField.logicalName + '" operator="' + fetchXMLOperator + '"';
                     if (filterField.requiredValue === false) {
@@ -1516,7 +1525,7 @@ DRB.GenerateCode.FetchXMLParseFilterCriteria = function (query, configurationObj
                     }
                 }
             });
-            partialQuery.push(spacing + '</filter>');
+            if (configurationObject.filterFields.length > 1) { partialQuery.push(spacing + '</filter>'); }
         }
         partialQuery.forEach(function (partial) { query.push(partial); });
     }
@@ -1524,14 +1533,18 @@ DRB.GenerateCode.FetchXMLParseFilterCriteria = function (query, configurationObj
     if (configurationObject.filterType === "groups") {
         var filterGroupsLogic = "and";
         if (configurationObject.hasOwnProperty("filterGroupsLogic")) { filterGroupsLogic = configurationObject.filterGroupsLogic; }
-        query.push(spacing + '<filter type="' + filterGroupsLogic + '">');
-        depth++;
+        var skipGrouping = false;
+        if (configurationObject.filterGroups.length === 1) { skipGrouping = true; }
+        if (skipGrouping === false) {
+            query.push(spacing + '<filter type="' + filterGroupsLogic + '">');
+            depth++;
+        }
         configurationObject.filterGroups.forEach(function (filterItem) {
             if (JSON.stringify(filterItem) !== JSON.stringify({})) {
                 DRB.GenerateCode.FetchXMLParseFilterCriteria(query, filterItem, depth);
             }
         });
-        query.push(spacing + '</filter>');
+        if (skipGrouping === false) { query.push(spacing + '</filter>'); }
     }
     return query;
 }
@@ -1751,6 +1764,8 @@ DRB.GenerateCode.RetrieveSingle = function () {
     if (settings.fields.length > 0) {
         settings.fields.forEach(function (field) { executeColumns += '"' + field.logicalName + '", '; });
         executeColumns = executeColumns.slice(0, -2);
+    } else {
+        executeColumns += '"' + settings.primaryIdField + '"';
     }
 
     codeXrmWebApiExecute.push('\tcolumns: [' + executeColumns + '],');
