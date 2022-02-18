@@ -5805,6 +5805,7 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                             if (DRB.Utilities.HasValue(filterField.value)) { clearedValue = filterField.value; }
                             if (filterField.type === "EntityName" || filterField.type === "String" || filterField.type === "Memo") {
                                 clearedValue = clearedValue.replace(/"/g, '\\"');
+                                clearedValue = clearedValue.replace(/'/g, "''");
                                 clearedValue = "'" + clearedValue + "'";
                             }
 
@@ -17006,7 +17007,7 @@ DRB.InsertMainBodyContent = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.33";
+    var drbVersion = "1.0.0.34";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 

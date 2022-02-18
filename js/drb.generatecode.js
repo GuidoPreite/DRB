@@ -390,6 +390,7 @@ DRB.GenerateCode.ParseFilterCriteria = function (query, configurationObject) {
                             if (DRB.Utilities.HasValue(filterField.value)) { clearedValue = filterField.value; }
                             if (filterField.type === "EntityName" || filterField.type === "String" || filterField.type === "Memo") {
                                 clearedValue = clearedValue.replace(/"/g, '\\"');
+                                clearedValue = clearedValue.replace(/'/g, "''");
                                 clearedValue = "'" + clearedValue + "'";
                             }
 
