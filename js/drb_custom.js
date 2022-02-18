@@ -6973,6 +6973,12 @@ DRB.GenerateCode.GetFetchXMLFilters = function (settings) {
     var fetchXMLFilters = [];
     var filterFields = DRB.GenerateCode.FetchXMLParseFilterCriteria([], settings.filterCriteria, 0);
     if (filterFields.length > 0) { fetchXMLFilters.push('<!-- Filter By -->'); }
+    if (filterFields.length === 1) {
+        // add at least one filter around the unique condition
+        filterFields[0] = '\t' + filterFields[0];
+        filterFields.push('</filter>');
+        filterFields.unshift('<filter type="and">');
+    }
     filterFields.forEach(function (filterField) { fetchXMLFilters.push(filterField); });
     return fetchXMLFilters;
 }
@@ -17000,7 +17006,7 @@ DRB.InsertMainBodyContent = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.32";
+    var drbVersion = "1.0.0.33";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 
