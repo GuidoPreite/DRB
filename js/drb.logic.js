@@ -98,6 +98,25 @@ DRB.Logic.MoveCodeToMainEditor = function (sectionName) {
 }
 
 /**
+ * Logic - Copy Code To Clipboard
+ * @param {string} codeValue Code Value
+*/
+DRB.Logic.CopyCodeToClipboard = function (codeValue) {
+    // copy to clipboard
+    if (DRB.Utilities.HasValue(navigator.clipboard)) {
+        // modern browser code
+        navigator.clipboard.writeText(codeValue);
+    } else {
+        // old code for IE
+        var $temp = $("<textarea>");
+        $("body").append($temp);
+        $temp.val(codeValue).select();
+        document.execCommand("copy");
+        $temp.remove();
+    }
+}
+
+/**
  * Logic - Copy Code From Editor
  * @param {string} sectionName Section Name
 */
@@ -113,21 +132,24 @@ DRB.Logic.CopyCodeFromEditor = function (sectionName) {
         if (checkTab.Results === true) { contentText = "Results"; }
     }
 
-    // copy to clipboard
-    if (DRB.Utilities.HasValue(navigator.clipboard)) {
-        // modern browser code
-        navigator.clipboard.writeText(codeValue);
-    } else {
-        // old code for IE
-        var $temp = $("<textarea>");
-        $("body").append($temp);
-        $temp.val(codeValue).select();
-        document.execCommand("copy");
-        $temp.remove();
-    }
+    DRB.Logic.CopyCodeToClipboard(codeValue);
 
     // show message to the user
     DRB.UI.ShowMessage(contentText + " copied to Clipboard");
+    setTimeout(function () { DRB.UI.HideLoading(); }, DRB.Settings.TimeoutDelay * 1.5);
+}
+
+/**
+ * Logic - Copy Code From Editor
+ * @param {string} sectionName Section Name
+*/
+DRB.Logic.CopyCodeFromEditorByTabName = function (tabName) {
+    var codeValue = DRB.Settings.Editors[tabName].session.getValue();
+
+    DRB.Logic.CopyCodeToClipboard(codeValue);
+
+    // show message to the user
+    DRB.UI.ShowMessage("Code copied to Clipboard");
     setTimeout(function () { DRB.UI.HideLoading(); }, DRB.Settings.TimeoutDelay * 1.5);
 }
 
@@ -152,18 +174,18 @@ DRB.Logic.SendCodeToFetchXMLBuilder = function (sectionName) {
 
 DRB.Logic.CopyCodeForPowerAutomate = function (id, name) {
     var codeValue = $("#" + DRB.DOM.PowerAutomate[id + "Input"].Id).val();
-    // copy to clipboard
-    if (DRB.Utilities.HasValue(navigator.clipboard)) {
-        // modern browser code
-        navigator.clipboard.writeText(codeValue);
-    } else {
-        // old code for IE
-        var $temp = $("<textarea>");
-        $("body").append($temp);
-        $temp.val(codeValue).select();
-        document.execCommand("copy");
-        $temp.remove();
-    }
+
+    DRB.Logic.CopyCodeToClipboard(codeValue);
+
+    // show message to the user
+    DRB.UI.ShowMessage(name + " copied to Clipboard");
+    setTimeout(function () { DRB.UI.HideLoading(); }, DRB.Settings.TimeoutDelay * 1.5);
+}
+
+DRB.Logic.CopyCodeForPowerQuery = function (id, name) {
+    var codeValue = $("#" + DRB.DOM.PowerQuery[id + "Input"].Id).val();
+
+    DRB.Logic.CopyCodeToClipboard(codeValue);
 
     // show message to the user
     DRB.UI.ShowMessage(name + " copied to Clipboard");

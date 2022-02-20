@@ -1307,10 +1307,10 @@ DRB.GenerateCode.GetFetchXMLColumns = function (settings) {
 DRB.GenerateCode.GetFetchXMLPrimaryFilter = function (settings) {
     var fetchXMLPrimaryFilter = [];
 
-    fetchXMLPrimaryFilter.push('<filter>');
+    fetchXMLPrimaryFilter.push('<filter type="and">');
     if (settings.useAlternateKey === false) {
         fetchXMLPrimaryFilter.push('\t<!-- Primary Id -->');
-        fetchXMLPrimaryFilter.push('\t<condition attribute="' + settings.primaryIdField + '" operator="eq" value="' + settings.primaryId + '"/>');
+        fetchXMLPrimaryFilter.push('\t<condition attribute="' + settings.primaryIdField + '" operator="eq" value="' + settings.primaryId + '" />');
     } else {
         fetchXMLPrimaryFilter.push('\t<!-- Alternate Key -->');
         settings.alternateKeyFields.forEach(function (field) {
@@ -4255,12 +4255,579 @@ DRB.GenerateCode.PowerAutomate = function (requestType) {
     }
 }
 
+DRB.GenerateCode.BindPowerQueryColumn = function (id) {
+    $("#" + id).on("change", function (e) {
+        var columnLogicalName = $(this).val();
+        var column = DRB.Utilities.GetRecordById(DRB.Metadata.CurrentColumns, columnLogicalName);
+        if (DRB.Utilities.HasValue(column)) {
+            var settings = DRB.Metadata.CurrentNode.data.configuration;
+
+            var optionSetConversionEnd = `
+\t#"Option Table" = Table.FromList(Options, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+\t#"Expand Columns" = Table.ExpandRecordColumn(#"Option Table", "Column1", {"Value", "Label", "Description", "Color"}, {"Value", "Option.Label", "Option.Description", "Color"}),
+\t#"Expand Label" = Table.ExpandRecordColumn(#"Expand Columns", "Option.Label", {"UserLocalizedLabel"}, {"Label.UserLocalizedLabel"}),
+\t#"Expand Label UserLocalizedLabel" = Table.ExpandRecordColumn(#"Expand Label", "Label.UserLocalizedLabel", {"Label"}, {"Label"}),
+\t#"Expand Description" = Table.ExpandRecordColumn(#"Expand Label UserLocalizedLabel", "Option.Description", {"UserLocalizedLabel"}, {"Description.UserLocalizedLabel"}),
+\t#"Expand Description UserLocalizedLabel" = Table.ExpandRecordColumn(#"Expand Description", "Description.UserLocalizedLabel", {"Label"}, {"Description"})
+in
+\t#"Expand Description UserLocalizedLabel"`;
+
+            var optionSetConversionTypeTemplate = `let
+\tSource = Json.Document(Web.Contents(DataverseUrl, [RelativePath="/api/data/__apiversion__/EntityDefinitions(LogicalName='__entityname__')/Attributes(LogicalName='__fieldname__')/Microsoft.Dynamics.CRM.__fieldtype__?$select=LogicalName&$expand=OptionSet($select=__fieldexpand__)"])),
+\tOptionSet = Source[OptionSet],
+\tOptions = __options__,`;
+
+            var optionSetTypes = ["Boolean", "Picklist", "MultiPicklist", "State", "Status"];
+            if (optionSetTypes.indexOf(column.AttributeType) > -1) {
+                var optionSetConversionType = optionSetConversionTypeTemplate.replace("__apiversion__", settings.version);
+                optionSetConversionType = optionSetConversionType.replace("__entityname__", settings.primaryEntity.logicalName);
+                optionSetConversionType = optionSetConversionType.replace("__fieldname__", column.LogicalName);
+                var fieldType = "";
+                var fieldExpand = "Options";
+                var fieldOptions = "OptionSet[Options]";
+                switch (column.AttributeType) {
+                    case "Boolean": fieldType = "BooleanAttributeMetadata"; fieldExpand = "FalseOption,TrueOption"; fieldOptions = "{OptionSet[FalseOption], OptionSet[TrueOption]}"; break;
+                    case "Picklist": fieldType = "PicklistAttributeMetadata"; break;
+                    case "MultiPicklist": fieldType = "MultiSelectPicklistAttributeMetadata"; break;
+                    case "State": fieldType = "StateAttributeMetadata"; break;
+                    case "Status": fieldType = "StatusAttributeMetadata"; break;
+                }
+
+                optionSetConversionType = optionSetConversionType.replace("__fieldtype__", fieldType);
+                optionSetConversionType = optionSetConversionType.replace("__fieldexpand__", fieldExpand);
+                optionSetConversionType = optionSetConversionType.replace("__options__", fieldOptions);
+
+                DRB.Settings.Editors["code_powerquery2"].session.setValue(optionSetConversionType + optionSetConversionEnd);
+            }
+        }
+    });
+}
+
+DRB.GenerateCode.GetMFields = function (settings) {
+    var formattedTypes = ["Picklist", "MultiPicklist", "State", "Status", "DateTime", "Owner", "Lookup", "Customer", "Boolean", "Decimal", "BigInt", "Integer", "EntityName", "Double"];
+    var logicalNameTypes = ["Lookup", "Owner", "Customer"];
+
+    if (settings.formattedValues === false) { formattedTypes = []; logicalNameTypes = []; }
+
+    var mFields = '';
+    settings.fields.forEach(function (field) {
+        mFields += '"' + field.oDataName + '", ';
+        if (formattedTypes.indexOf(field.type) > -1) { mFields += '"' + field.oDataName + '@OData.Community.Display.V1.FormattedValue", '; }
+        if (logicalNameTypes.indexOf(field.type) > -1) { mFields += '"' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname", '; }
+    });
+
+    var fieldLogicalNames = settings.fields.map(function (field) { return field.oDataName; });
+    if (fieldLogicalNames.indexOf(settings.primaryIdField) < 0) { mFields = '"' + settings.primaryIdField + '", ' + mFields; }
+
+    settings.oneToMany.forEach(function (oneToMany) { mFields += '"' + oneToMany.schemaName + '", '; });
+    settings.manyToOne.forEach(function (manyToOne) { mFields += '"' + manyToOne.navigationProperty + '", '; });
+    settings.manyToMany.forEach(function (manyToMany) { mFields += '"' + manyToMany.schemaName + '", '; });
+
+    if (mFields.slice(-2) === ', ') { mFields = mFields.slice(0, -2); }
+
+    mFields = '{' + mFields + '},\n\t\t{' + mFields + '}';
+    return mFields;
+}
+
+DRB.GenerateCode.GetMRelationships = function (settings) {
+    var formattedTypes = ["Picklist", "MultiPicklist", "State", "Status", "DateTime", "Owner", "Lookup", "Customer", "Boolean", "Decimal", "BigInt", "Integer", "EntityName", "Double"];
+    var logicalNameTypes = ["Lookup", "Owner", "Customer"];
+
+    if (settings.formattedValues === false) { formattedTypes = []; logicalNameTypes = []; }
+
+    var mRelationships = '';
+    var previousSource = '#"Add Columns"';
+    var currentSource = '';
+    var currentSourceColumns = '';
+    if (settings.oneToMany.length > 0) {
+        mRelationships += '// 1:N Relationships\n\t';
+        settings.oneToMany.forEach(function (oneToMany, oneToManyIndex) {
+            currentSource = '#"Add 1:N Relationship - Count ' + oneToManyIndex + '"';
+            currentSourceColumns = '#"Add 1:N Relationship - Count ' + oneToManyIndex + ' Columns"';
+            mRelationships += '// ' + oneToMany.schemaName + '\n\t';
+            mRelationships += currentSource + ' = Table.ExpandListColumn(' + previousSource + ', "' + oneToMany.schemaName + '"),\n\t';
+            mRelationships += currentSourceColumns + ' = Table.ExpandRecordColumn(' + currentSource + ', "' + oneToMany.schemaName + '",\n\t\t';
+
+            var mFields = '';
+            var mFields2 = '';
+            oneToMany.fields.forEach(function (field) {
+                mFields += '"' + field.oDataName + '", ';
+                mFields2 += '"' + oneToMany.schemaName + '.' + field.oDataName + '", ';
+                if (formattedTypes.indexOf(field.type) > -1) {
+                    mFields += '"' + field.oDataName + '@OData.Community.Display.V1.FormattedValue", ';
+                    mFields2 += '"' + oneToMany.schemaName + '.' + field.oDataName + '@OData.Community.Display.V1.FormattedValue", ';
+                }
+                if (logicalNameTypes.indexOf(field.type) > -1) {
+                    mFields += '"' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname", ';
+                    mFields2 += '"' + oneToMany.schemaName + '.' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname", ';
+                }
+            });
+            if (mFields.slice(-2) === ', ') { mFields = mFields.slice(0, -2); }
+            if (mFields2.slice(-2) === ', ') { mFields2 = mFields2.slice(0, -2); }
+
+            mFields = '{' + mFields + '},\n\t\t{' + mFields2 + '}),\n\t\n\t';
+            mRelationships += mFields;
+
+            previousSource = currentSourceColumns;
+        });
+    }
+
+
+    if (settings.manyToOne.length > 0) {
+        mRelationships += '// N:1 Relationships\n\t';
+        settings.manyToOne.forEach(function (manyToOne, manyToOneIndex) {
+            currentSourceColumns = '#"Add N:1 Relationship - Count ' + manyToOneIndex + ' Columns"';
+            mRelationships += '// ' + manyToOne.navigationProperty + '\n\t';
+            mRelationships += currentSourceColumns + ' = Table.ExpandRecordColumn(' + previousSource + ', "' + manyToOne.navigationProperty + '",\n\t\t';
+
+            var mFields = '';
+            var mFields2 = '';
+            manyToOne.fields.forEach(function (field) {
+                mFields += '"' + field.oDataName + '", ';
+                mFields2 += '"' + manyToOne.navigationProperty + '.' + field.oDataName + '", ';
+                if (formattedTypes.indexOf(field.type) > -1) {
+                    mFields += '"' + field.oDataName + '@OData.Community.Display.V1.FormattedValue", ';
+                    mFields2 += '"' + manyToOne.navigationProperty + '.' + field.oDataName + '@OData.Community.Display.V1.FormattedValue", ';
+                }
+                if (logicalNameTypes.indexOf(field.type) > -1) {
+                    mFields += '"' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname", ';
+                    mFields2 += '"' + manyToOne.navigationProperty + '.' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname", ';
+                }
+            });
+            if (mFields.slice(-2) === ', ') { mFields = mFields.slice(0, -2); }
+            if (mFields2.slice(-2) === ', ') { mFields2 = mFields2.slice(0, -2); }
+            mFields = '{' + mFields + '},\n\t\t{' + mFields2 + '}),\n\t\n\t';
+            mRelationships += mFields;
+
+            previousSource = currentSourceColumns;
+        });
+    }
+
+    if (settings.manyToMany.length > 0) {
+        mRelationships += '// N:N Relationships\n\t';
+        settings.manyToMany.forEach(function (manyToMany, manyToManyIndex) {
+            currentSource = '#"Add N:N Relationship - Count ' + manyToManyIndex + '"';
+            currentSourceColumns = '#"Add N:N Relationship - Count ' + manyToManyIndex + ' Columns"';
+            mRelationships += '// ' + manyToMany.schemaName + '\n\t';
+            mRelationships += currentSource + ' = Table.ExpandListColumn(' + previousSource + ', "' + manyToMany.schemaName + '"),\n\t';
+            mRelationships += currentSourceColumns + ' = Table.ExpandRecordColumn(' + currentSource + ', "' + manyToMany.schemaName + '",\n\t\t';
+
+            var mFields = '';
+            var mFields2 = '';
+            manyToMany.fields.forEach(function (field) {
+                mFields += '"' + field.oDataName + '", ';
+                mFields2 += '"' + manyToMany.schemaName + '.' + field.oDataName + '", ';
+                if (formattedTypes.indexOf(field.type) > -1) {
+                    mFields += '"' + field.oDataName + '@OData.Community.Display.V1.FormattedValue", ';
+                    mFields2 += '"' + manyToMany.schemaName + '.' + field.oDataName + '@OData.Community.Display.V1.FormattedValue", ';
+                }
+                if (logicalNameTypes.indexOf(field.type) > -1) {
+                    mFields += '"' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname", ';
+                    mFields2 += '"' + manyToMany.schemaName + '.' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname", ';
+                }
+            });
+            if (mFields.slice(-2) === ', ') { mFields = mFields.slice(0, -2); }
+            if (mFields2.slice(-2) === ', ') { mFields2 = mFields2.slice(0, -2); }
+            mFields = '{' + mFields + '},\n\t\t{' + mFields2 + '}),\n\t\n\t';
+            mRelationships += mFields;
+
+            previousSource = currentSourceColumns;
+        });
+    }
+    mRelationships += '#"Before Rename" = ' + previousSource;
+    return mRelationships;
+}
+
+DRB.GenerateCode.GetMRenameColumns = function (settings) {
+
+    var formattedTypes = ["Picklist", "MultiPicklist", "State", "Status", "DateTime", "Owner", "Lookup", "Customer", "Boolean", "Decimal", "BigInt", "Integer", "EntityName", "Double"];
+    var logicalNameTypes = ["Lookup", "Owner", "Customer"];
+    if (settings.formattedValues === false) { formattedTypes = []; logicalNameTypes = []; }
+
+    var mRenameColumns = '// Rename\n\t';
+    mRenameColumns += '// Rename Columns\n\t';
+
+    var previousSource = '#"Before Rename"';
+    var currentSource = '#"Renamed Columns"';
+    mRenameColumns += currentSource + ' = Table.RenameColumns(' + previousSource + ', {\n\t\t';
+
+
+    var mFields = '';
+    settings.fields.forEach(function (field) {
+        var fieldLabel = field.label;
+        fieldLabel = fieldLabel.replace(/"/g, '""');
+
+        // the primary id doesn't get renamed (it will be used for the link)
+        if (field.oDataName === settings.primaryIdField) { fieldLabel = field.oDataName; }
+
+        mFields += '{"' + field.oDataName + '", "' + fieldLabel + '"}, ';
+        if (formattedTypes.indexOf(field.type) > -1) { mFields += '{"' + field.oDataName + '@OData.Community.Display.V1.FormattedValue", "' + fieldLabel + ' (Formatted)"}, '; }
+        if (logicalNameTypes.indexOf(field.type) > -1) { mFields += '{"' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname", "' + fieldLabel + ' (Table)"}, '; }
+    });
+
+    if (mFields.slice(-2) === ', ') { mFields = mFields.slice(0, -2); }
+    mRenameColumns += mFields;
+    mRenameColumns += '}),\n\n\t';
+
+    if (settings.oneToMany.length > 0) {
+        mRenameColumns += '// Rename 1:N Relationships Columns\n\t';
+        settings.oneToMany.forEach(function (oneToMany, oneToManyIndex) {
+            mRenameColumns += '// ' + oneToMany.schemaName + '\n\t';
+
+            previousSource = currentSource;
+            currentSource = '#"Rename 1:N Relationship - Count ' + oneToManyIndex + ' Columns"';
+            mRenameColumns += currentSource + ' = Table.RenameColumns(' + previousSource + ', {\n\t\t';
+
+            var mFields = '';
+            oneToMany.fields.forEach(function (field) {
+                var fieldLabel = oneToMany.schemaName + '.' + field.label;
+                fieldLabel = fieldLabel.replace(/"/g, '""');
+                mFields += '{"' + oneToMany.schemaName + '.' + field.oDataName + '", "' + fieldLabel + '"}, ';
+                if (formattedTypes.indexOf(field.type) > -1) { mFields += '{"' + oneToMany.schemaName + '.' + field.oDataName + '@OData.Community.Display.V1.FormattedValue", "' + fieldLabel + ' (Formatted)"}, '; }
+                if (logicalNameTypes.indexOf(field.type) > -1) { mFields += '{"' + oneToMany.schemaName + '.' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname", "' + fieldLabel + ' (Table)"}, '; };
+            });
+            if (mFields.slice(-2) === ', ') { mFields = mFields.slice(0, -2); }
+            mRenameColumns += mFields;
+            mRenameColumns += '}),\n\n\t';
+        });
+    }
+
+    if (settings.manyToOne.length > 0) {
+        mRenameColumns += '// Rename N:1 Relationships Columns\n\t';
+        settings.manyToOne.forEach(function (manyToOne, manyToOneIndex) {
+            mRenameColumns += '// ' + manyToOne.navigationProperty + '\n\t';
+
+            previousSource = currentSource;
+            currentSource = '#"Rename N:1 Relationship - Count ' + manyToOneIndex + ' Columns"';
+            mRenameColumns += currentSource + ' = Table.RenameColumns(' + previousSource + ', {\n\t\t';
+
+            var mFields = '';
+            manyToOne.fields.forEach(function (field) {
+                var fieldLabel = manyToOne.navigationProperty + '.' + field.label;
+                fieldLabel = fieldLabel.replace(/"/g, '""');
+                mFields += '{"' + manyToOne.navigationProperty + '.' + field.oDataName + '", "' + fieldLabel + '"}, ';
+                if (formattedTypes.indexOf(field.type) > -1) { mFields += '{"' + manyToOne.navigationProperty + '.' + field.oDataName + '@OData.Community.Display.V1.FormattedValue", "' + fieldLabel + ' (Formatted)"}, '; }
+                if (logicalNameTypes.indexOf(field.type) > -1) { mFields += '{"' + manyToOne.navigationProperty + '.' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname", "' + fieldLabel + ' (Table)"}, '; };
+            });
+            if (mFields.slice(-2) === ', ') { mFields = mFields.slice(0, -2); }
+            mRenameColumns += mFields;
+            mRenameColumns += '}),\n\n\t';
+        });
+    }
+
+    if (settings.manyToMany.length > 0) {
+        mRenameColumns += '// Rename N:N Relationships Columns\n\t';
+        settings.manyToMany.forEach(function (manyToMany, manyToManyIndex) {
+            mRenameColumns += '// ' + manyToMany.schemaName + '\n\t';
+
+            previousSource = currentSource;
+            currentSource = '#"Rename N:N Relationship - Count ' + manyToManyIndex + ' Columns"';
+            mRenameColumns += currentSource + ' = Table.RenameColumns(' + previousSource + ', {\n\t\t';
+
+            var mFields = '';
+            manyToMany.fields.forEach(function (field) {
+                var fieldLabel = manyToMany.schemaName + '.' + field.label;
+                fieldLabel = fieldLabel.replace(/"/g, '""');
+                mFields += '{"' + manyToMany.schemaName + '.' + field.oDataName + '", "' + fieldLabel + '"}, ';
+                if (formattedTypes.indexOf(field.type) > -1) { mFields += '{"' + manyToMany.schemaName + '.' + field.oDataName + '@OData.Community.Display.V1.FormattedValue", "' + fieldLabel + ' (Formatted)"}, '; }
+                if (logicalNameTypes.indexOf(field.type) > -1) { mFields += '{"' + manyToMany.schemaName + '.' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname", "' + fieldLabel + ' (Table)"}, '; };
+            });
+            if (mFields.slice(-2) === ', ') { mFields = mFields.slice(0, -2); }
+            mRenameColumns += mFields;
+            mRenameColumns += '}),\n\n\t';
+        });
+    }
+
+    mRenameColumns += '#"Full Table" = ' + currentSource + ',\n\t';
+    mRenameColumns += "// Comment the previous line and uncomment the next if you don't need the renamed columns\n\t";
+    mRenameColumns += '// #"Full Table" = #"Before Rename"';
+    return mRenameColumns;
+}
+
+DRB.GenerateCode.GetMLink = function (settings) {
+    var mLink = '// Add Link\n\t';
+    mLink += '#"Full Table With Link" = Table.AddColumn(#"Full Table", "Dataverse Link", each DataverseUrl & "/main.aspx?etn=' + settings.primaryEntity.logicalName + '&pagetype=entityrecord&id=%7b" & [' + settings.primaryIdField + '] & "%7d"),';
+    return mLink;
+}
+
+DRB.GenerateCode.GetMEmptyTable = function (settings) {
+    var mBeginTable = '#table(type table[';
+    var mContentTable = '';
+    var mContentTableRenamed = '';
+    var mEndTable = '],{})\n\t';
+
+    var formattedTypes = ["Picklist", "MultiPicklist", "State", "Status", "DateTime", "Owner", "Lookup", "Customer", "Boolean", "Decimal", "BigInt", "Integer", "EntityName", "Double"];
+    var logicalNameTypes = ["Lookup", "Owner", "Customer"];
+
+    if (settings.formattedValues === false) { formattedTypes = []; logicalNameTypes = []; }
+
+    var mFields = '';
+    var mFieldsRenamed = '';
+    settings.fields.forEach(function (field) {
+        var fieldLabel = field.label;
+        fieldLabel = fieldLabel.replace(/"/g, '""');
+
+        // the primary id doesn't get renamed (it will be used for the link)
+        if (field.oDataName === settings.primaryIdField) { fieldLabel = field.oDataName; }
+
+        mFields += '#"' + field.oDataName + '", ';
+        mFieldsRenamed += '#"' + fieldLabel + '", ';
+        if (formattedTypes.indexOf(field.type) > -1) {
+            mFields += '#"' + field.oDataName + '@OData.Community.Display.V1.FormattedValue", ';
+            mFieldsRenamed += '#"' + fieldLabel + ' (Formatted)", ';
+        }
+        if (logicalNameTypes.indexOf(field.type) > -1) {
+            mFields += '#"' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname", ';
+            mFieldsRenamed += '#"' + fieldLabel + ' (Table)", ';
+        }
+    });
+
+    var fieldLogicalNames = settings.fields.map(function (field) { return field.oDataName; });
+    if (fieldLogicalNames.indexOf(settings.primaryIdField) < 0) {
+        mFields = '#"' + settings.primaryIdField + '", ' + mFields;
+        mFieldsRenamed = '#"' + settings.primaryIdField + '", ' + mFieldsRenamed;
+    }
+
+
+    settings.oneToMany.forEach(function (oneToMany) {
+        var mFields2 = '';
+        var mFields2Renamed = '';
+        oneToMany.fields.forEach(function (field) {
+            var fieldLabel = field.label;
+            fieldLabel = fieldLabel.replace(/"/g, '""');
+            mFields2 += '#"' + oneToMany.schemaName + '.' + field.oDataName + '", ';
+            mFields2Renamed += '#"' + oneToMany.schemaName + '.' + fieldLabel + '", ';
+            if (formattedTypes.indexOf(field.type) > -1) {
+                mFields2 += '#"' + oneToMany.schemaName + '.' + field.oDataName + '@OData.Community.Display.V1.FormattedValue", ';
+                mFields2Renamed += '#"' + oneToMany.schemaName + '.' + fieldLabel + ' (Formatted)", ';
+            }
+            if (logicalNameTypes.indexOf(field.type) > -1) {
+                mFields2 += '#"' + oneToMany.schemaName + '.' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname", ';
+                mFields2Renamed += '#"' + oneToMany.schemaName + '.' + fieldLabel + ' (Table)", ';
+            }
+        });
+        mFields += mFields2;
+        mFieldsRenamed += mFields2Renamed;
+    });
+
+    settings.manyToOne.forEach(function (manyToOne) {
+        var mFields2 = '';
+        var mFields2Renamed = '';
+        manyToOne.fields.forEach(function (field) {
+            var fieldLabel = field.label;
+            fieldLabel = fieldLabel.replace(/"/g, '""');
+            mFields2 += '#"' + manyToOne.navigationProperty + '.' + field.oDataName + '", ';
+            mFields2Renamed += '#"' + manyToOne.navigationProperty + '.' + fieldLabel + '", ';
+            if (formattedTypes.indexOf(field.type) > -1) {
+                mFields2 += '#"' + manyToOne.navigationProperty + '.' + field.oDataName + '@OData.Community.Display.V1.FormattedValue", ';
+                mFields2Renamed += '#"' + manyToOne.navigationProperty + '.' + fieldLabel + ' (Formatted)", ';
+            }
+            if (logicalNameTypes.indexOf(field.type) > -1) {
+                mFields2 += '#"' + manyToOne.navigationProperty + '.' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname", ';
+                mFields2Renamed += '#"' + manyToOne.navigationProperty + '.' + fieldLabel + ' (Table)", ';
+            }
+        });
+        mFields += mFields2;
+        mFieldsRenamed += mFields2Renamed;
+    });
+
+    settings.manyToMany.forEach(function (manyToMany) {
+        var mFields2 = '';
+        var mFields2Renamed = '';
+        manyToMany.fields.forEach(function (field) {
+            var fieldLabel = field.label;
+            fieldLabel = fieldLabel.replace(/"/g, '""');
+            mFields2 += '#"' + manyToMany.schemaName + '.' + field.oDataName + '", ';
+            mFields2Renamed += '#"' + manyToMany.schemaName + '.' + fieldLabel + '", ';
+            if (formattedTypes.indexOf(field.type) > -1) {
+                mFields2 += '#"' + manyToMany.schemaName + '.' + field.oDataName + '@OData.Community.Display.V1.FormattedValue", ';
+                mFields2Renamed += '#"' + manyToMany.schemaName + '.' + fieldLabel + ' (Formatted)", ';
+            }
+            if (logicalNameTypes.indexOf(field.type) > -1) {
+                mFields2 += '#"' + manyToMany.schemaName + '.' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname", ';
+                mFields2Renamed += '#"' + manyToMany.schemaName + '.' + fieldLabel + ' (Table)", ';
+            }
+        });
+        mFields += mFields2;
+        mFieldsRenamed += mFields2Renamed;
+    });
+
+    mContentTable += mFields + '#"Dataverse Link"';
+    mContentTableRenamed += mFieldsRenamed + '#"Dataverse Link"';
+
+    var mEmptyTable = mBeginTable + mContentTableRenamed + mEndTable;
+    mEmptyTable += "\t\t// Comment the previous line and uncomment the next if you don't need the renamed columns\n\t\t\t// ";
+    mEmptyTable += mBeginTable + mContentTable + mEndTable;
+    return mEmptyTable;
+}
+
+DRB.GenerateCode.CreateMCode = function (settings) {
+    var m_code = `let
+\t// GetODataFeed Function
+\tGetODataFeed = (url as text) =>
+\t\tlet
+\t\t\tRelativeUrl = Text.Replace(url, DataverseUrl, ""),
+\t\t\tODataContent = Json.Document(Web.Contents(DataverseUrl, [RelativePath=RelativeUrl, Headers=[Prefer="__includeannotations__odata.maxpagesize=5000"]])),
+\t\t\tODataNextLink = try ODataContent[#"@odata.nextLink"] otherwise null,
+\t\t\tODataResult = if ODataNextLink <> null
+\t\t\t\tthen
+\t\t\t\t\tList.Combine({ODataContent[value],@GetODataFeed(ODataNextLink)})
+\t\t\t\telse
+\t\t\t\tODataContent[value]
+\t\tin
+\t\t\tODataResult,
+\t#"OData List" = GetODataFeed("__mainurl__"),
+
+\t#"OData Check" = if List.IsEmpty(#"OData List")
+\t\tthen
+\t\t\t__emptytable__
+\t\telse #"OData Table",
+
+\t// Table
+\t#"OData Table" = Table.FromList(#"OData List", Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+
+\t// Columns
+\t#"Add Columns" = Table.ExpandRecordColumn(#"OData Table", "Column1",
+\t\t__mainfieldsandrelationships__),
+
+\t__relationships__,
+
+\t__renamecolumns__,
+
+\t__addlink__
+\t#"Final Result" = if List.IsEmpty(#"OData List") then #"OData Check" else #"Full Table With Link"
+in
+\t#"Final Result"`;
+
+    var includeAnnotationsCode = 'odata.include-annotations=*,';
+    if (settings.formattedValues === false) { includeAnnotationsCode = ''; }
+
+    var urlFields = DRB.GenerateCode.GetUrlFields(settings);
+    var filterFields = DRB.GenerateCode.GetFilterFields(settings);
+    var orderFields = DRB.GenerateCode.GetOrderFields(settings);
+    if (filterFields !== '') {
+        if (urlFields === '') { filterFields = '?' + filterFields; } else { filterFields = '&' + filterFields; }
+        urlFields = urlFields + filterFields;
+    }
+    if (orderFields !== '') {
+        if (urlFields === '') { orderFields = '?' + orderFields; } else { orderFields = '&' + orderFields; }
+        urlFields = urlFields + orderFields;
+    }
+    var mainUrl = '/api/data/' + settings.version + '/' + settings.primaryEntity.entitySetName + urlFields;
+
+    var mEmptyTable = DRB.GenerateCode.GetMEmptyTable(settings);
+    var mFields = DRB.GenerateCode.GetMFields(settings);
+    var mRelationships = DRB.GenerateCode.GetMRelationships(settings);
+    var mRenameColumns = DRB.GenerateCode.GetMRenameColumns(settings);
+    var mLink = DRB.GenerateCode.GetMLink(settings);
+
+    m_code = m_code.replace('__includeannotations__', includeAnnotationsCode);
+    m_code = m_code.replace('__mainurl__', mainUrl);
+    m_code = m_code.replace('__emptytable__', mEmptyTable);
+    m_code = m_code.replace('__mainfieldsandrelationships__', mFields);
+    m_code = m_code.replace('__relationships__', mRelationships);
+    m_code = m_code.replace('__renamecolumns__', mRenameColumns);
+    m_code = m_code.replace('__addlink__', mLink);
+    return m_code;
+}
+
+/**
+ * Generate Code - Power Query
+ */
+DRB.GenerateCode.PowerQuery = function (requestType) {
+    if (requestType !== "retrievemultiple") { return; }
+
+    var tabName = "code_powerquery";
+    var tabName2 = "code_powerquery2";
+
+    var pqDiv = tabName + "_div";
+    $("#" + pqDiv).empty();
+
+    $("#" + pqDiv).append(DRB.UI.CreateSpacer());
+    var divTable = DRB.UI.CreateTable(DRB.DOM.PowerQuery.Table.Id);
+    $("#" + pqDiv).append(divTable);
+
+    var pqSettings = [];
+
+    switch (requestType) {
+        case "retrievemultiple":
+            pqSettings = ["BaseUrl"]; break;
+    }
+
+    pqSettings.forEach(function (setting) {
+        var tr = DRB.UI.CreateTr(DRB.DOM.PowerQuery.Tr.Id + DRB.DOM.PowerQuery[setting + "Span"].Id);
+        var tdLabel = DRB.UI.CreateTd(DRB.DOM.PowerQuery.TdLabel.Id + DRB.DOM.PowerQuery[setting + "Span"].Id);
+        var tdValue = DRB.UI.CreateTd(DRB.DOM.PowerQuery.TdValue.Id + DRB.DOM.PowerQuery[setting + "Span"].Id);
+        var tdCopy = DRB.UI.CreateTd(DRB.DOM.PowerQuery.TdCopy.Id + DRB.DOM.PowerQuery[setting + "Span"].Id);
+        divTable.append(tr);
+        tr.append(tdLabel);
+        tr.append(tdValue);
+        tr.append(tdCopy);
+
+        tdLabel.append(DRB.UI.CreateSpan(DRB.DOM.PowerQuery[setting + "Span"].Id, DRB.DOM.PowerQuery[setting + "Span"].Name));
+        tdValue.append(DRB.UI.CreateInputStringPowerAutomate(DRB.DOM.PowerQuery[setting + "Input"].Id));
+        tdCopy.append(DRB.UI.CreateButton(DRB.DOM.PowerQuery.ButtonCopy.Id + DRB.DOM.PowerQuery[setting + "Span"].Id, DRB.DOM.PowerQuery.ButtonCopy.Name, DRB.DOM.PowerQuery.ButtonCopy.Class, DRB.Logic.CopyCodeForPowerQuery, setting, DRB.DOM.PowerQuery[setting + "Span"].Name));
+
+    });
+
+    var settings = DRB.Metadata.CurrentNode.data.configuration;
+
+
+    var baseUrl = DRB.Xrm.GetClientUrl();
+
+    switch (requestType) {
+        case "retrievemultiple":
+            $("#" + DRB.DOM.PowerQuery.BaseUrlInput.Id).val(baseUrl);
+            break;
+    }
+
+    if (!DRB.Utilities.HasValue(settings.primaryEntity)) { return; }
+
+    $("#" + pqDiv).append(DRB.UI.CreateSpacer());
+    var btn_copyCode = DRB.UI.CreateButton("btn_" + tabName + "_copy", "Copy Code", "btn-secondary", DRB.Logic.CopyCodeFromEditorByTabName, tabName);
+    $("#" + pqDiv).append(btn_copyCode);
+    $("#" + pqDiv).append(DRB.UI.CreateSpacer());
+    $("#" + pqDiv).append(DRB.UI.CreateEmptyDiv(tabName + "_editor", "code_editor"));
+    DRB.Settings.Editors[tabName] = ace.edit(tabName + "_editor", { useWorker: false });
+    DRB.Settings.Editors[tabName].setShowPrintMargin(false);
+    DRB.Settings.Editors[tabName].session.setMode("ace/mode/javascript");
+    DRB.Settings.Editors[tabName].setOptions({ readOnly: true });
+
+    var mCode = DRB.GenerateCode.CreateMCode(settings);
+    DRB.Settings.Editors[tabName].session.setValue(mCode);
+
+    $("#" + pqDiv).append(DRB.UI.CreateSpacer());
+    $("#" + pqDiv).append(DRB.UI.CreateSpan(DRB.DOM.PowerQuery.SpanOptionSetDropdown.Id, DRB.DOM.PowerQuery.SpanOptionSetDropdown.Name));
+    $("#" + pqDiv).append(DRB.UI.CreateDropdown(DRB.DOM.PowerQuery.OptionSetDropdown.Id));
+    var queryColumns = [];
+    settings.fields.forEach(function (field) {
+        if (field.type === "Boolean" || field.type === "Picklist" || field.type === "MultiPicklist" || field.type === "State" || field.type === "Status") {
+            var column = DRB.Utilities.GetRecordById(DRB.Metadata.CurrentColumns, field.logicalName);
+            if (DRB.Utilities.HasValue(column)) { queryColumns.push(column); }
+        }
+    });
+    DRB.UI.FillDropdown(DRB.DOM.PowerQuery.OptionSetDropdown.Id, DRB.DOM.PowerQuery.OptionSetDropdown.Name, new DRB.Models.Records(queryColumns).ToDropdown());
+    DRB.GenerateCode.BindPowerQueryColumn(DRB.DOM.PowerQuery.OptionSetDropdown.Id);
+    $("#" + pqDiv).append(DRB.UI.CreateSpacer());
+    var btn_copyCodeQueryColumn = DRB.UI.CreateButton("btn_" + tabName2 + "_querycolumn_copy", "Copy Code", "btn-secondary", DRB.Logic.CopyCodeFromEditorByTabName, tabName2);
+    $("#" + pqDiv).append(btn_copyCodeQueryColumn);
+    $("#" + pqDiv).append(DRB.UI.CreateSpacer());
+    $("#" + pqDiv).append(DRB.UI.CreateEmptyDiv(tabName2 + "_editor", "code_editor"));
+    DRB.Settings.Editors[tabName2] = ace.edit(tabName2 + "_editor", { useWorker: false });
+    DRB.Settings.Editors[tabName2].setShowPrintMargin(false);
+    DRB.Settings.Editors[tabName2].session.setMode("ace/mode/javascript");
+    DRB.Settings.Editors[tabName2].setOptions({ readOnly: true });
+
+    $("#" + pqDiv).append(DRB.UI.CreateSpacer());
+}
+
 /**
  * Generate Code - Start
  */
 DRB.GenerateCode.Start = function () {
     var requestType = $("#" + DRB.DOM.RequestType.Dropdown.Id).val();
     DRB.GenerateCode.PowerAutomate(requestType);
+    try { DRB.GenerateCode.PowerQuery(requestType); } catch (e) { console.log(e); }
     switch (requestType) {
         case "retrievesingle": DRB.GenerateCode.RetrieveSingle(); break;
         case "retrievemultiple": DRB.GenerateCode.RetrieveMultiple(); break;

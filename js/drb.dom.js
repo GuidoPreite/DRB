@@ -553,6 +553,24 @@ DRB.DOM.PowerAutomate.RowCountSpan = { Id: "span_rowcount", Name: "Row count" };
 DRB.DOM.PowerAutomate.RowCountInput = { Id: "txt_rowcount" };
 // #endregion
 
+// #region Power Query
+DRB.DOM.PowerQuery = {};
+
+DRB.DOM.PowerQuery.Table = { Id: "table_powerquery" };
+DRB.DOM.PowerQuery.Tr = { Id: "tr_pq_" };
+DRB.DOM.PowerQuery.TdLabel = { Id: "td_pq_label_" };
+DRB.DOM.PowerQuery.TdValue = { Id: "td_pq_value_" };
+DRB.DOM.PowerQuery.TdCopy = { Id: "td_pq_copy_" };
+
+DRB.DOM.PowerQuery.ButtonCopy = { Id: "btn_pq_copy_", Name: "Copy", Class: "btn-secondary" };
+
+DRB.DOM.PowerQuery.BaseUrlSpan = { Id: "span_baseurl", Name: "DataverseUrl" };
+DRB.DOM.PowerQuery.BaseUrlInput = { Id: "txt_baseurl" };
+
+DRB.DOM.PowerQuery.SpanOptionSetDropdown = { Id: "span_optionset", Name: "Columns with Options" };
+DRB.DOM.PowerQuery.OptionSetDropdown = { Id: "cbx_optionset", Name: "Select Column" };
+// #endregion
+
 // #region Lookup
 DRB.DOM.Lookup = {};
 DRB.DOM.Lookup.Div = { Id: "div_lookup" };

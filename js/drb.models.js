@@ -429,12 +429,13 @@ DRB.Models.SystemView = function (id, name, tableLogicalName, isDefault, layoutX
  * @param {string} id Id
  * @param {string} name Name
  * @param {string} tableLogicalName Table Logical Name
- *    
+ * @param {string} layoutXml Layout XML
  */
-DRB.Models.PersonalView = function (id, name, tableLogicalName) {
+DRB.Models.PersonalView = function (id, name, tableLogicalName, layoutXml) {
     this.Id = id;
     this.Name = name;
     this.TableLogicalName = tableLogicalName;
+    this.LayoutXml = layoutXml;
 
     this.ToDropdownOption = function () { return new DRB.Models.DropdownOption(this.Id, this.Name, this.TableLogicalName); }
 }

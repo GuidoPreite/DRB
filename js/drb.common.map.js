@@ -318,7 +318,8 @@ DRB.Common.MapPersonalViews = function (data, sortProperty) {
             var id = record.userqueryid;
             var name = record.name;
             var tableLogicalName = record.returnedtypecode;
-            views.push(new DRB.Models.PersonalView(id, name, tableLogicalName));
+            var layoutXml = record.layoutxml;
+            views.push(new DRB.Models.PersonalView(id, name, tableLogicalName, layoutXml));
         });
         // sort the array based on the provided sortProperty
         if (DRB.Utilities.HasValue(sortProperty)) { views.sort(DRB.Utilities.CustomSort(sortProperty)); }
