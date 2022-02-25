@@ -17617,7 +17617,7 @@ DRB.InsertMainBodyContent = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.35";
+    var drbVersion = "1.0.0.36";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 
