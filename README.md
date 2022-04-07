@@ -15,9 +15,11 @@ Dataverse REST Builder has been shown on _The DevConnect Show_ by <a target="_bl
 
 [![Ep.10: Guido Preite on The DevConnect Show](https://img.youtube.com/vi/VYtWd5QDQq8/0.jpg)](https://www.youtube.com/watch?v=VYtWd5QDQq8)
 
-_Blog posts:_
+<a target="_blank" href="https://carldesouza.com">Carl de Souza</a> content about Dataverse REST Builder:
 
-<a target="_blank" href="https://carldesouza.com/using-the-dataverse-rest-builder-to-build-rest-requests/">Using the Dataverse REST Builder to Build REST Requests</a> by Carl de Souza
+Blog post: <a target="_blank" href="https://carldesouza.com/using-the-dataverse-rest-builder-to-build-rest-requests/">Using the Dataverse REST Builder to Build REST Requests</a>
+
+[![Dataverse REST Builder | #PowerPlatformTV 045](https://img.youtube.com/vi/xrNrhyHRYR8/0.jpg)](https://www.youtube.com/watch?v=xrNrhyHRYR8)
 
 Managed Solution version [![Github Downloads](https://img.shields.io/github/downloads/GuidoPreite/DRB/total.svg)](https://github.com/GuidoPreite/DRB/releases)
 
