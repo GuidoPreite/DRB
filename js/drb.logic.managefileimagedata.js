@@ -77,6 +77,7 @@ DRB.Logic.ManageFileImageData.BindFileOperation = function (id) {
                 $("#" + DRB.DOM.FileName.Div.Id).hide();
                 $("#" + DRB.DOM.FileName.Input.Id).val("");
                 if (DRB.Metadata.ManageDataType === "manageimagedata") { $("#" + DRB.DOM.FileFullSize.Div.Id).show(); }
+                $("#" + DRB.DOM.FileBase64.Div.Id).show();
                 $("#" + DRB.DOM.FileContent.Div.Id).hide();
                 DRB.Metadata.CurrentNode.data.configuration.fileContent = null;
                 break;
@@ -87,6 +88,8 @@ DRB.Logic.ManageFileImageData.BindFileOperation = function (id) {
                     $("#" + DRB.DOM.FileFullSize.Div.Id).hide();
                     $("#" + DRB.DOM.FileFullSize.CheckBox.Id).prop('checked', false).change();
                 }
+                $("#" + DRB.DOM.FileBase64.CheckBox.Id).prop('checked', false).change();
+                $("#" + DRB.DOM.FileBase64.Div.Id).hide();
                 $("#" + DRB.DOM.FileContent.Div.Id).show();
                 if (DRB.Utilities.HasValue(DRB.Metadata.CurrentNode.data.configuration.fileContent)) {
                     if (DRB.Metadata.ManageDataType === "manageimagedata") { $("#" + DRB.DOM.FileContent.ShowButton.Id).show(); }
@@ -106,6 +109,8 @@ DRB.Logic.ManageFileImageData.BindFileOperation = function (id) {
                     $("#" + DRB.DOM.FileFullSize.Div.Id).hide();
                     $("#" + DRB.DOM.FileFullSize.CheckBox.Id).prop('checked', false).change();
                 }
+                $("#" + DRB.DOM.FileBase64.CheckBox.Id).prop('checked', false).change();
+                $("#" + DRB.DOM.FileBase64.Div.Id).hide();
                 $("#" + DRB.DOM.FileContent.Div.Id).hide();
                 DRB.Metadata.CurrentNode.data.configuration.fileContent = null;
                 break;
@@ -138,6 +143,17 @@ DRB.Logic.ManageFileImageData.BindFileFullSize = function (id) {
     $("#" + id).on("change", function (e) {
         var fullSizeValue = $(this).is(':checked');
         DRB.Metadata.CurrentNode.data.configuration.fileFullSize = fullSizeValue;
+    });
+}
+
+/**
+ * Manage File Image Data - Bind File Base64
+ * @param {string} id Id
+*/
+DRB.Logic.ManageFileImageData.BindFileBase64 = function (id) {
+    $("#" + id).on("change", function (e) {
+        var base64Value = $(this).is(':checked');
+        DRB.Metadata.CurrentNode.data.configuration.fileBase64 = base64Value;
     });
 }
 
@@ -321,8 +337,16 @@ DRB.Logic.ManageFileImageData.Start = function (requestType) {
         $("#" + DRB.DOM.ConfigureContent.Id).append(divFileFullSize);
         DRB.Logic.ManageFileImageData.BindFileFullSize(DRB.DOM.FileFullSize.CheckBox.Id);
         $("#" + DRB.DOM.FileFullSize.Div.Id).hide();
-
     }
+    // #endregion
+
+    // #region Base64
+    var divFileBase64 = DRB.UI.CreateEmptyDiv(DRB.DOM.FileBase64.Div.Id, DRB.DOM.FileBase64.Div.Class);
+    divFileBase64.append(DRB.UI.CreateCheckbox(DRB.DOM.FileBase64.CheckBox.Id, "", "", false));
+    divFileBase64.append(DRB.UI.CreateSpan(DRB.DOM.FileBase64.Span.Id, DRB.DOM.FileBase64.Span.Name));
+    $("#" + DRB.DOM.ConfigureContent.Id).append(divFileBase64);
+    DRB.Logic.ManageFileImageData.BindFileBase64(DRB.DOM.FileBase64.CheckBox.Id);
+    $("#" + DRB.DOM.FileBase64.Div.Id).hide();
     // #endregion
 
     DRB.CustomUI.AddSpacer();
@@ -387,6 +411,12 @@ DRB.Logic.ManageFileImageData.Start = function (requestType) {
             $("#" + DRB.DOM.FileFullSize.CheckBox.Id).prop('checked', DRB.Metadata.CurrentNode.data.configuration.fileFullSize).change();
         }
     }
+
+    // File Base64
+    if (DRB.Utilities.HasValue(DRB.Metadata.CurrentNode.data.configuration.fileBase64)) {
+        $("#" + DRB.DOM.FileBase64.CheckBox.Id).prop('checked', DRB.Metadata.CurrentNode.data.configuration.fileBase64).change();
+    }
+
     // File Content
     if (DRB.Utilities.HasValue(DRB.Metadata.CurrentNode.data.configuration.fileContent)) {
         if (requestType === "manageimagedata") { $("#" + DRB.DOM.FileContent.ShowButton.Id).show(); }

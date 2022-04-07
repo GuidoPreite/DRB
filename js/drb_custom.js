@@ -198,8 +198,14 @@ DRB.DOM.FileName.Input = { Id: "txt_filename" };
 // File Full Size
 DRB.DOM.FileFullSize = {};
 DRB.DOM.FileFullSize.Div = { Id: "div_filefullsize", Class: "sameline" };
-DRB.DOM.FileFullSize.Span = { Id: "span_filefullsize", Name: "&nbsp;Full Size" };
+DRB.DOM.FileFullSize.Span = { Id: "span_filefullsize", Name: "&nbsp;Full Size&nbsp;&nbsp;" };
 DRB.DOM.FileFullSize.CheckBox = { Id: "chk_filefullsize" };
+
+// File Base64
+DRB.DOM.FileBase64 = {};
+DRB.DOM.FileBase64.Div = { Id: "div_filebase64", Class: "sameline" };
+DRB.DOM.FileBase64.Span = { Id: "span_filebase64", Name: "&nbsp;Return Base64 Content instead of Binary" };
+DRB.DOM.FileBase64.CheckBox = { Id: "chk_filebase64" };
 
 // Image Buttons
 DRB.DOM.FileContent = {};
@@ -209,7 +215,6 @@ DRB.DOM.FileContent.LoadButton = { Id: "btn_loadfile_", Name: "Load", Class: "bt
 DRB.DOM.FileContent.ShowButton = { Id: "btn_showfile_", Name: "Show", Class: "btn-outline-secondary" };
 DRB.DOM.FileContent.DownloadButton = { Id: "btn_downloadfile_", Name: "Download", Class: "btn-outline-secondary" };
 DRB.DOM.FileContent.RemoveButton = { Id: "btn_removefile_", Name: "Remove", Class: "btn-outline-secondary" };
-
 
 // Relationships
 DRB.DOM.DivRelationship = { Id: "div_relationships" };
@@ -598,6 +603,13 @@ DRB.DOM.PowerQuery.BaseUrlInput = { Id: "txt_baseurl" };
 
 DRB.DOM.PowerQuery.SpanOptionSetDropdown = { Id: "span_optionset", Name: "Columns with Options" };
 DRB.DOM.PowerQuery.OptionSetDropdown = { Id: "cbx_optionset", Name: "Select Column" };
+// #endregion
+
+// #region Grid
+DRB.DOM.Grid = {};
+DRB.DOM.Grid.Div = { Id: "code_grid_div" };
+DRB.DOM.Grid.DivHeader = { Id: "div_grid_header" };
+DRB.DOM.Grid.DivDetails = { Id: "div_grid_details", Class: "griddetails" };
 // #endregion
 
 // #region Lookup
@@ -4289,6 +4301,181 @@ DRB.Logic.CopyCodeForPowerQuery = function (id, name) {
     setTimeout(function () { DRB.UI.HideLoading(); }, DRB.Settings.TimeoutDelay * 1.5);
 }
 
+// #region DRB.Logic Grid
+
+/**
+ * Logic - Grid Collapse All Tables
+*/
+DRB.Logic.GridExpandCollapseAllTables = function (operation) {
+    let visibleCheck = ":hidden";
+    if (operation === false) { visibleCheck = ":visible"; }
+    let buttons = $("table#gridresults button");
+    for (let count = 0; count < buttons.length; count++) {
+        button = buttons[count];
+        let itemId = button.id.substring(2);
+        if ($("#" + itemId).is(visibleCheck)) { button.click(); }
+    }
+}
+
+/**
+ * Logic - Grid Collapse All Tables
+*/
+DRB.Logic.GridCollapseAllTables = function () {
+    DRB.Logic.GridExpandCollapseAllTables(false);
+}
+
+/**
+ * Logic - Grid Expand All Tables
+*/
+DRB.Logic.GridExpandAllTables = function () {
+    DRB.Logic.GridExpandCollapseAllTables(true);
+}
+
+/**
+ * Logic - Grid Toggle Table
+*/
+DRB.Logic.GridToggleTable = function (id) {
+    let item = $("#" + id);
+    let button = $("#b_" + id);
+    if (item.is(":hidden")) { item.show(); button.text("[-]"); }
+    else { item.hide(); button.text("[+]"); }
+}
+
+/**
+ * Logic - Grid Download CSV
+*/
+DRB.Logic.GridDownloadCSV = function () {
+    if (!DRB.Utilities.HasValue(DRB.Metadata.GridResults)) { return; }
+
+    let tableName = DRB.Metadata.GridResults.EntitySetName;
+    let saveDate = DRB.Metadata.GridResults.SaveDate;
+    let jsonObject = DRB.Metadata.GridResults.Values;
+
+    let currentJson = null;
+    if (Array.isArray(jsonObject)) { currentJson = jsonObject; } else { currentJson = [jsonObject]; }
+
+    let headerColumns = [];
+    currentJson.forEach(function (row) {
+        var rowHeaders = Object.keys(row);
+        rowHeaders.forEach(function (rowHeader, rowHeaderIndex) {
+            if (headerColumns.indexOf(rowHeader) === -1) {
+                headerColumns.splice(rowHeaderIndex, 0, rowHeader);
+            }
+        });
+    });
+
+    let csvHeaders = [];
+    headerColumns.forEach(function (headerColumn) {
+        csvHeaders.push(headerColumn.replace(/"/g, '""'));
+    });
+
+    let fileContent = '"' + csvHeaders.join('","') + '"';
+
+    currentJson.forEach(function (row) {
+        let csvItems = [];
+        headerColumns.forEach(function (column) {
+            let item = row[column];
+            if (item === undefined) { item = ''; }
+            if (item === null) { item = 'null'; }
+            if (Array.isArray(item)) { item = "[Array]"; } else { if (typeof item === "object" && item !== null) { item = "{Object}"; } }
+            item = "" + item;
+            csvItems.push(item.replace(/"/g, '""'));
+        });
+        fileContent += '\n"' + csvItems.join('","') + '"';
+    });
+
+    let fileDate = saveDate.toLocaleString("sv").replace(/ /g, "_").replace(/-/g, "").replace(/:/g, "");
+    let fileName = tableName + "_" + fileDate + ".csv";
+
+    let saveFile = new Blob([fileContent], { type: "text/csv" });
+    let customLink = document.createElement("a");
+    customLink.href = URL.createObjectURL(saveFile);
+    customLink.download = fileName;
+    customLink.click();
+}
+
+/**
+ * Logic - Grid Create Table
+*/
+DRB.Logic.GridCreateTable = function (jsonObject, hidden, id) {
+    let currentJson = null;
+    if (Array.isArray(jsonObject)) { currentJson = jsonObject; } else { currentJson = [jsonObject]; }
+
+    let table = '';
+
+    let currentHeader = '';
+    let headerColumns = [];
+    currentJson.forEach(function (row) {
+        var rowHeaders = Object.keys(row);
+        rowHeaders.forEach(function (rowHeader, rowHeaderIndex) {
+            if (headerColumns.indexOf(rowHeader) === -1) {
+                headerColumns.splice(rowHeaderIndex, 0, rowHeader);
+            }
+        });
+    });
+    let header = headerColumns.join();
+
+    currentJson.forEach(function (row, rowIndex) {
+        // OLD CODE
+        // let headerColumns = Object.keys(row);
+        // let header = headerColumns.join();
+        // END OLD CODE
+        if (header !== currentHeader) {
+            if (rowIndex > 1) { table += '</table>'; }
+            let hiddenStyle = '';
+            if (hidden === true) { hiddenStyle += ' style="display: none;"'; }
+            table += '<table id="' + id + '" class="grid"' + hiddenStyle + '><tr><th class="gridindex">#</th><th class="grid">';
+            table += headerColumns.join('</th><th class="grid">');
+            table += '</th></tr>';
+            currentHeader = header;
+        }
+
+        table += '<tr><td class="gridindex">' + (rowIndex + 1) + '</td>';
+        headerColumns.forEach(function (column) {
+            let item = row[column];
+            if (item === undefined) { item = ""; }
+            table += '<td class="grid">';
+            let addExpand = false;
+            if (Array.isArray(item)) { addExpand = true; } else { if (typeof item === "object" && item !== null) { addExpand = true; } }
+
+            if (addExpand === false) { table += item; }
+            else {
+                id += '_' + rowIndex;
+                let onClickEvent = "DRB.Logic.GridToggleTable('" + id + "');";
+                let onClickButton = '<button id="b_' + id + '" type="button" class="gridexpand" onclick="' + onClickEvent + '">[+]</button> ';
+                let onClickText = 'Object { }';
+                if (Array.isArray(item)) {
+                    if (item.length === 0) { onClickButton = ''; }
+                    onClickText = 'Array [' + item.length + ']';
+                }
+                table += '<b>' + onClickButton + '</b><i>' + onClickText + '</i>';
+                table += DRB.Logic.GridCreateTable(item, true, id);
+            }
+            table += '</td>';
+        });
+        table += '</tr>';
+    });
+    if (currentJson.length > 0) { table += '</table>'; }
+    return table;
+}
+
+/**
+ * Logic - Refresh Grid
+*/
+DRB.Logic.RefreshGrid = function () {
+    $('#' + DRB.DOM.Grid.Div.Id).empty();
+    let gridHeader = DRB.UI.CreateEmptyDiv(DRB.DOM.Grid.DivHeader.Id);
+    let gridDetails = DRB.UI.CreateEmptyDiv(DRB.DOM.Grid.DivDetails.Id, DRB.DOM.Grid.DivDetails.Class);
+    $('#' + DRB.DOM.Grid.Div.Id).append(DRB.UI.CreateSpacer());
+    $('#' + DRB.DOM.Grid.Div.Id).append(DRB.UI.CreateSpacer());
+    $('#' + DRB.DOM.Grid.Div.Id).append(gridHeader);
+    $('#' + DRB.DOM.Grid.Div.Id).append(gridDetails);
+
+    var requestType = $("#" + DRB.DOM.RequestType.Dropdown.Id).val();
+    try { DRB.GenerateCode.Grid(requestType); } catch { }
+}
+// #endregion
+
 /**
  * Logic - Complete Initialize
  */
@@ -4509,6 +4696,7 @@ DRB.Logic.BindRequestType = function (id) {
         if (!DRB.Utilities.HasValue(nodeConfiguration.fileName)) { nodeConfiguration.fileName = ""; } // Manage File Data, Manage Image Data
         if (!DRB.Utilities.HasValue(nodeConfiguration.fileContent)) { nodeConfiguration.fileContent = null; } // Manage File Data, Manage Image Data
         if (!DRB.Utilities.HasValue(nodeConfiguration.fileFullSize)) { nodeConfiguration.fileFullSize = false; } // Manage Image Data
+        if (!DRB.Utilities.HasValue(nodeConfiguration.fileBase64)) { nodeConfiguration.fileBase64 = false; } // Manage File Data, Manage Image Data
 
         // Check the selected Request Type
         switch (requestTypeValue) {
@@ -4604,7 +4792,7 @@ DRB.Logic.BindRequestType = function (id) {
 
             case "managefiledata": // Manage File Data
                 var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId",
-                    "primaryEntity", "primaryId", "fileField", "fileOperation", "fileName", "fileContent"];
+                    "primaryEntity", "primaryId", "fileField", "fileOperation", "fileName", "fileContent", "fileBase64"];
 
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
                 DRB.Logic.ManageFileImageData.Start(requestTypeValue);
@@ -4612,7 +4800,7 @@ DRB.Logic.BindRequestType = function (id) {
 
             case "manageimagedata": // Manage Image Data
                 var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId",
-                    "primaryEntity", "primaryId", "fileField", "fileOperation", "fileName", "fileContent", "fileFullSize"];
+                    "primaryEntity", "primaryId", "fileField", "fileOperation", "fileName", "fileContent", "fileFullSize", "fileBase64"];
 
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
                 DRB.Logic.ManageFileImageData.Start(requestTypeValue);
@@ -6185,8 +6373,8 @@ DRB.GenerateCode.GetCodeFields = function (settings) {
         codeFieldsFormatted.push('// Many To One Relationships');
     }
     settings.manyToOne.forEach(function (manyToOne) {
-        codeFields.push('if (result.hasOwnProperty("' + manyToOne.navigationProperty + '")) {');
-        codeFieldsFormatted.push('if (result.hasOwnProperty("' + manyToOne.navigationProperty + '")) {');
+        codeFields.push('if (result.hasOwnProperty("' + manyToOne.navigationProperty + '") && result["' + manyToOne.navigationProperty + '"] !== null) {');
+        codeFieldsFormatted.push('if (result.hasOwnProperty("' + manyToOne.navigationProperty + '") && result["' + manyToOne.navigationProperty + '"] !== null) {');
         manyToOne.fields.forEach(function (field) {
 
             var renamedFieldType = DRB.GenerateCode.ConvertFieldType(field.type);
@@ -6639,7 +6827,7 @@ DRB.GenerateCode.GetFetchAPIWarnings = function (settings) {
 DRB.GenerateCode.GetPortalsWarnings = function (settings) {
     var code = [];
     var warnings = [];
-    code.push("// IMPORTANT NOTE! Web API operations in Portals is a PREVIEW feature, please read the following documentation:");
+    code.push("// IMPORTANT NOTE! please read the following documentation regarding Portals Web API:");
     code.push('// https://docs.microsoft.com/en-us/powerapps/maker/portals/web-api-overview');
     code.push('// "webapi.safeAjax" wrapper is based on the code from this page:');
     code.push('// https://docs.microsoft.com/en-us/powerapps/maker/portals/web-api-http-requests-handle-errors');
@@ -6965,7 +7153,9 @@ DRB.GenerateCode.FetchXMLParseFilterCriteria = function (query, configurationObj
                             if (filterField.type === "Owner" || filterField.type === "Lookup" || filterField.type === "Customer") {
                                 if (DRB.Utilities.HasValue(filterField.value.id)) { clearedValue = filterField.value.id; }
                             } else {
-                                clearedValue = filterField.value.replace(/"/g, '&quot;');
+                                if (DRB.Utilities.HasValue(filterField.value)) {
+                                    clearedValue = filterField.value.replace(/"/g, '&quot;');
+                                }
                             }
 
                             if (filterField.type === "ManagedProperty" || filterField.type === "Boolean") {
@@ -7257,8 +7447,6 @@ DRB.GenerateCode.RetrieveSingle = function () {
     // #region jQuery
     codejQuery.push('$.ajax({');
     codejQuery.push('\ttype: "GET",');
-    codejQuery.push('\tcontentType: "application/json; charset=utf-8",');
-    codejQuery.push('\tdatatype: "json",');
     codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '",');
     codejQuery.push('\theaders: {');
     jQueryHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
@@ -7373,6 +7561,9 @@ DRB.GenerateCode.RetrieveSingle = function () {
     codeFields.forEach(function (codeField) { codeFieldsPortals.push('\t\t' + codeField); });
     codePortals.push(codeFieldsPortals.join('\n'));
 
+    codePortals.push('\t},');
+    codePortals.push('\terror: function (xhr, textStatus, errorThrown) {');
+    codePortals.push('\t\tconsole.log(xhr);');
     codePortals.push('\t}');
     codePortals.push('});');
     // #endregion
@@ -7589,6 +7780,9 @@ DRB.GenerateCode.RetrieveMultiple = function () {
     codeFields.forEach(function (codeField) { codeFieldsPortals.push('\t\t\t' + codeField); });
     codePortals.push(codeFieldsPortals.join('\n'));
     codePortals.push('\t\t}');
+    codePortals.push('\t},');
+    codePortals.push('\terror: function (xhr, textStatus, errorThrown) {');
+    codePortals.push('\t\tconsole.log(xhr);');
     codePortals.push('\t}');
     codePortals.push('});');
     // #endregion
@@ -7842,6 +8036,9 @@ DRB.GenerateCode.Create = function () {
     codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
     codePortals.push('\t\tvar newId = xhr.getResponseHeader("entityid");');
     codePortals.push('\t\tconsole.log(newId);');
+    codePortals.push('\t},');
+    codePortals.push('\terror: function (xhr, textStatus, errorThrown) {');
+    codePortals.push('\t\tconsole.log(xhr);');
     codePortals.push('\t}');
     codePortals.push('});');
     // #endregion
@@ -8056,6 +8253,9 @@ DRB.GenerateCode.Update = function () {
     codePortals.push('\tdata: JSON.stringify(record),');
     codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
     codePortals.push('\t\tconsole.log("Record updated");');
+    codePortals.push('\t},');
+    codePortals.push('\terror: function (xhr, textStatus, errorThrown) {');
+    codePortals.push('\t\tconsole.log(xhr);');
     codePortals.push('\t}');
     codePortals.push('});');
     // #endregion
@@ -8198,6 +8398,9 @@ DRB.GenerateCode.Delete = function () {
     codePortals.push('\tcontentType: "application/json",');
     codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
     codePortals.push('\t\tconsole.log("Record deleted");');
+    codePortals.push('\t},');
+    codePortals.push('\terror: function (xhr, textStatus, errorThrown) {');
+    codePortals.push('\t\tconsole.log(xhr);');
     codePortals.push('\t}');
     codePortals.push('});');
     // #endregion
@@ -8354,6 +8557,9 @@ DRB.GenerateCode.Associate = function () {
     codePortals.push('\tdata: JSON.stringify(association),');
     codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
     codePortals.push('\t\tconsole.log("Success");');
+    codePortals.push('\t},');
+    codePortals.push('\terror: function (xhr, textStatus, errorThrown) {');
+    codePortals.push('\t\tconsole.log(xhr);');
     codePortals.push('\t}');
     codePortals.push('});');
     // #endregion
@@ -8479,6 +8685,9 @@ DRB.GenerateCode.Disassociate = function () {
     codePortals.push('\tcontentType: "application/json",');
     codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
     codePortals.push('\t\tconsole.log("Success");');
+    codePortals.push('\t},');
+    codePortals.push('\terror: function (xhr, textStatus, errorThrown) {');
+    codePortals.push('\t\tconsole.log(xhr);');
     codePortals.push('\t}');
     codePortals.push('});');
     // #endregion
@@ -9256,6 +9465,13 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             if (settings.fileFullSize === true) { fileFullSize = true; }
             break;
     }
+    var fileBase64 = false;
+    var binaryValue = "/$value";
+    var dataComment = " // Binary";
+    if (settings.fileBase64 === true) { fileBase64 = true; binaryValue = ""; dataComment = " // Base 64"; }
+
+
+
 
     var entityCriteria = settings.primaryId;
     var field = "";
@@ -9264,8 +9480,8 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
     var portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")";
     switch (settings.fileOperation) {
         case "retrieve":
-            mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field + "/$value";
-            portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field + "/$value";
+            mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field + binaryValue;
+            portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field + binaryValue;
             if (requestType === "manageimagedata" && fileFullSize === true) { mainUrl += "?size=full"; portalsUrl += "?size=full"; }
             break;
         case "upload":
@@ -9315,17 +9531,51 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             fullSizeCode.push('\t}');
             fullSizeCode.push('} catch {}');
 
+            // when the file/image is returned as Base 64 there is no header to get the name
+            if (fileBase64 === true) {
+                fullSizeCodejQuery = [];
+                fullSizeCodeXMLHttpRequest = [];
+                fullSizeCodeFetchAPI = [];
+                fullSizeCode = [];
+            }
+
             var downloadFileCode = [];
+            if (fileBase64 === false) {
+                downloadFileCode.push('// NOTE: If you need to convert fileContent to Base 64, check FileReader API "readAsDataURL" passing the Binary content as Blob');
+                downloadFileCode.push('');
+            }
             downloadFileCode.push('// NOTE: Uncomment the following lines to download the file');
-            downloadFileCode.push('// var saveFile = new Blob([fileContent], { type: "application/octet-stream" });');
+            if (fileBase64 === true) {
+                downloadFileCode.push('// NOTE: fileContent is Base64, convert to blob first');
+                downloadFileCode.push('// var byteCharacters = atob(fileContent);');
+                downloadFileCode.push('// var byteNumbers = new Array(byteCharacters.length);');
+                downloadFileCode.push('// for (var i = 0; i < byteCharacters.length; i++) { byteNumbers[i] = byteCharacters.charCodeAt(i); }');
+                downloadFileCode.push('// var blobContent = new Uint8Array(byteNumbers);');
+                downloadFileCode.push('// var saveFile = new Blob([blobContent], { type: "application/octet-stream" });');
+            } else {
+                downloadFileCode.push('// var saveFile = new Blob([fileContent], { type: "application/octet-stream" });');
+            }
             downloadFileCode.push('// var customLink = document.createElement("a");');
             downloadFileCode.push('// customLink.href = URL.createObjectURL(saveFile);');
             downloadFileCode.push('// customLink.download = fileName;');
             downloadFileCode.push('// customLink.click();');
 
             var downloadFileCodeFetchAPI = [];
+            if (fileBase64 === false) {
+                downloadFileCodeFetchAPI.push('// NOTE: If you need to convert fileContent to Base 64, check FileReader API "readAsDataURL" passing the Binary content as Blob');
+                downloadFileCodeFetchAPI.push('');
+            }
             downloadFileCodeFetchAPI.push('// NOTE: Uncomment the following lines to download the file');
-            downloadFileCodeFetchAPI.push('// var saveFile = fileContent;');
+            if (fileBase64 === true) {
+                downloadFileCodeFetchAPI.push('// NOTE: fileContent is Base64, convert to blob first');
+                downloadFileCodeFetchAPI.push('// var byteCharacters = atob(fileContent);');
+                downloadFileCodeFetchAPI.push('// var byteNumbers = new Array(byteCharacters.length);');
+                downloadFileCodeFetchAPI.push('// for (var i = 0; i < byteCharacters.length; i++) { byteNumbers[i] = byteCharacters.charCodeAt(i); }');
+                downloadFileCodeFetchAPI.push('// var blobContent = new Uint8Array(byteNumbers);');
+                downloadFileCodeFetchAPI.push('// var saveFile = new Blob([blobContent], { type: "application/octet-stream" });');
+            } else {
+                downloadFileCodeFetchAPI.push('// var saveFile = fileContent;');
+            }
             downloadFileCodeFetchAPI.push('// var customLink = document.createElement("a");');
             downloadFileCodeFetchAPI.push('// customLink.href = URL.createObjectURL(saveFile);');
             downloadFileCodeFetchAPI.push('// customLink.download = fileName;');
@@ -9334,7 +9584,9 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             // #region jQuery
             codejQuery.push('$.ajax({');
             codejQuery.push('\ttype: "GET",');
-            codejQuery.push('\txhr: function() { var xhr = new XMLHttpRequest(); xhr.responseType = "blob"; return xhr; },');
+            if (fileBase64 === false) {
+                codejQuery.push('\txhr: function() { var xhr = new XMLHttpRequest(); xhr.responseType = "blob"; return xhr; },');
+            }
             codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '",');
             codejQuery.push('\tasync: ' + settings.async + ',');
             codejQuery.push('\theaders: {');
@@ -9342,7 +9594,11 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             codejQuery.push('\t},');
             codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
             codejQuery.push('\t\tif (xhr.status === 200) {');
-            codejQuery.push('\t\t\tvar fileContent = data;');
+            if (fileBase64 === true) {
+                codejQuery.push('\t\t\tvar fileContent = data["value"];' + dataComment);
+            } else {
+                codejQuery.push('\t\t\tvar fileContent = data;' + dataComment);
+            }
             codejQuery.push('\t\t\tvar fileName = "' + defaultFileName + '"; // default name');
             if (fileFullSize === true) {
                 fullSizeCodejQuery.forEach(function (line) { codejQuery.push('\t\t\t' + line); });
@@ -9366,12 +9622,18 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             codeXMLHttpRequest.push('var req = new XMLHttpRequest();');
             codeXMLHttpRequest.push('req.open("GET", Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", ' + settings.async + ');');
             codeXMLHttpRequest.push(xhrHeaders.join('\n'));
-            codeXMLHttpRequest.push('req.responseType = "blob";');
+            if (fileBase64 === false) {
+                codeXMLHttpRequest.push('req.responseType = "blob";');
+            }
             codeXMLHttpRequest.push('req.onreadystatechange = function () {');
             codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
             codeXMLHttpRequest.push('\t\treq.onreadystatechange = null;');
             codeXMLHttpRequest.push('\t\tif (this.status === 200) {');
-            codeXMLHttpRequest.push('\t\t\tvar fileContent = this.response;');
+            if (fileBase64 === true) {
+                codeXMLHttpRequest.push('\t\t\tvar fileContent = JSON.parse(this.response)["value"];' + dataComment);
+            } else {
+                codeXMLHttpRequest.push('\t\t\tvar fileContent = this.response;' + dataComment);
+            }
             codeXMLHttpRequest.push('\t\t\tvar fileName = "' + defaultFileName + '"; // default name');
             if (fileFullSize === true) {
                 fullSizeCodeXMLHttpRequest.forEach(function (line) { codeXMLHttpRequest.push('\t\t\t' + line); });
@@ -9398,17 +9660,28 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             codeFetchAPI.push('\t}');
             codeFetchAPI.push('}).then(');
             codeFetchAPI.push('\tfunction success(response) {');
-            codeFetchAPI.push('\t\tif (response.ok) {');
-            codeFetchAPI.push('\t\t\treturn response.blob().then((blob) => { return [response, blob]; });');
-            codeFetchAPI.push('\t\t} else {');
-            codeFetchAPI.push('\t\t\treturn response.json().then((json) => { throw json.error; });');
-            codeFetchAPI.push('\t\t}');
+            if (fileBase64 === true) {
+                codeFetchAPI.push('\t\treturn response.json().then((json) => { if (response.ok) { return [response, json]; } else { throw json.error; } });');
+            } else {
+                codeFetchAPI.push('\t\tif (response.ok) {');
+                codeFetchAPI.push('\t\t\treturn response.blob().then((blob) => { return [response, blob]; });');
+                codeFetchAPI.push('\t\t} else {');
+                codeFetchAPI.push('\t\t\treturn response.json().then((json) => { throw json.error; });');
+                codeFetchAPI.push('\t\t}');
+            }
             codeFetchAPI.push('\t}');
             codeFetchAPI.push(').then(function (responseObjects) {');
             codeFetchAPI.push('\tvar response = responseObjects[0];');
-            codeFetchAPI.push('\tvar responseBlob = responseObjects[1];');
-            codeFetchAPI.push('\tif (response.status === 200) {');
-            codeFetchAPI.push('\t\tvar fileContent = responseBlob;');
+
+            if (fileBase64 === true) {
+                codeFetchAPI.push('\tvar responseBody = responseObjects[1];');
+                codeFetchAPI.push('\tif (response.status === 200) {');
+                codeFetchAPI.push('\t\tvar fileContent = responseBody["value"];' + dataComment);
+            } else {
+                codeFetchAPI.push('\tvar responseBlob = responseObjects[1];');
+                codeFetchAPI.push('\tif (response.status === 200) {');
+                codeFetchAPI.push('\t\tvar fileContent = responseBlob;' + dataComment);
+            }
             codeFetchAPI.push('\t\tvar fileName = "' + defaultFileName + '"; // default name');
             if (fileFullSize === true) {
                 fullSizeCodeFetchAPI.forEach(function (line) { codeFetchAPI.push('\t\t' + line); });
@@ -9432,9 +9705,15 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             codePortals.push('\ttype: "GET",');
             codePortals.push('\turl: "' + portalsUrl + '",');
             codePortals.push('\tcontentType: "application/json",');
-            codePortals.push('\txhr: function() { var xhr = new XMLHttpRequest(); xhr.responseType = "blob"; return xhr; },');
+            if (fileBase64 === false) {
+                codePortals.push('\txhr: function() { var xhr = new XMLHttpRequest(); xhr.responseType = "blob"; return xhr; },');
+            }
             codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
-            codePortals.push('\t\tvar fileContent = data;');
+            if (fileBase64 === true) {
+                codePortals.push('\t\tvar fileContent = data["value"];' + dataComment);
+            } else {
+                codePortals.push('\t\tvar fileContent = data;' + dataComment);
+            }
             codePortals.push('\t\tvar fileName = "' + defaultFileName + '"; // default name');
             if (fileFullSize === true) {
                 fullSizeCodejQuery.forEach(function (line) { codePortals.push('\t\t' + line); });
@@ -9444,6 +9723,9 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             codePortals.push('\t\tconsole.log("' + currentType + ' retrieved. Name: " + fileName);');
             codePortals.push('');
             downloadFileCode.forEach(function (line) { codePortals.push('\t\t' + line); });
+            codePortals.push('\t},');
+            codePortals.push('\terror: function (xhr, textStatus, errorThrown) {');
+            codePortals.push('\t\tconsole.log(xhr);');
             codePortals.push('\t}');
             codePortals.push('});');
             // #endregion
@@ -9459,12 +9741,12 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             uploadCode.push('var base64Content = "' + fileContent + '";');
             uploadCode.push('var byteCharacters = atob(base64Content);');
             uploadCode.push('var byteNumbers = new Array(byteCharacters.length);');
-            uploadCode.push('for (var i = 0; i < byteCharacters.length; i++) {');
-            uploadCode.push('\tbyteNumbers[i] = byteCharacters.charCodeAt(i);');
-            uploadCode.push('}');
+            uploadCode.push('for (var i = 0; i < byteCharacters.length; i++) { byteNumbers[i] = byteCharacters.charCodeAt(i); }');
             uploadCode.push('var fileContent = new Uint8Array(byteNumbers);');
             uploadCode.push('');
-
+            uploadCode.push('// NOTE: if you get the file using FileReader API "readAsArrayBuffer" the Base 64 conversion is not required');
+            uploadCode.push('// var fileContent = new Uint8Array(e.target.result);');
+            uploadCode.push('');
             // #region jQuery
             uploadCode.forEach(function (line) { codejQuery.push(line); });
             codejQuery.push('$.ajax({');
@@ -9529,13 +9811,16 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             codePortals = DRB.GenerateCode.GetPortalsWarnings(settings);
             uploadCode.forEach(function (line) { codePortals.push(line); });
             codePortals.push('webapi.safeAjax({');
-            codePortals.push('\ttype: "PATCH",');
+            codePortals.push('\ttype: "PUT", // NOTE: right now Portals requires PUT instead of PATCH for the upload');
             codePortals.push('\turl: "' + portalsUrl + '" + fileName,');
             codePortals.push('\tcontentType: "application/octet-stream",'); // Binary upload
             codePortals.push('\tdata: fileContent,');
             codePortals.push('\tprocessData: false,');
             codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
             codePortals.push('\t\tconsole.log("' + currentType + ' uploaded");');
+            codePortals.push('\t},');
+            codePortals.push('\terror: function (xhr, textStatus, errorThrown) {');
+            codePortals.push('\t\tconsole.log(xhr);');
             codePortals.push('\t}');
             codePortals.push('});');
             // #endregion
@@ -9604,6 +9889,9 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             codePortals.push('\tcontentType: "application/json",');
             codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
             codePortals.push('\t\tconsole.log("' + currentType + ' deleted");');
+            codePortals.push('\t},');
+            codePortals.push('\terror: function (xhr, textStatus, errorThrown) {');
+            codePortals.push('\t\tconsole.log(xhr);');
             codePortals.push('\t}');
             codePortals.push('});');
             // #endregion
@@ -10276,6 +10564,94 @@ DRB.GenerateCode.PowerQuery = function (requestType) {
     DRB.Settings.Editors[tabName2].setOptions({ readOnly: true });
 
     $("#" + pqDiv).append(DRB.UI.CreateSpacer());
+}
+
+/**
+ * Generate Code - Grid
+ */
+DRB.GenerateCode.Grid = function (requestType) {
+    if (requestType !== "retrievesingle" && requestType !== "retrievemultiple") { return; }
+
+    let settings = DRB.Metadata.CurrentNode.data.configuration;
+    let baseUrl = DRB.Xrm.GetClientUrl();
+    let mainUrl = '';
+    let urlFields = DRB.GenerateCode.GetUrlFields(settings);
+    let jQueryHeaders = DRB.GenerateCode.GetJQueryRequestHeaders(settings);
+
+    if (requestType === "retrievesingle") {
+        let entityCriteria = settings.primaryId;
+        if (settings.useAlternateKey === true) { entityCriteria = DRB.GenerateCode.GetAlternateKeys(settings); }
+        mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")" + urlFields;
+    }
+
+    if (requestType === "retrievemultiple") {
+        let filterFields = DRB.GenerateCode.GetFilterFields(settings);
+        let orderFields = DRB.GenerateCode.GetOrderFields(settings);
+
+        if (filterFields !== '') {
+            if (urlFields === '') { filterFields = '?' + filterFields; } else { filterFields = '&' + filterFields; }
+            urlFields = urlFields + filterFields;
+        }
+
+        if (orderFields !== '') {
+            if (urlFields === '') { orderFields = '?' + orderFields; } else { orderFields = '&' + orderFields; }
+            urlFields = urlFields + orderFields;
+        }
+
+        if (settings.retrieveCount === true) {
+            if (urlFields === '') { urlFields = '?'; } else { urlFields += '&'; }
+            urlFields += '$count=true';
+        }
+        mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + urlFields;
+    }
+
+    // jQuery
+    let codejQuery = [];
+    codejQuery.push('$.ajax({');
+    codejQuery.push('\ttype: "GET",');
+    codejQuery.push('\turl: "' + baseUrl + mainUrl + '",');
+    codejQuery.push('\tasync: ' + settings.async + ',');
+    codejQuery.push('\theaders: {');
+    jQueryHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
+    codejQuery.push('\t},');
+    codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
+    if (requestType === "retrievesingle") {
+        codejQuery.push('\t\tvar values = data;');
+        codejQuery.push('\t\tvar totalRecords = 1;');
+    }
+    if (requestType === "retrievemultiple") {
+        codejQuery.push('\t\tvar values = data.value;');
+        codejQuery.push('\t\tvar totalRecords = values.length;');
+    }
+    codejQuery.push('\t\tvar saveDate = new Date();');
+    codejQuery.push('\t\tDRB.Metadata.GridResults = { Values: values, SaveDate: saveDate, EntitySetName: "' + settings.primaryEntity.entitySetName + '"  }');
+    codejQuery.push('\t\tlet convertedTable = DRB.Logic.GridCreateTable(DRB.Metadata.GridResults.Values, false, "gridresults");');
+    codejQuery.push(`\t\tlet headerContent = '<b>Table: ` + settings.primaryEntity.label + ` | Records: ' + totalRecords + ' | Date: ' + saveDate.toLocaleString("sv") + ' | <button id="b_expandall" type="button" class="gridexpand" onclick="DRB.Logic.GridExpandAllTables();">Expand All</button> | <button id="b_collapseall" type="button" class="gridexpand" onclick="DRB.Logic.GridCollapseAllTables();">Collapse All</button> | <button id="b_downloadcsv" type="button" class="gridexpand" onclick="DRB.Logic.GridDownloadCSV();">Download CSV</button></b>';`);
+    codejQuery.push('\t\t$("#' + DRB.DOM.Grid.DivHeader.Id + '").html(headerContent);');
+    codejQuery.push('\t\t$("#' + DRB.DOM.Grid.DivDetails.Id + '").html(convertedTable);');
+    codejQuery.push('\t\tDRB.UI.HideLoading();');
+    codejQuery.push('\t},');
+    codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
+    codejQuery.push('\t\tDRB.UI.ShowError("Grid Error", "Error retrieving the results");');
+    codejQuery.push('\t}');
+    codejQuery.push('});');
+
+    var codeToExecute = codejQuery.join('\n');
+
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) {
+        let token = DRB.Xrm.GetCurrentAccessToken();
+        if (DRB.Utilities.HasValue(token)) {
+            codeToExecute = codeToExecute.replace(/headers: {/gi, 'headers: { "Authorization": "Bearer ' + token + '",');
+        }
+    }
+    DRB.UI.ShowLoading("Refreshing Grid...");
+    setTimeout(function () {
+        try {
+            eval(codeToExecute);
+        } catch (ex) {
+            DRB.UI.ShowError("Grid Error", "Error executing code");
+        }
+    }, DRB.Settings.TimeoutDelay);
 }
 
 /**
@@ -15984,6 +16360,7 @@ DRB.Logic.ManageFileImageData.BindFileOperation = function (id) {
                 $("#" + DRB.DOM.FileName.Div.Id).hide();
                 $("#" + DRB.DOM.FileName.Input.Id).val("");
                 if (DRB.Metadata.ManageDataType === "manageimagedata") { $("#" + DRB.DOM.FileFullSize.Div.Id).show(); }
+                $("#" + DRB.DOM.FileBase64.Div.Id).show();
                 $("#" + DRB.DOM.FileContent.Div.Id).hide();
                 DRB.Metadata.CurrentNode.data.configuration.fileContent = null;
                 break;
@@ -15994,6 +16371,8 @@ DRB.Logic.ManageFileImageData.BindFileOperation = function (id) {
                     $("#" + DRB.DOM.FileFullSize.Div.Id).hide();
                     $("#" + DRB.DOM.FileFullSize.CheckBox.Id).prop('checked', false).change();
                 }
+                $("#" + DRB.DOM.FileBase64.CheckBox.Id).prop('checked', false).change();
+                $("#" + DRB.DOM.FileBase64.Div.Id).hide();
                 $("#" + DRB.DOM.FileContent.Div.Id).show();
                 if (DRB.Utilities.HasValue(DRB.Metadata.CurrentNode.data.configuration.fileContent)) {
                     if (DRB.Metadata.ManageDataType === "manageimagedata") { $("#" + DRB.DOM.FileContent.ShowButton.Id).show(); }
@@ -16013,6 +16392,8 @@ DRB.Logic.ManageFileImageData.BindFileOperation = function (id) {
                     $("#" + DRB.DOM.FileFullSize.Div.Id).hide();
                     $("#" + DRB.DOM.FileFullSize.CheckBox.Id).prop('checked', false).change();
                 }
+                $("#" + DRB.DOM.FileBase64.CheckBox.Id).prop('checked', false).change();
+                $("#" + DRB.DOM.FileBase64.Div.Id).hide();
                 $("#" + DRB.DOM.FileContent.Div.Id).hide();
                 DRB.Metadata.CurrentNode.data.configuration.fileContent = null;
                 break;
@@ -16045,6 +16426,17 @@ DRB.Logic.ManageFileImageData.BindFileFullSize = function (id) {
     $("#" + id).on("change", function (e) {
         var fullSizeValue = $(this).is(':checked');
         DRB.Metadata.CurrentNode.data.configuration.fileFullSize = fullSizeValue;
+    });
+}
+
+/**
+ * Manage File Image Data - Bind File Base64
+ * @param {string} id Id
+*/
+DRB.Logic.ManageFileImageData.BindFileBase64 = function (id) {
+    $("#" + id).on("change", function (e) {
+        var base64Value = $(this).is(':checked');
+        DRB.Metadata.CurrentNode.data.configuration.fileBase64 = base64Value;
     });
 }
 
@@ -16228,8 +16620,16 @@ DRB.Logic.ManageFileImageData.Start = function (requestType) {
         $("#" + DRB.DOM.ConfigureContent.Id).append(divFileFullSize);
         DRB.Logic.ManageFileImageData.BindFileFullSize(DRB.DOM.FileFullSize.CheckBox.Id);
         $("#" + DRB.DOM.FileFullSize.Div.Id).hide();
-
     }
+    // #endregion
+
+    // #region Base64
+    var divFileBase64 = DRB.UI.CreateEmptyDiv(DRB.DOM.FileBase64.Div.Id, DRB.DOM.FileBase64.Div.Class);
+    divFileBase64.append(DRB.UI.CreateCheckbox(DRB.DOM.FileBase64.CheckBox.Id, "", "", false));
+    divFileBase64.append(DRB.UI.CreateSpan(DRB.DOM.FileBase64.Span.Id, DRB.DOM.FileBase64.Span.Name));
+    $("#" + DRB.DOM.ConfigureContent.Id).append(divFileBase64);
+    DRB.Logic.ManageFileImageData.BindFileBase64(DRB.DOM.FileBase64.CheckBox.Id);
+    $("#" + DRB.DOM.FileBase64.Div.Id).hide();
     // #endregion
 
     DRB.CustomUI.AddSpacer();
@@ -16294,6 +16694,12 @@ DRB.Logic.ManageFileImageData.Start = function (requestType) {
             $("#" + DRB.DOM.FileFullSize.CheckBox.Id).prop('checked', DRB.Metadata.CurrentNode.data.configuration.fileFullSize).change();
         }
     }
+
+    // File Base64
+    if (DRB.Utilities.HasValue(DRB.Metadata.CurrentNode.data.configuration.fileBase64)) {
+        $("#" + DRB.DOM.FileBase64.CheckBox.Id).prop('checked', DRB.Metadata.CurrentNode.data.configuration.fileBase64).change();
+    }
+
     // File Content
     if (DRB.Utilities.HasValue(DRB.Metadata.CurrentNode.data.configuration.fileContent)) {
         if (requestType === "manageimagedata") { $("#" + DRB.DOM.FileContent.ShowButton.Id).show(); }
@@ -17488,13 +17894,14 @@ DRB.DefineOperations = function () {
     DRB.Settings.Tabs.push({ Id: "code_fetchapi", Name: "Fetch", GenerateCode: true, ShowEditor: true, EditorMode: "javascript", CopyCode: true, MoveToEditor: true, ShowWarning: true, WarningClientUrl: true });
     DRB.Settings.Tabs.push({ Id: "code_jquery", Name: "jQuery", GenerateCode: true, ShowEditor: true, EditorMode: "javascript", CopyCode: true, MoveToEditor: true, ShowWarning: true, WarningClientUrl: true });
     DRB.Settings.Tabs.push({ Id: "code_xmlhttprequest", Name: "XHR", ShowEditor: true, EditorMode: "javascript", GenerateCode: true, CopyCode: true, MoveToEditor: true, ShowWarning: true, WarningClientUrl: true });
-    DRB.Settings.Tabs.push({ Id: "code_portals", Name: "Portals", GenerateCode: true, ShowEditor: true, EditorMode: "javascript", CopyCode: true, MoveToEditor: true, ShowWarning: true, WarningPortals: true, EnabledRequests: ["retrievesingle", "retrievemultiple", "create", "update", "delete", "associate", "disassociate"] });
+    DRB.Settings.Tabs.push({ Id: "code_portals", Name: "Portals", GenerateCode: true, ShowEditor: true, EditorMode: "javascript", CopyCode: true, MoveToEditor: true, ShowWarning: true, WarningPortals: true, EnabledRequests: ["retrievesingle", "retrievemultiple", "create", "update", "delete", "associate", "disassociate", "managefiledata", "manageimagedata"] });
     DRB.Settings.Tabs.push({ Id: "code_editor", Name: "Editor", ShowEditor: true, EditorMode: "javascript", CopyCode: true, Execute: true, ShowWarning: true, WarningEditor: true });
     DRB.Settings.Tabs.push({ Id: "code_results", Name: "Results", ShowEditor: true, EditorMode: "json", CopyCode: true, Results: true, ShowWarning: true, WarningResults: true });
     // DRB.Settings.Tabs.push({ Id: "code_typescript", Name: "TypeScript", GenerateCode: true, ShowEditor: true, EditorMode: "typescript", CopyCode: true, ShowWarning: true, WarningClientUrl: true });
     DRB.Settings.Tabs.push({ Id: "code_powerautomate", Name: "Power Automate", GenerateCode: true, EmptyDiv: true, EnabledRequests: ["retrievesingle", "retrievemultiple"] });
     DRB.Settings.Tabs.push({ Id: "code_fetchxml", Name: "FetchXML", GenerateCode: true, ShowEditor: true, EditorMode: "xml", CopyCode: true, SendFetchXML: true, ShowWarning: true, WarningFetchXML: true, EnabledRequests: ["retrievesingle", "retrievemultiple"] });
     DRB.Settings.Tabs.push({ Id: "code_powerquery", Name: "Power Query (M)", GenerateCode: true, EmptyDiv: true, EnabledRequests: ["retrievemultiple"] });
+    DRB.Settings.Tabs.push({ Id: "code_grid", Name: "Grid", GenerateCode: true, RefreshGrid: true, EmptyDiv: true, EnabledRequests: ["retrievemultiple"] });
 
     var tabs_Request = DRB.UI.CreateTabs(DRB.DOM.TabsRequest.Id, DRB.Settings.Tabs);
     var tabs_Content = DRB.UI.CreateTabContents(DRB.DOM.TabsContent.Id, DRB.Settings.Tabs);
@@ -17527,6 +17934,11 @@ DRB.DefineOperations = function () {
         if (DRB.Utilities.HasValue(tab.Execute) && tab.Execute === true) {
             var btn_executeCode = DRB.UI.CreateButton("btn_" + tab.Id + "_execute", "Execute Code", "btn-danger", DRB.Logic.ExecuteCodeFromEditor);
             $("#" + tab.Id).append(btn_executeCode);
+        }
+
+        if (DRB.Utilities.HasValue(tab.RefreshGrid) && tab.RefreshGrid === true) {
+            var btn_refreshGrid = DRB.UI.CreateButton("btn_" + tab.Id + "_refreshgrid", "Refresh", "btn-danger", DRB.Logic.RefreshGrid);
+            $("#" + tab.Id).append(btn_refreshGrid);
         }
 
         if (DRB.Utilities.HasValue(tab.ShowWarning) && tab.ShowWarning === true) {
@@ -17617,7 +18029,7 @@ DRB.InsertMainBodyContent = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.36";
+    var drbVersion = "1.0.0.37";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 

@@ -394,13 +394,14 @@ DRB.DefineOperations = function () {
     DRB.Settings.Tabs.push({ Id: "code_fetchapi", Name: "Fetch", GenerateCode: true, ShowEditor: true, EditorMode: "javascript", CopyCode: true, MoveToEditor: true, ShowWarning: true, WarningClientUrl: true });
     DRB.Settings.Tabs.push({ Id: "code_jquery", Name: "jQuery", GenerateCode: true, ShowEditor: true, EditorMode: "javascript", CopyCode: true, MoveToEditor: true, ShowWarning: true, WarningClientUrl: true });
     DRB.Settings.Tabs.push({ Id: "code_xmlhttprequest", Name: "XHR", ShowEditor: true, EditorMode: "javascript", GenerateCode: true, CopyCode: true, MoveToEditor: true, ShowWarning: true, WarningClientUrl: true });
-    DRB.Settings.Tabs.push({ Id: "code_portals", Name: "Portals", GenerateCode: true, ShowEditor: true, EditorMode: "javascript", CopyCode: true, MoveToEditor: true, ShowWarning: true, WarningPortals: true, EnabledRequests: ["retrievesingle", "retrievemultiple", "create", "update", "delete", "associate", "disassociate"] });
+    DRB.Settings.Tabs.push({ Id: "code_portals", Name: "Portals", GenerateCode: true, ShowEditor: true, EditorMode: "javascript", CopyCode: true, MoveToEditor: true, ShowWarning: true, WarningPortals: true, EnabledRequests: ["retrievesingle", "retrievemultiple", "create", "update", "delete", "associate", "disassociate", "managefiledata", "manageimagedata"] });
     DRB.Settings.Tabs.push({ Id: "code_editor", Name: "Editor", ShowEditor: true, EditorMode: "javascript", CopyCode: true, Execute: true, ShowWarning: true, WarningEditor: true });
     DRB.Settings.Tabs.push({ Id: "code_results", Name: "Results", ShowEditor: true, EditorMode: "json", CopyCode: true, Results: true, ShowWarning: true, WarningResults: true });
     // DRB.Settings.Tabs.push({ Id: "code_typescript", Name: "TypeScript", GenerateCode: true, ShowEditor: true, EditorMode: "typescript", CopyCode: true, ShowWarning: true, WarningClientUrl: true });
     DRB.Settings.Tabs.push({ Id: "code_powerautomate", Name: "Power Automate", GenerateCode: true, EmptyDiv: true, EnabledRequests: ["retrievesingle", "retrievemultiple"] });
     DRB.Settings.Tabs.push({ Id: "code_fetchxml", Name: "FetchXML", GenerateCode: true, ShowEditor: true, EditorMode: "xml", CopyCode: true, SendFetchXML: true, ShowWarning: true, WarningFetchXML: true, EnabledRequests: ["retrievesingle", "retrievemultiple"] });
     DRB.Settings.Tabs.push({ Id: "code_powerquery", Name: "Power Query (M)", GenerateCode: true, EmptyDiv: true, EnabledRequests: ["retrievemultiple"] });
+    DRB.Settings.Tabs.push({ Id: "code_grid", Name: "Grid", GenerateCode: true, RefreshGrid: true, EmptyDiv: true, EnabledRequests: ["retrievemultiple"] });
 
     var tabs_Request = DRB.UI.CreateTabs(DRB.DOM.TabsRequest.Id, DRB.Settings.Tabs);
     var tabs_Content = DRB.UI.CreateTabContents(DRB.DOM.TabsContent.Id, DRB.Settings.Tabs);
@@ -433,6 +434,11 @@ DRB.DefineOperations = function () {
         if (DRB.Utilities.HasValue(tab.Execute) && tab.Execute === true) {
             var btn_executeCode = DRB.UI.CreateButton("btn_" + tab.Id + "_execute", "Execute Code", "btn-danger", DRB.Logic.ExecuteCodeFromEditor);
             $("#" + tab.Id).append(btn_executeCode);
+        }
+
+        if (DRB.Utilities.HasValue(tab.RefreshGrid) && tab.RefreshGrid === true) {
+            var btn_refreshGrid = DRB.UI.CreateButton("btn_" + tab.Id + "_refreshgrid", "Refresh", "btn-danger", DRB.Logic.RefreshGrid);
+            $("#" + tab.Id).append(btn_refreshGrid);
         }
 
         if (DRB.Utilities.HasValue(tab.ShowWarning) && tab.ShowWarning === true) {
@@ -523,7 +529,7 @@ DRB.InsertMainBodyContent = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.36";
+    var drbVersion = "1.0.0.37";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 

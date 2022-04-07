@@ -169,8 +169,14 @@ DRB.DOM.FileName.Input = { Id: "txt_filename" };
 // File Full Size
 DRB.DOM.FileFullSize = {};
 DRB.DOM.FileFullSize.Div = { Id: "div_filefullsize", Class: "sameline" };
-DRB.DOM.FileFullSize.Span = { Id: "span_filefullsize", Name: "&nbsp;Full Size" };
+DRB.DOM.FileFullSize.Span = { Id: "span_filefullsize", Name: "&nbsp;Full Size&nbsp;&nbsp;" };
 DRB.DOM.FileFullSize.CheckBox = { Id: "chk_filefullsize" };
+
+// File Base64
+DRB.DOM.FileBase64 = {};
+DRB.DOM.FileBase64.Div = { Id: "div_filebase64", Class: "sameline" };
+DRB.DOM.FileBase64.Span = { Id: "span_filebase64", Name: "&nbsp;Return Base64 Content instead of Binary" };
+DRB.DOM.FileBase64.CheckBox = { Id: "chk_filebase64" };
 
 // Image Buttons
 DRB.DOM.FileContent = {};
@@ -180,7 +186,6 @@ DRB.DOM.FileContent.LoadButton = { Id: "btn_loadfile_", Name: "Load", Class: "bt
 DRB.DOM.FileContent.ShowButton = { Id: "btn_showfile_", Name: "Show", Class: "btn-outline-secondary" };
 DRB.DOM.FileContent.DownloadButton = { Id: "btn_downloadfile_", Name: "Download", Class: "btn-outline-secondary" };
 DRB.DOM.FileContent.RemoveButton = { Id: "btn_removefile_", Name: "Remove", Class: "btn-outline-secondary" };
-
 
 // Relationships
 DRB.DOM.DivRelationship = { Id: "div_relationships" };
@@ -569,6 +574,13 @@ DRB.DOM.PowerQuery.BaseUrlInput = { Id: "txt_baseurl" };
 
 DRB.DOM.PowerQuery.SpanOptionSetDropdown = { Id: "span_optionset", Name: "Columns with Options" };
 DRB.DOM.PowerQuery.OptionSetDropdown = { Id: "cbx_optionset", Name: "Select Column" };
+// #endregion
+
+// #region Grid
+DRB.DOM.Grid = {};
+DRB.DOM.Grid.Div = { Id: "code_grid_div" };
+DRB.DOM.Grid.DivHeader = { Id: "div_grid_header" };
+DRB.DOM.Grid.DivDetails = { Id: "div_grid_details", Class: "griddetails" };
 // #endregion
 
 // #region Lookup

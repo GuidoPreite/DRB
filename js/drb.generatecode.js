@@ -728,8 +728,8 @@ DRB.GenerateCode.GetCodeFields = function (settings) {
         codeFieldsFormatted.push('// Many To One Relationships');
     }
     settings.manyToOne.forEach(function (manyToOne) {
-        codeFields.push('if (result.hasOwnProperty("' + manyToOne.navigationProperty + '")) {');
-        codeFieldsFormatted.push('if (result.hasOwnProperty("' + manyToOne.navigationProperty + '")) {');
+        codeFields.push('if (result.hasOwnProperty("' + manyToOne.navigationProperty + '") && result["' + manyToOne.navigationProperty + '"] !== null) {');
+        codeFieldsFormatted.push('if (result.hasOwnProperty("' + manyToOne.navigationProperty + '") && result["' + manyToOne.navigationProperty + '"] !== null) {');
         manyToOne.fields.forEach(function (field) {
 
             var renamedFieldType = DRB.GenerateCode.ConvertFieldType(field.type);
@@ -1182,7 +1182,7 @@ DRB.GenerateCode.GetFetchAPIWarnings = function (settings) {
 DRB.GenerateCode.GetPortalsWarnings = function (settings) {
     var code = [];
     var warnings = [];
-    code.push("// IMPORTANT NOTE! Web API operations in Portals is a PREVIEW feature, please read the following documentation:");
+    code.push("// IMPORTANT NOTE! please read the following documentation regarding Portals Web API:");
     code.push('// https://docs.microsoft.com/en-us/powerapps/maker/portals/web-api-overview');
     code.push('// "webapi.safeAjax" wrapper is based on the code from this page:');
     code.push('// https://docs.microsoft.com/en-us/powerapps/maker/portals/web-api-http-requests-handle-errors');
@@ -1508,7 +1508,9 @@ DRB.GenerateCode.FetchXMLParseFilterCriteria = function (query, configurationObj
                             if (filterField.type === "Owner" || filterField.type === "Lookup" || filterField.type === "Customer") {
                                 if (DRB.Utilities.HasValue(filterField.value.id)) { clearedValue = filterField.value.id; }
                             } else {
-                                clearedValue = filterField.value.replace(/"/g, '&quot;');
+                                if (DRB.Utilities.HasValue(filterField.value)) {
+                                    clearedValue = filterField.value.replace(/"/g, '&quot;');
+                                }
                             }
 
                             if (filterField.type === "ManagedProperty" || filterField.type === "Boolean") {
@@ -1800,8 +1802,6 @@ DRB.GenerateCode.RetrieveSingle = function () {
     // #region jQuery
     codejQuery.push('$.ajax({');
     codejQuery.push('\ttype: "GET",');
-    codejQuery.push('\tcontentType: "application/json; charset=utf-8",');
-    codejQuery.push('\tdatatype: "json",');
     codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '",');
     codejQuery.push('\theaders: {');
     jQueryHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
@@ -1916,6 +1916,9 @@ DRB.GenerateCode.RetrieveSingle = function () {
     codeFields.forEach(function (codeField) { codeFieldsPortals.push('\t\t' + codeField); });
     codePortals.push(codeFieldsPortals.join('\n'));
 
+    codePortals.push('\t},');
+    codePortals.push('\terror: function (xhr, textStatus, errorThrown) {');
+    codePortals.push('\t\tconsole.log(xhr);');
     codePortals.push('\t}');
     codePortals.push('});');
     // #endregion
@@ -2132,6 +2135,9 @@ DRB.GenerateCode.RetrieveMultiple = function () {
     codeFields.forEach(function (codeField) { codeFieldsPortals.push('\t\t\t' + codeField); });
     codePortals.push(codeFieldsPortals.join('\n'));
     codePortals.push('\t\t}');
+    codePortals.push('\t},');
+    codePortals.push('\terror: function (xhr, textStatus, errorThrown) {');
+    codePortals.push('\t\tconsole.log(xhr);');
     codePortals.push('\t}');
     codePortals.push('});');
     // #endregion
@@ -2385,6 +2391,9 @@ DRB.GenerateCode.Create = function () {
     codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
     codePortals.push('\t\tvar newId = xhr.getResponseHeader("entityid");');
     codePortals.push('\t\tconsole.log(newId);');
+    codePortals.push('\t},');
+    codePortals.push('\terror: function (xhr, textStatus, errorThrown) {');
+    codePortals.push('\t\tconsole.log(xhr);');
     codePortals.push('\t}');
     codePortals.push('});');
     // #endregion
@@ -2599,6 +2608,9 @@ DRB.GenerateCode.Update = function () {
     codePortals.push('\tdata: JSON.stringify(record),');
     codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
     codePortals.push('\t\tconsole.log("Record updated");');
+    codePortals.push('\t},');
+    codePortals.push('\terror: function (xhr, textStatus, errorThrown) {');
+    codePortals.push('\t\tconsole.log(xhr);');
     codePortals.push('\t}');
     codePortals.push('});');
     // #endregion
@@ -2741,6 +2753,9 @@ DRB.GenerateCode.Delete = function () {
     codePortals.push('\tcontentType: "application/json",');
     codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
     codePortals.push('\t\tconsole.log("Record deleted");');
+    codePortals.push('\t},');
+    codePortals.push('\terror: function (xhr, textStatus, errorThrown) {');
+    codePortals.push('\t\tconsole.log(xhr);');
     codePortals.push('\t}');
     codePortals.push('});');
     // #endregion
@@ -2897,6 +2912,9 @@ DRB.GenerateCode.Associate = function () {
     codePortals.push('\tdata: JSON.stringify(association),');
     codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
     codePortals.push('\t\tconsole.log("Success");');
+    codePortals.push('\t},');
+    codePortals.push('\terror: function (xhr, textStatus, errorThrown) {');
+    codePortals.push('\t\tconsole.log(xhr);');
     codePortals.push('\t}');
     codePortals.push('});');
     // #endregion
@@ -3022,6 +3040,9 @@ DRB.GenerateCode.Disassociate = function () {
     codePortals.push('\tcontentType: "application/json",');
     codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
     codePortals.push('\t\tconsole.log("Success");');
+    codePortals.push('\t},');
+    codePortals.push('\terror: function (xhr, textStatus, errorThrown) {');
+    codePortals.push('\t\tconsole.log(xhr);');
     codePortals.push('\t}');
     codePortals.push('});');
     // #endregion
@@ -3799,6 +3820,13 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             if (settings.fileFullSize === true) { fileFullSize = true; }
             break;
     }
+    var fileBase64 = false;
+    var binaryValue = "/$value";
+    var dataComment = " // Binary";
+    if (settings.fileBase64 === true) { fileBase64 = true; binaryValue = ""; dataComment = " // Base 64"; }
+
+
+
 
     var entityCriteria = settings.primaryId;
     var field = "";
@@ -3807,8 +3835,8 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
     var portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")";
     switch (settings.fileOperation) {
         case "retrieve":
-            mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field + "/$value";
-            portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field + "/$value";
+            mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field + binaryValue;
+            portalsUrl = "/_api/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")/" + field + binaryValue;
             if (requestType === "manageimagedata" && fileFullSize === true) { mainUrl += "?size=full"; portalsUrl += "?size=full"; }
             break;
         case "upload":
@@ -3858,17 +3886,51 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             fullSizeCode.push('\t}');
             fullSizeCode.push('} catch {}');
 
+            // when the file/image is returned as Base 64 there is no header to get the name
+            if (fileBase64 === true) {
+                fullSizeCodejQuery = [];
+                fullSizeCodeXMLHttpRequest = [];
+                fullSizeCodeFetchAPI = [];
+                fullSizeCode = [];
+            }
+
             var downloadFileCode = [];
+            if (fileBase64 === false) {
+                downloadFileCode.push('// NOTE: If you need to convert fileContent to Base 64, check FileReader API "readAsDataURL" passing the Binary content as Blob');
+                downloadFileCode.push('');
+            }
             downloadFileCode.push('// NOTE: Uncomment the following lines to download the file');
-            downloadFileCode.push('// var saveFile = new Blob([fileContent], { type: "application/octet-stream" });');
+            if (fileBase64 === true) {
+                downloadFileCode.push('// NOTE: fileContent is Base64, convert to blob first');
+                downloadFileCode.push('// var byteCharacters = atob(fileContent);');
+                downloadFileCode.push('// var byteNumbers = new Array(byteCharacters.length);');
+                downloadFileCode.push('// for (var i = 0; i < byteCharacters.length; i++) { byteNumbers[i] = byteCharacters.charCodeAt(i); }');
+                downloadFileCode.push('// var blobContent = new Uint8Array(byteNumbers);');
+                downloadFileCode.push('// var saveFile = new Blob([blobContent], { type: "application/octet-stream" });');
+            } else {
+                downloadFileCode.push('// var saveFile = new Blob([fileContent], { type: "application/octet-stream" });');
+            }
             downloadFileCode.push('// var customLink = document.createElement("a");');
             downloadFileCode.push('// customLink.href = URL.createObjectURL(saveFile);');
             downloadFileCode.push('// customLink.download = fileName;');
             downloadFileCode.push('// customLink.click();');
 
             var downloadFileCodeFetchAPI = [];
+            if (fileBase64 === false) {
+                downloadFileCodeFetchAPI.push('// NOTE: If you need to convert fileContent to Base 64, check FileReader API "readAsDataURL" passing the Binary content as Blob');
+                downloadFileCodeFetchAPI.push('');
+            }
             downloadFileCodeFetchAPI.push('// NOTE: Uncomment the following lines to download the file');
-            downloadFileCodeFetchAPI.push('// var saveFile = fileContent;');
+            if (fileBase64 === true) {
+                downloadFileCodeFetchAPI.push('// NOTE: fileContent is Base64, convert to blob first');
+                downloadFileCodeFetchAPI.push('// var byteCharacters = atob(fileContent);');
+                downloadFileCodeFetchAPI.push('// var byteNumbers = new Array(byteCharacters.length);');
+                downloadFileCodeFetchAPI.push('// for (var i = 0; i < byteCharacters.length; i++) { byteNumbers[i] = byteCharacters.charCodeAt(i); }');
+                downloadFileCodeFetchAPI.push('// var blobContent = new Uint8Array(byteNumbers);');
+                downloadFileCodeFetchAPI.push('// var saveFile = new Blob([blobContent], { type: "application/octet-stream" });');
+            } else {
+                downloadFileCodeFetchAPI.push('// var saveFile = fileContent;');
+            }
             downloadFileCodeFetchAPI.push('// var customLink = document.createElement("a");');
             downloadFileCodeFetchAPI.push('// customLink.href = URL.createObjectURL(saveFile);');
             downloadFileCodeFetchAPI.push('// customLink.download = fileName;');
@@ -3877,7 +3939,9 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             // #region jQuery
             codejQuery.push('$.ajax({');
             codejQuery.push('\ttype: "GET",');
-            codejQuery.push('\txhr: function() { var xhr = new XMLHttpRequest(); xhr.responseType = "blob"; return xhr; },');
+            if (fileBase64 === false) {
+                codejQuery.push('\txhr: function() { var xhr = new XMLHttpRequest(); xhr.responseType = "blob"; return xhr; },');
+            }
             codejQuery.push('\turl: Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '",');
             codejQuery.push('\tasync: ' + settings.async + ',');
             codejQuery.push('\theaders: {');
@@ -3885,7 +3949,11 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             codejQuery.push('\t},');
             codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
             codejQuery.push('\t\tif (xhr.status === 200) {');
-            codejQuery.push('\t\t\tvar fileContent = data;');
+            if (fileBase64 === true) {
+                codejQuery.push('\t\t\tvar fileContent = data["value"];' + dataComment);
+            } else {
+                codejQuery.push('\t\t\tvar fileContent = data;' + dataComment);
+            }
             codejQuery.push('\t\t\tvar fileName = "' + defaultFileName + '"; // default name');
             if (fileFullSize === true) {
                 fullSizeCodejQuery.forEach(function (line) { codejQuery.push('\t\t\t' + line); });
@@ -3909,12 +3977,18 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             codeXMLHttpRequest.push('var req = new XMLHttpRequest();');
             codeXMLHttpRequest.push('req.open("GET", Xrm.Utility.getGlobalContext().getClientUrl() + "' + mainUrl + '", ' + settings.async + ');');
             codeXMLHttpRequest.push(xhrHeaders.join('\n'));
-            codeXMLHttpRequest.push('req.responseType = "blob";');
+            if (fileBase64 === false) {
+                codeXMLHttpRequest.push('req.responseType = "blob";');
+            }
             codeXMLHttpRequest.push('req.onreadystatechange = function () {');
             codeXMLHttpRequest.push('\tif (this.readyState === 4) {');
             codeXMLHttpRequest.push('\t\treq.onreadystatechange = null;');
             codeXMLHttpRequest.push('\t\tif (this.status === 200) {');
-            codeXMLHttpRequest.push('\t\t\tvar fileContent = this.response;');
+            if (fileBase64 === true) {
+                codeXMLHttpRequest.push('\t\t\tvar fileContent = JSON.parse(this.response)["value"];' + dataComment);
+            } else {
+                codeXMLHttpRequest.push('\t\t\tvar fileContent = this.response;' + dataComment);
+            }
             codeXMLHttpRequest.push('\t\t\tvar fileName = "' + defaultFileName + '"; // default name');
             if (fileFullSize === true) {
                 fullSizeCodeXMLHttpRequest.forEach(function (line) { codeXMLHttpRequest.push('\t\t\t' + line); });
@@ -3941,17 +4015,28 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             codeFetchAPI.push('\t}');
             codeFetchAPI.push('}).then(');
             codeFetchAPI.push('\tfunction success(response) {');
-            codeFetchAPI.push('\t\tif (response.ok) {');
-            codeFetchAPI.push('\t\t\treturn response.blob().then((blob) => { return [response, blob]; });');
-            codeFetchAPI.push('\t\t} else {');
-            codeFetchAPI.push('\t\t\treturn response.json().then((json) => { throw json.error; });');
-            codeFetchAPI.push('\t\t}');
+            if (fileBase64 === true) {
+                codeFetchAPI.push('\t\treturn response.json().then((json) => { if (response.ok) { return [response, json]; } else { throw json.error; } });');
+            } else {
+                codeFetchAPI.push('\t\tif (response.ok) {');
+                codeFetchAPI.push('\t\t\treturn response.blob().then((blob) => { return [response, blob]; });');
+                codeFetchAPI.push('\t\t} else {');
+                codeFetchAPI.push('\t\t\treturn response.json().then((json) => { throw json.error; });');
+                codeFetchAPI.push('\t\t}');
+            }
             codeFetchAPI.push('\t}');
             codeFetchAPI.push(').then(function (responseObjects) {');
             codeFetchAPI.push('\tvar response = responseObjects[0];');
-            codeFetchAPI.push('\tvar responseBlob = responseObjects[1];');
-            codeFetchAPI.push('\tif (response.status === 200) {');
-            codeFetchAPI.push('\t\tvar fileContent = responseBlob;');
+
+            if (fileBase64 === true) {
+                codeFetchAPI.push('\tvar responseBody = responseObjects[1];');
+                codeFetchAPI.push('\tif (response.status === 200) {');
+                codeFetchAPI.push('\t\tvar fileContent = responseBody["value"];' + dataComment);
+            } else {
+                codeFetchAPI.push('\tvar responseBlob = responseObjects[1];');
+                codeFetchAPI.push('\tif (response.status === 200) {');
+                codeFetchAPI.push('\t\tvar fileContent = responseBlob;' + dataComment);
+            }
             codeFetchAPI.push('\t\tvar fileName = "' + defaultFileName + '"; // default name');
             if (fileFullSize === true) {
                 fullSizeCodeFetchAPI.forEach(function (line) { codeFetchAPI.push('\t\t' + line); });
@@ -3975,9 +4060,15 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             codePortals.push('\ttype: "GET",');
             codePortals.push('\turl: "' + portalsUrl + '",');
             codePortals.push('\tcontentType: "application/json",');
-            codePortals.push('\txhr: function() { var xhr = new XMLHttpRequest(); xhr.responseType = "blob"; return xhr; },');
+            if (fileBase64 === false) {
+                codePortals.push('\txhr: function() { var xhr = new XMLHttpRequest(); xhr.responseType = "blob"; return xhr; },');
+            }
             codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
-            codePortals.push('\t\tvar fileContent = data;');
+            if (fileBase64 === true) {
+                codePortals.push('\t\tvar fileContent = data["value"];' + dataComment);
+            } else {
+                codePortals.push('\t\tvar fileContent = data;' + dataComment);
+            }
             codePortals.push('\t\tvar fileName = "' + defaultFileName + '"; // default name');
             if (fileFullSize === true) {
                 fullSizeCodejQuery.forEach(function (line) { codePortals.push('\t\t' + line); });
@@ -3987,6 +4078,9 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             codePortals.push('\t\tconsole.log("' + currentType + ' retrieved. Name: " + fileName);');
             codePortals.push('');
             downloadFileCode.forEach(function (line) { codePortals.push('\t\t' + line); });
+            codePortals.push('\t},');
+            codePortals.push('\terror: function (xhr, textStatus, errorThrown) {');
+            codePortals.push('\t\tconsole.log(xhr);');
             codePortals.push('\t}');
             codePortals.push('});');
             // #endregion
@@ -4002,12 +4096,12 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             uploadCode.push('var base64Content = "' + fileContent + '";');
             uploadCode.push('var byteCharacters = atob(base64Content);');
             uploadCode.push('var byteNumbers = new Array(byteCharacters.length);');
-            uploadCode.push('for (var i = 0; i < byteCharacters.length; i++) {');
-            uploadCode.push('\tbyteNumbers[i] = byteCharacters.charCodeAt(i);');
-            uploadCode.push('}');
+            uploadCode.push('for (var i = 0; i < byteCharacters.length; i++) { byteNumbers[i] = byteCharacters.charCodeAt(i); }');
             uploadCode.push('var fileContent = new Uint8Array(byteNumbers);');
             uploadCode.push('');
-
+            uploadCode.push('// NOTE: if you get the file using FileReader API "readAsArrayBuffer" the Base 64 conversion is not required');
+            uploadCode.push('// var fileContent = new Uint8Array(e.target.result);');
+            uploadCode.push('');
             // #region jQuery
             uploadCode.forEach(function (line) { codejQuery.push(line); });
             codejQuery.push('$.ajax({');
@@ -4072,13 +4166,16 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             codePortals = DRB.GenerateCode.GetPortalsWarnings(settings);
             uploadCode.forEach(function (line) { codePortals.push(line); });
             codePortals.push('webapi.safeAjax({');
-            codePortals.push('\ttype: "PATCH",');
+            codePortals.push('\ttype: "PUT", // NOTE: right now Portals requires PUT instead of PATCH for the upload');
             codePortals.push('\turl: "' + portalsUrl + '" + fileName,');
             codePortals.push('\tcontentType: "application/octet-stream",'); // Binary upload
             codePortals.push('\tdata: fileContent,');
             codePortals.push('\tprocessData: false,');
             codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
             codePortals.push('\t\tconsole.log("' + currentType + ' uploaded");');
+            codePortals.push('\t},');
+            codePortals.push('\terror: function (xhr, textStatus, errorThrown) {');
+            codePortals.push('\t\tconsole.log(xhr);');
             codePortals.push('\t}');
             codePortals.push('});');
             // #endregion
@@ -4147,6 +4244,9 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             codePortals.push('\tcontentType: "application/json",');
             codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
             codePortals.push('\t\tconsole.log("' + currentType + ' deleted");');
+            codePortals.push('\t},');
+            codePortals.push('\terror: function (xhr, textStatus, errorThrown) {');
+            codePortals.push('\t\tconsole.log(xhr);');
             codePortals.push('\t}');
             codePortals.push('});');
             // #endregion
@@ -4819,6 +4919,94 @@ DRB.GenerateCode.PowerQuery = function (requestType) {
     DRB.Settings.Editors[tabName2].setOptions({ readOnly: true });
 
     $("#" + pqDiv).append(DRB.UI.CreateSpacer());
+}
+
+/**
+ * Generate Code - Grid
+ */
+DRB.GenerateCode.Grid = function (requestType) {
+    if (requestType !== "retrievesingle" && requestType !== "retrievemultiple") { return; }
+
+    let settings = DRB.Metadata.CurrentNode.data.configuration;
+    let baseUrl = DRB.Xrm.GetClientUrl();
+    let mainUrl = '';
+    let urlFields = DRB.GenerateCode.GetUrlFields(settings);
+    let jQueryHeaders = DRB.GenerateCode.GetJQueryRequestHeaders(settings);
+
+    if (requestType === "retrievesingle") {
+        let entityCriteria = settings.primaryId;
+        if (settings.useAlternateKey === true) { entityCriteria = DRB.GenerateCode.GetAlternateKeys(settings); }
+        mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + "(" + entityCriteria + ")" + urlFields;
+    }
+
+    if (requestType === "retrievemultiple") {
+        let filterFields = DRB.GenerateCode.GetFilterFields(settings);
+        let orderFields = DRB.GenerateCode.GetOrderFields(settings);
+
+        if (filterFields !== '') {
+            if (urlFields === '') { filterFields = '?' + filterFields; } else { filterFields = '&' + filterFields; }
+            urlFields = urlFields + filterFields;
+        }
+
+        if (orderFields !== '') {
+            if (urlFields === '') { orderFields = '?' + orderFields; } else { orderFields = '&' + orderFields; }
+            urlFields = urlFields + orderFields;
+        }
+
+        if (settings.retrieveCount === true) {
+            if (urlFields === '') { urlFields = '?'; } else { urlFields += '&'; }
+            urlFields += '$count=true';
+        }
+        mainUrl = "/api/data/" + settings.version + "/" + settings.primaryEntity.entitySetName + urlFields;
+    }
+
+    // jQuery
+    let codejQuery = [];
+    codejQuery.push('$.ajax({');
+    codejQuery.push('\ttype: "GET",');
+    codejQuery.push('\turl: "' + baseUrl + mainUrl + '",');
+    codejQuery.push('\tasync: ' + settings.async + ',');
+    codejQuery.push('\theaders: {');
+    jQueryHeaders.forEach(function (reqHeader) { codejQuery.push('\t\t' + reqHeader); });
+    codejQuery.push('\t},');
+    codejQuery.push('\tsuccess: function (data, textStatus, xhr) {');
+    if (requestType === "retrievesingle") {
+        codejQuery.push('\t\tvar values = data;');
+        codejQuery.push('\t\tvar totalRecords = 1;');
+    }
+    if (requestType === "retrievemultiple") {
+        codejQuery.push('\t\tvar values = data.value;');
+        codejQuery.push('\t\tvar totalRecords = values.length;');
+    }
+    codejQuery.push('\t\tvar saveDate = new Date();');
+    codejQuery.push('\t\tDRB.Metadata.GridResults = { Values: values, SaveDate: saveDate, EntitySetName: "' + settings.primaryEntity.entitySetName + '"  }');
+    codejQuery.push('\t\tlet convertedTable = DRB.Logic.GridCreateTable(DRB.Metadata.GridResults.Values, false, "gridresults");');
+    codejQuery.push(`\t\tlet headerContent = '<b>Table: ` + settings.primaryEntity.label + ` | Records: ' + totalRecords + ' | Date: ' + saveDate.toLocaleString("sv") + ' | <button id="b_expandall" type="button" class="gridexpand" onclick="DRB.Logic.GridExpandAllTables();">Expand All</button> | <button id="b_collapseall" type="button" class="gridexpand" onclick="DRB.Logic.GridCollapseAllTables();">Collapse All</button> | <button id="b_downloadcsv" type="button" class="gridexpand" onclick="DRB.Logic.GridDownloadCSV();">Download CSV</button></b>';`);
+    codejQuery.push('\t\t$("#' + DRB.DOM.Grid.DivHeader.Id + '").html(headerContent);');
+    codejQuery.push('\t\t$("#' + DRB.DOM.Grid.DivDetails.Id + '").html(convertedTable);');
+    codejQuery.push('\t\tDRB.UI.HideLoading();');
+    codejQuery.push('\t},');
+    codejQuery.push('\terror: function (xhr, textStatus, errorThrown) {');
+    codejQuery.push('\t\tDRB.UI.ShowError("Grid Error", "Error retrieving the results");');
+    codejQuery.push('\t}');
+    codejQuery.push('});');
+
+    var codeToExecute = codejQuery.join('\n');
+
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) {
+        let token = DRB.Xrm.GetCurrentAccessToken();
+        if (DRB.Utilities.HasValue(token)) {
+            codeToExecute = codeToExecute.replace(/headers: {/gi, 'headers: { "Authorization": "Bearer ' + token + '",');
+        }
+    }
+    DRB.UI.ShowLoading("Refreshing Grid...");
+    setTimeout(function () {
+        try {
+            eval(codeToExecute);
+        } catch (ex) {
+            DRB.UI.ShowError("Grid Error", "Error executing code");
+        }
+    }, DRB.Settings.TimeoutDelay);
 }
 
 /**

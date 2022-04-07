@@ -192,6 +192,181 @@ DRB.Logic.CopyCodeForPowerQuery = function (id, name) {
     setTimeout(function () { DRB.UI.HideLoading(); }, DRB.Settings.TimeoutDelay * 1.5);
 }
 
+// #region DRB.Logic Grid
+
+/**
+ * Logic - Grid Collapse All Tables
+*/
+DRB.Logic.GridExpandCollapseAllTables = function (operation) {
+    let visibleCheck = ":hidden";
+    if (operation === false) { visibleCheck = ":visible"; }
+    let buttons = $("table#gridresults button");
+    for (let count = 0; count < buttons.length; count++) {
+        button = buttons[count];
+        let itemId = button.id.substring(2);
+        if ($("#" + itemId).is(visibleCheck)) { button.click(); }
+    }
+}
+
+/**
+ * Logic - Grid Collapse All Tables
+*/
+DRB.Logic.GridCollapseAllTables = function () {
+    DRB.Logic.GridExpandCollapseAllTables(false);
+}
+
+/**
+ * Logic - Grid Expand All Tables
+*/
+DRB.Logic.GridExpandAllTables = function () {
+    DRB.Logic.GridExpandCollapseAllTables(true);
+}
+
+/**
+ * Logic - Grid Toggle Table
+*/
+DRB.Logic.GridToggleTable = function (id) {
+    let item = $("#" + id);
+    let button = $("#b_" + id);
+    if (item.is(":hidden")) { item.show(); button.text("[-]"); }
+    else { item.hide(); button.text("[+]"); }
+}
+
+/**
+ * Logic - Grid Download CSV
+*/
+DRB.Logic.GridDownloadCSV = function () {
+    if (!DRB.Utilities.HasValue(DRB.Metadata.GridResults)) { return; }
+
+    let tableName = DRB.Metadata.GridResults.EntitySetName;
+    let saveDate = DRB.Metadata.GridResults.SaveDate;
+    let jsonObject = DRB.Metadata.GridResults.Values;
+
+    let currentJson = null;
+    if (Array.isArray(jsonObject)) { currentJson = jsonObject; } else { currentJson = [jsonObject]; }
+
+    let headerColumns = [];
+    currentJson.forEach(function (row) {
+        var rowHeaders = Object.keys(row);
+        rowHeaders.forEach(function (rowHeader, rowHeaderIndex) {
+            if (headerColumns.indexOf(rowHeader) === -1) {
+                headerColumns.splice(rowHeaderIndex, 0, rowHeader);
+            }
+        });
+    });
+
+    let csvHeaders = [];
+    headerColumns.forEach(function (headerColumn) {
+        csvHeaders.push(headerColumn.replace(/"/g, '""'));
+    });
+
+    let fileContent = '"' + csvHeaders.join('","') + '"';
+
+    currentJson.forEach(function (row) {
+        let csvItems = [];
+        headerColumns.forEach(function (column) {
+            let item = row[column];
+            if (item === undefined) { item = ''; }
+            if (item === null) { item = 'null'; }
+            if (Array.isArray(item)) { item = "[Array]"; } else { if (typeof item === "object" && item !== null) { item = "{Object}"; } }
+            item = "" + item;
+            csvItems.push(item.replace(/"/g, '""'));
+        });
+        fileContent += '\n"' + csvItems.join('","') + '"';
+    });
+
+    let fileDate = saveDate.toLocaleString("sv").replace(/ /g, "_").replace(/-/g, "").replace(/:/g, "");
+    let fileName = tableName + "_" + fileDate + ".csv";
+
+    let saveFile = new Blob([fileContent], { type: "text/csv" });
+    let customLink = document.createElement("a");
+    customLink.href = URL.createObjectURL(saveFile);
+    customLink.download = fileName;
+    customLink.click();
+}
+
+/**
+ * Logic - Grid Create Table
+*/
+DRB.Logic.GridCreateTable = function (jsonObject, hidden, id) {
+    let currentJson = null;
+    if (Array.isArray(jsonObject)) { currentJson = jsonObject; } else { currentJson = [jsonObject]; }
+
+    let table = '';
+
+    let currentHeader = '';
+    let headerColumns = [];
+    currentJson.forEach(function (row) {
+        var rowHeaders = Object.keys(row);
+        rowHeaders.forEach(function (rowHeader, rowHeaderIndex) {
+            if (headerColumns.indexOf(rowHeader) === -1) {
+                headerColumns.splice(rowHeaderIndex, 0, rowHeader);
+            }
+        });
+    });
+    let header = headerColumns.join();
+
+    currentJson.forEach(function (row, rowIndex) {
+        // OLD CODE
+        // let headerColumns = Object.keys(row);
+        // let header = headerColumns.join();
+        // END OLD CODE
+        if (header !== currentHeader) {
+            if (rowIndex > 1) { table += '</table>'; }
+            let hiddenStyle = '';
+            if (hidden === true) { hiddenStyle += ' style="display: none;"'; }
+            table += '<table id="' + id + '" class="grid"' + hiddenStyle + '><tr><th class="gridindex">#</th><th class="grid">';
+            table += headerColumns.join('</th><th class="grid">');
+            table += '</th></tr>';
+            currentHeader = header;
+        }
+
+        table += '<tr><td class="gridindex">' + (rowIndex + 1) + '</td>';
+        headerColumns.forEach(function (column) {
+            let item = row[column];
+            if (item === undefined) { item = ""; }
+            table += '<td class="grid">';
+            let addExpand = false;
+            if (Array.isArray(item)) { addExpand = true; } else { if (typeof item === "object" && item !== null) { addExpand = true; } }
+
+            if (addExpand === false) { table += item; }
+            else {
+                id += '_' + rowIndex;
+                let onClickEvent = "DRB.Logic.GridToggleTable('" + id + "');";
+                let onClickButton = '<button id="b_' + id + '" type="button" class="gridexpand" onclick="' + onClickEvent + '">[+]</button> ';
+                let onClickText = 'Object { }';
+                if (Array.isArray(item)) {
+                    if (item.length === 0) { onClickButton = ''; }
+                    onClickText = 'Array [' + item.length + ']';
+                }
+                table += '<b>' + onClickButton + '</b><i>' + onClickText + '</i>';
+                table += DRB.Logic.GridCreateTable(item, true, id);
+            }
+            table += '</td>';
+        });
+        table += '</tr>';
+    });
+    if (currentJson.length > 0) { table += '</table>'; }
+    return table;
+}
+
+/**
+ * Logic - Refresh Grid
+*/
+DRB.Logic.RefreshGrid = function () {
+    $('#' + DRB.DOM.Grid.Div.Id).empty();
+    let gridHeader = DRB.UI.CreateEmptyDiv(DRB.DOM.Grid.DivHeader.Id);
+    let gridDetails = DRB.UI.CreateEmptyDiv(DRB.DOM.Grid.DivDetails.Id, DRB.DOM.Grid.DivDetails.Class);
+    $('#' + DRB.DOM.Grid.Div.Id).append(DRB.UI.CreateSpacer());
+    $('#' + DRB.DOM.Grid.Div.Id).append(DRB.UI.CreateSpacer());
+    $('#' + DRB.DOM.Grid.Div.Id).append(gridHeader);
+    $('#' + DRB.DOM.Grid.Div.Id).append(gridDetails);
+
+    var requestType = $("#" + DRB.DOM.RequestType.Dropdown.Id).val();
+    try { DRB.GenerateCode.Grid(requestType); } catch { }
+}
+// #endregion
+
 /**
  * Logic - Complete Initialize
  */
@@ -412,6 +587,7 @@ DRB.Logic.BindRequestType = function (id) {
         if (!DRB.Utilities.HasValue(nodeConfiguration.fileName)) { nodeConfiguration.fileName = ""; } // Manage File Data, Manage Image Data
         if (!DRB.Utilities.HasValue(nodeConfiguration.fileContent)) { nodeConfiguration.fileContent = null; } // Manage File Data, Manage Image Data
         if (!DRB.Utilities.HasValue(nodeConfiguration.fileFullSize)) { nodeConfiguration.fileFullSize = false; } // Manage Image Data
+        if (!DRB.Utilities.HasValue(nodeConfiguration.fileBase64)) { nodeConfiguration.fileBase64 = false; } // Manage File Data, Manage Image Data
 
         // Check the selected Request Type
         switch (requestTypeValue) {
@@ -507,7 +683,7 @@ DRB.Logic.BindRequestType = function (id) {
 
             case "managefiledata": // Manage File Data
                 var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId",
-                    "primaryEntity", "primaryId", "fileField", "fileOperation", "fileName", "fileContent"];
+                    "primaryEntity", "primaryId", "fileField", "fileOperation", "fileName", "fileContent", "fileBase64"];
 
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
                 DRB.Logic.ManageFileImageData.Start(requestTypeValue);
@@ -515,7 +691,7 @@ DRB.Logic.BindRequestType = function (id) {
 
             case "manageimagedata": // Manage Image Data
                 var properties = ["version", "async", "tokenHeader", "impersonate", "impersonateType", "impersonateId",
-                    "primaryEntity", "primaryId", "fileField", "fileOperation", "fileName", "fileContent", "fileFullSize"];
+                    "primaryEntity", "primaryId", "fileField", "fileOperation", "fileName", "fileContent", "fileFullSize", "fileBase64"];
 
                 DRB.Metadata.CurrentNode.data.configuration = DRB.Logic.SetNodeConfigurationProperties(nodeConfiguration, properties);
                 DRB.Logic.ManageFileImageData.Start(requestTypeValue);
