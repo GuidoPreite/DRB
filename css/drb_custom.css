@@ -137,6 +137,64 @@ td {
 }
 /* #endregion */
 
+/* #region Grid */
+div.griddetails {
+    width: 1000px;
+    white-space: nowrap;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    padding-right: 10px;
+}
+
+table.grid {
+    font-size: 14px;
+    border: 1px solid #cccccc;
+    border-collapse: collapse;
+    margin-top: 8px;
+}
+
+th.grid {
+    font-size: 14px;
+    border: 1px solid #cccccc;
+    border-spacing: 0px;
+    border-collapse: collapse;
+    white-space: nowrap;
+    text-align: left;
+    padding: 4px;
+    background-color: #eeeeee;
+    color: #333333;
+}
+
+th.gridindex {
+    font-size: 14px;
+    text-align: center;
+    border: 1px solid #cccccc;
+    background-color: #eeeeee;
+}
+
+td.grid {
+    font-size: 14px;
+    border: 1px solid #cccccc;
+    border-spacing: 0px;
+    border-collapse: collapse;
+    white-space: nowrap;
+    padding: 8px;
+    vertical-align: top;
+}
+
+td.gridindex {
+    font-size: 14px;
+    text-align: center;
+    border: 1px solid #cccccc;
+    background-color: #eeeeee;
+}
+
+button.gridexpand {
+    all: unset;
+    cursor: pointer;
+}
+/* #endregion */
+
 /* #region bootstrap-select */
 .dropdown-menu li.disabled {
     cursor: not-allowed;
