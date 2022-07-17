@@ -3573,8 +3573,12 @@ DRB.GenerateCode.DataverseExecute = function (requestType) {
         codeFetchAPI.push('\tmethod: "POST",');
         codeFetchAPI.push('\theaders: {');
         jQueryHeaders.forEach(function (reqHeader) { codeFetchAPI.push('\t\t' + reqHeader); });
-        codeFetchAPI.push('\t},');
-        codeFetchAPI.push('\tbody: JSON.stringify(parameters)');
+		if (xhrAddedParameters === true) {
+			codeFetchAPI.push('\t},');
+			codeFetchAPI.push('\tbody: JSON.stringify(parameters)');
+		} else {
+			codeFetchAPI.push('\t}');			
+		}
         codeFetchAPI.push('}).then(');
         codeFetchAPI.push('\tfunction success(response) {');
         if (settings.dataverseReturnType !== null) {
@@ -4981,7 +4985,7 @@ DRB.GenerateCode.Grid = function (requestType) {
     codejQuery.push('\t\tvar saveDate = new Date();');
     codejQuery.push('\t\tDRB.Metadata.GridResults = { Values: values, SaveDate: saveDate, EntitySetName: "' + settings.primaryEntity.entitySetName + '"  }');
     codejQuery.push('\t\tlet convertedTable = DRB.Logic.GridCreateTable(DRB.Metadata.GridResults.Values, false, "gridresults");');
-    codejQuery.push(`\t\tlet headerContent = '<b>Table: ` + settings.primaryEntity.label + ` | Records: ' + totalRecords + ' | Date: ' + saveDate.toLocaleString("sv") + ' | <button id="b_expandall" type="button" class="gridexpand" onclick="DRB.Logic.GridExpandAllTables();">Expand All</button> | <button id="b_collapseall" type="button" class="gridexpand" onclick="DRB.Logic.GridCollapseAllTables();">Collapse All</button> | <button id="b_downloadcsv" type="button" class="gridexpand" onclick="DRB.Logic.GridDownloadCSV();">Download CSV</button></b>';`);
+    codejQuery.push(`\t\tlet headerContent = '<b>Table: ` + settings.primaryEntity.label + ` (` + settings.primaryEntity.logicalName + `) | Records: ' + totalRecords + ' | Date: ' + saveDate.toLocaleString("sv") + ' | <button id="b_expandall" type="button" class="gridexpand" onclick="DRB.Logic.GridExpandAllTables();">Expand All</button> | <button id="b_collapseall" type="button" class="gridexpand" onclick="DRB.Logic.GridCollapseAllTables();">Collapse All</button> | <button id="b_downloadcsv" type="button" class="gridexpand" onclick="DRB.Logic.GridDownloadCSV();">Download CSV</button></b>';`);
     codejQuery.push('\t\t$("#' + DRB.DOM.Grid.DivHeader.Id + '").html(headerContent);');
     codejQuery.push('\t\t$("#' + DRB.DOM.Grid.DivDetails.Id + '").html(convertedTable);');
     codejQuery.push('\t\tDRB.UI.HideLoading();');
