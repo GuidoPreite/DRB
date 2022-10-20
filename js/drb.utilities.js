@@ -9,6 +9,24 @@ DRB.Utilities.HasValue = function (parameter) {
 }
 
 /**
+ * Utilities - Download File
+ * Download a file (added for BE mode)
+ */
+DRB.Utilities.DownloadFile = function (blob, fileName) {
+    try {
+        if (!DRB.Xrm.IsBEMode()) {
+            var customLink = document.createElement("a");
+            customLink.href = URL.createObjectURL(blob);
+            customLink.download = fileName;
+            customLink.click();
+        } else {
+            parent.postMessage({ command: "be_downloadfile", blob: blob, fileName: fileName }, '*');
+        }
+    } catch (e) { }
+}
+
+
+/**
  * Utilities - Local Storage Available
  * Check if localStorage is available
  */

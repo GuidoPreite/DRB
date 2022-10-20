@@ -3,7 +3,9 @@
  * Xrm - Get Xrm Object
  */
 DRB.Xrm.GetXrmObject = function () {
-    if (typeof parent !== "undefined") { return parent.Xrm; } else { return undefined; }
+    try {
+        if (typeof parent !== "undefined") { return parent.Xrm; } else { return undefined; }
+    } catch { return undefined; }
 }
 
 /**
@@ -11,6 +13,13 @@ DRB.Xrm.GetXrmObject = function () {
  */
 DRB.Xrm.IsXTBMode = function () {
     return DRB.Settings.XTBContext;
+}
+
+/**
+ * Xrm - Is BE Mode
+ */
+DRB.Xrm.IsBEMode = function () {
+    return DRB.Settings.BEContext;
 }
 
 /**
@@ -31,7 +40,7 @@ DRB.Xrm.IsDVDTMode = function () {
  * Xrm - Is Demo Mode
  */
 DRB.Xrm.IsDemoMode = function () {
-    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) { return false; }
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsBEMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) { return false; }
     return typeof DRB.Xrm.GetXrmObject() === "undefined";
 }
 
@@ -39,7 +48,7 @@ DRB.Xrm.IsDemoMode = function () {
  * Xrm - Is Instance Mode
  */
 DRB.Xrm.IsInstanceMode = function () {
-    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode() || DRB.Xrm.IsDemoMode()) { return false; }
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsBEMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode() || DRB.Xrm.IsDemoMode()) { return false; }
     return typeof DRB.Xrm.GetXrmObject() !== "undefined";
 }
 
@@ -48,6 +57,7 @@ DRB.Xrm.IsInstanceMode = function () {
  */
 DRB.Xrm.GetClientUrl = function () {
     if (DRB.Xrm.IsXTBMode()) { return DRB.Settings.XTBUrl; }
+    if (DRB.Xrm.IsBEMode()) { return DRB.Settings.BEUrl; }
     if (DRB.Xrm.IsJWTMode()) { return DRB.Settings.JWTUrl; }
     if (DRB.Xrm.IsDVDTMode()) { return DRB.Settings.DVDTUrl; }
     if (DRB.Xrm.IsInstanceMode()) { return DRB.Xrm.GetXrmObject().Utility.getGlobalContext().getClientUrl(); }
@@ -59,7 +69,7 @@ DRB.Xrm.GetClientUrl = function () {
  */
 DRB.Xrm.GetContext = function () {
     var context = "Demo";
-    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode() || DRB.Xrm.IsInstanceMode()) { context = DRB.Xrm.GetClientUrl(); }
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsBEMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode() || DRB.Xrm.IsInstanceMode()) { context = DRB.Xrm.GetClientUrl(); }
     return "<small>(" + context + ")</small>";
 }
 
@@ -76,6 +86,7 @@ DRB.Xrm.GetMetadataUrl = function () {
 DRB.Xrm.GetCurrentAccessToken = function () {
     var token = "";
     if (DRB.Xrm.IsXTBMode()) { token = DRB.Settings.XTBToken; }
+    if (DRB.Xrm.IsBEMode()) { token = DRB.Settings.BEToken; }
     if (DRB.Xrm.IsJWTMode()) { token = DRB.Settings.JWTToken; }
     if (DRB.Xrm.IsDVDTMode()) { token = DRB.Settings.DVDTToken; }
     if (DRB.Xrm.IsDemoMode()) { token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJEUkIiLCJpYXQiOjE2NDA5OTUyMDAsImV4cCI6MTY0MDk5NTIwMCwiYXVkIjoiaHR0cHM6Ly9kZW1vY2FsbCIsInN1YiI6IkRSQiJ9.niwjJ3XiFvsJkisbrcT7P27NK9v1ZfICpw5ITHP1mHo"; }
@@ -88,6 +99,7 @@ DRB.Xrm.GetCurrentAccessToken = function () {
 DRB.Xrm.GetVersion = function () {
     var currentVersion = "";
     if (DRB.Xrm.IsXTBMode()) { currentVersion = DRB.Settings.XTBVersion; }
+    if (DRB.Xrm.IsBEMode()) { currentVersion = DRB.Settings.BEVersion; }
     if (DRB.Xrm.IsJWTMode()) { currentVersion = DRB.Settings.JWTVersion; }
     if (DRB.Xrm.IsDVDTMode()) { currentVersion = DRB.Settings.DVDTVersion; }
     if (DRB.Xrm.IsInstanceMode()) { currentVersion = DRB.Xrm.GetXrmObject().Utility.getGlobalContext().getVersion(); }

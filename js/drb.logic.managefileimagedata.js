@@ -227,11 +227,8 @@ DRB.Logic.ManageFileImageData.DownloadFile = function () {
         if (DRB.Utilities.HasValue(DRB.Metadata.CurrentNode.data.configuration.fileName)) { fileName = DRB.Metadata.CurrentNode.data.configuration.fileName; }
         var fileContent = new Uint8Array(byteNumbers);
         var saveFile = new Blob([fileContent], { type: "application/octet-stream" });
-        var customLink = document.createElement("a");
-        customLink.href = URL.createObjectURL(saveFile);
-        customLink.download = fileName;
-        customLink.click();
-        URL.revokeObjectURL(saveFile);
+        DRB.Utilities.DownloadFile(saveFile, fileName);
+        if (!DRB.Xrm.IsBEMode()) { URL.revokeObjectURL(saveFile); }
     } catch (e) {
         DRB.UI.ShowError("Download Error", "Unable to download the file");
     }

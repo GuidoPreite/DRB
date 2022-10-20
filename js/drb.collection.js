@@ -156,10 +156,7 @@ DRB.Collection.Save = function () {
         // create the blob content holding the json collection
         var saveFile = new Blob([JSON.stringify(collection, null, "\t")], { type: "application/json" });
         // download the blob content with the provided filename
-        var customLink = document.createElement("a");
-        customLink.href = URL.createObjectURL(saveFile);
-        customLink.download = fileName + "_" + fileDate + ".json";
-        customLink.click();
+        DRB.Utilities.DownloadFile(saveFile, fileName + "_" + fileDate + ".json");
     }
 }
 
@@ -357,10 +354,7 @@ DRB.Collection.ExportPostmanFile = function () {
     // create the blob content holding the json collection
     var saveFile = new Blob([JSON.stringify(collection, null, "\t")], { type: "application/json" });
     // download the blob content with the provided filename
-    var customLink = document.createElement("a");
-    customLink.href = URL.createObjectURL(saveFile);
-    customLink.download = fileName + "_" + fileDate + ".postman_collection.json";
-    customLink.click();
+    DRB.Utilities.DownloadFile(saveFile, fileName + "_" + fileDate + ".postman_collection.json");
 }
 
 /**
@@ -436,10 +430,7 @@ DRB.Collection.ExportRESTClientEnvironmentFile = function () {
     // create the blob content holding the json collection
     var saveFile = new Blob([JSON.stringify(environment, null, "\t")], { type: "application/json" });
     // download the blob content with the provided filename
-    var customLink = document.createElement("a");
-    customLink.href = URL.createObjectURL(saveFile);
-    customLink.download = "DRB_Environment_" + fileDate + ".settings.json";
-    customLink.click();
+    DRB.Utilities.DownloadFile(saveFile, "DRB_Environment_" + fileDate + ".settings.json");
 }
 
 /**
@@ -547,10 +538,7 @@ DRB.Collection.ExportRESTClientCollectionFile = function () {
     // create the blob content holding the json collection
     var saveFile = new Blob([collection]);
     // download the blob content with the provided filename
-    var customLink = document.createElement("a");
-    customLink.href = URL.createObjectURL(saveFile);
-    customLink.download = fileName + "_" + fileDate + ".http";
-    customLink.click();
+    DRB.Utilities.DownloadFile(saveFile, fileName + "_" + fileDate + ".http");
 }
 
 /**
@@ -616,10 +604,7 @@ DRB.Collection.ExportThunderClientEnvironmentFile = function () {
     // create the blob content holding the json collection
     var saveFile = new Blob([JSON.stringify(environment, null, "\t")], { type: "application/json" });
     // download the blob content with the provided filename
-    var customLink = document.createElement("a");
-    customLink.href = URL.createObjectURL(saveFile);
-    customLink.download = "DRB_Environment_" + fileDate + ".thunder_environment.json";
-    customLink.click();
+    DRB.Utilities.DownloadFile(saveFile, "DRB_Environment_" + fileDate + ".thunder_environment.json");
 }
 
 /**
@@ -746,10 +731,7 @@ DRB.Collection.ExportThunderClientCollectionFile = function () {
     // create the blob content holding the json collection
     var saveFile = new Blob([JSON.stringify(collection, null, "\t")], { type: "application/json" });
     // download the blob content with the provided filename
-    var customLink = document.createElement("a");
-    customLink.href = URL.createObjectURL(saveFile);
-    customLink.download = fileName + "_" + fileDate + ".thunder_collection.json";
-    customLink.click();
+    DRB.Utilities.DownloadFile(saveFile, fileName + "_" + fileDate + ".thunder_collection.json");
 }
 
 /**

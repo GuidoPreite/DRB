@@ -52,7 +52,7 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
 
     // Portals replace for portalUri + "/_api" syntax (association)
     var replacePortalUri = 'Xrm.Utility.getGlobalContext().getClientUrl() + "/api/data/v9.0/';
-    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) { replacePortalUri = 'DRB.Xrm.GetClientUrl() + "/api/data/v9.0/'; }
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsBEMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) { replacePortalUri = 'DRB.Xrm.GetClientUrl() + "/api/data/v9.0/'; }
     codeValue = codeValue.replace(/portalUri \+\ "\/_api\//gi, replacePortalUri);
     codeValue = codeValue.replace(/portalUri\+\ "\/_api\//gi, replacePortalUri);
     codeValue = codeValue.replace(/portalUri \+\"\/_api\//gi, replacePortalUri);
@@ -60,7 +60,7 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
 
     codeValue = codeValue.replace(/console.log/gi, "DRB.Logic.ConsoleToResultsEditor");
 
-    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) {
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsBEMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) {
         codeValue = codeValue.replace(/Xrm.Utility.getGlobalContext\(\).getClientUrl\(\)/gi, "DRB.Xrm.GetClientUrl()");
         if (DRB.Utilities.HasValue(token)) {
             codeValue = codeValue.replace(/headers: {/gi, 'headers: { "Authorization": "Bearer ' + token + '",');
@@ -279,10 +279,7 @@ DRB.Logic.GridDownloadCSV = function () {
     let fileName = tableName + "_" + fileDate + ".csv";
 
     let saveFile = new Blob([fileContent], { type: "text/csv" });
-    let customLink = document.createElement("a");
-    customLink.href = URL.createObjectURL(saveFile);
-    customLink.download = fileName;
-    customLink.click();
+    DRB.Utilities.DownloadFile(saveFile, fileName);
 }
 
 /**
@@ -383,6 +380,15 @@ DRB.Logic.CompleteInitialize = function () {
     // set URL to be visible
     $("#" + DRB.DOM.ContextSpan.Id).html(DRB.Xrm.GetContext());
 
+    // refresh Versions
+    var versions = ["9.0", "9.1", "9.2"];
+    var currentVersion = DRB.Xrm.GetVersion();
+    DRB.Settings.Versions = [];
+    for (var versionCount = 0; versionCount < versions.length; versionCount++) {
+        DRB.Settings.Versions.push(new DRB.Models.IdValue("v" + versions[versionCount], versions[versionCount]));
+        if (!DRB.Utilities.HasValue(currentVersion) || currentVersion === versions[versionCount]) { break; }
+    }
+
     // retrieve tables
     DRB.UI.ShowLoading("Retrieving Tables and Users...");
     setTimeout(function () {
@@ -427,10 +433,15 @@ DRB.Logic.CompleteInitialize = function () {
                         var warningResults = "NOTE: Due to asynchronous calls the output can appear later";
                         var warningFetchXML = "NOTE: Inside DRB for XrmToolBox you can send the code to <a target='_blank' href='https://fetchxmlbuilder.com'>FetchXML Builder</a>";
                         // warnings when DRB is running outside a managed solution
-                        if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) {
+                        if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsBEMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) {
                             if (DRB.Xrm.IsXTBMode()) {
                                 warningXrmWebApi = "NOTE: Xrm.WebApi is not available when DRB is executed inside XrmToolBox";
                                 warningClientUrl = "NOTE: Inside DRB for XrmToolBox, Xrm.Utility.getGlobalContext().getClientUrl() is routed to the Instance URL";
+                            }
+
+                            if (DRB.Xrm.IsBEMode()) {
+                                warningXrmWebApi = "NOTE: Xrm.WebApi is not available when DRB is executed inside Browser Extension";
+                                warningClientUrl = "NOTE: Inside DRB for Browser Extension, Xrm.Utility.getGlobalContext().getClientUrl() is routed to the Instance URL";
                             }
 
                             if (DRB.Xrm.IsJWTMode()) {

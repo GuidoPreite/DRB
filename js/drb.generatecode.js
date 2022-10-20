@@ -4997,7 +4997,7 @@ DRB.GenerateCode.Grid = function (requestType) {
 
     var codeToExecute = codejQuery.join('\n');
 
-    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) {
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsBEMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) {
         let token = DRB.Xrm.GetCurrentAccessToken();
         if (DRB.Utilities.HasValue(token)) {
             codeToExecute = codeToExecute.replace(/headers: {/gi, 'headers: { "Authorization": "Bearer ' + token + '",');

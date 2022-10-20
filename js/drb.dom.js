@@ -121,11 +121,17 @@ DRB.DOM.Collection.ThunderClient.AccessTokenInput = { Id: "txt_thunder_accesstok
 DRB.DOM.Collection.ThunderClient.ScopeSpan = { Id: "span_thunder_scope", Name: "Scope" };
 DRB.DOM.Collection.ThunderClient.ScopeInput = { Id: "txt_thunder_scope" };
 
+// Get Access Token (BE)
+DRB.DOM.AccessToken = {}
+DRB.DOM.AccessToken.GetButton = { Id: "btn_token_get", Name: "Get Access Token", Class: "btn btn-primary" };
+DRB.DOM.AccessToken.InstanceUrlInput = { Id: "txt_token_instanceurl" };
+
 // Show Token
 DRB.DOM.ShowToken = {};
 DRB.DOM.ShowToken.Div = { Id: "div_showtoken" };
 DRB.DOM.ShowToken.TitleSpan = { Id: "span_showtokentitle" };
 DRB.DOM.ShowToken.Input = { Id: "txt_showtokencontent" };
+
 // Request Type
 DRB.DOM.RequestType = {};
 DRB.DOM.RequestType.Div = { Id: "request_name", Name: "Request Name" };

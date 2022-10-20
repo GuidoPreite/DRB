@@ -150,11 +150,17 @@ DRB.DOM.Collection.ThunderClient.AccessTokenInput = { Id: "txt_thunder_accesstok
 DRB.DOM.Collection.ThunderClient.ScopeSpan = { Id: "span_thunder_scope", Name: "Scope" };
 DRB.DOM.Collection.ThunderClient.ScopeInput = { Id: "txt_thunder_scope" };
 
+// Get Access Token (BE)
+DRB.DOM.AccessToken = {}
+DRB.DOM.AccessToken.GetButton = { Id: "btn_token_get", Name: "Get Access Token", Class: "btn btn-primary" };
+DRB.DOM.AccessToken.InstanceUrlInput = { Id: "txt_token_instanceurl" };
+
 // Show Token
 DRB.DOM.ShowToken = {};
 DRB.DOM.ShowToken.Div = { Id: "div_showtoken" };
 DRB.DOM.ShowToken.TitleSpan = { Id: "span_showtokentitle" };
 DRB.DOM.ShowToken.Input = { Id: "txt_showtokencontent" };
+
 // Request Type
 DRB.DOM.RequestType = {};
 DRB.DOM.RequestType.Div = { Id: "request_name", Name: "Request Name" };
@@ -642,6 +648,24 @@ DRB.DOM.Lookup.NoRecordsSpan = { Id: "span_norecordslookup", Name: "No Records" 
 DRB.Utilities.HasValue = function (parameter) {
     if (parameter !== undefined && parameter !== null && parameter !== "") { return true; } else { return false; }
 }
+
+/**
+ * Utilities - Download File
+ * Download a file (added for BE mode)
+ */
+DRB.Utilities.DownloadFile = function (blob, fileName) {
+    try {
+        if (!DRB.Xrm.IsBEMode()) {
+            var customLink = document.createElement("a");
+            customLink.href = URL.createObjectURL(blob);
+            customLink.download = fileName;
+            customLink.click();
+        } else {
+            parent.postMessage({ command: "be_downloadfile", blob: blob, fileName: fileName }, '*');
+        }
+    } catch (e) { }
+}
+
 
 /**
  * Utilities - Local Storage Available
@@ -2455,7 +2479,9 @@ DRB.UI.OpenLookup = function (settings) {
  * Xrm - Get Xrm Object
  */
 DRB.Xrm.GetXrmObject = function () {
-    if (typeof parent !== "undefined") { return parent.Xrm; } else { return undefined; }
+    try {
+        if (typeof parent !== "undefined") { return parent.Xrm; } else { return undefined; }
+    } catch { return undefined; }
 }
 
 /**
@@ -2463,6 +2489,13 @@ DRB.Xrm.GetXrmObject = function () {
  */
 DRB.Xrm.IsXTBMode = function () {
     return DRB.Settings.XTBContext;
+}
+
+/**
+ * Xrm - Is BE Mode
+ */
+DRB.Xrm.IsBEMode = function () {
+    return DRB.Settings.BEContext;
 }
 
 /**
@@ -2483,7 +2516,7 @@ DRB.Xrm.IsDVDTMode = function () {
  * Xrm - Is Demo Mode
  */
 DRB.Xrm.IsDemoMode = function () {
-    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) { return false; }
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsBEMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) { return false; }
     return typeof DRB.Xrm.GetXrmObject() === "undefined";
 }
 
@@ -2491,7 +2524,7 @@ DRB.Xrm.IsDemoMode = function () {
  * Xrm - Is Instance Mode
  */
 DRB.Xrm.IsInstanceMode = function () {
-    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode() || DRB.Xrm.IsDemoMode()) { return false; }
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsBEMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode() || DRB.Xrm.IsDemoMode()) { return false; }
     return typeof DRB.Xrm.GetXrmObject() !== "undefined";
 }
 
@@ -2500,6 +2533,7 @@ DRB.Xrm.IsInstanceMode = function () {
  */
 DRB.Xrm.GetClientUrl = function () {
     if (DRB.Xrm.IsXTBMode()) { return DRB.Settings.XTBUrl; }
+    if (DRB.Xrm.IsBEMode()) { return DRB.Settings.BEUrl; }
     if (DRB.Xrm.IsJWTMode()) { return DRB.Settings.JWTUrl; }
     if (DRB.Xrm.IsDVDTMode()) { return DRB.Settings.DVDTUrl; }
     if (DRB.Xrm.IsInstanceMode()) { return DRB.Xrm.GetXrmObject().Utility.getGlobalContext().getClientUrl(); }
@@ -2511,7 +2545,7 @@ DRB.Xrm.GetClientUrl = function () {
  */
 DRB.Xrm.GetContext = function () {
     var context = "Demo";
-    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode() || DRB.Xrm.IsInstanceMode()) { context = DRB.Xrm.GetClientUrl(); }
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsBEMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode() || DRB.Xrm.IsInstanceMode()) { context = DRB.Xrm.GetClientUrl(); }
     return "<small>(" + context + ")</small>";
 }
 
@@ -2528,6 +2562,7 @@ DRB.Xrm.GetMetadataUrl = function () {
 DRB.Xrm.GetCurrentAccessToken = function () {
     var token = "";
     if (DRB.Xrm.IsXTBMode()) { token = DRB.Settings.XTBToken; }
+    if (DRB.Xrm.IsBEMode()) { token = DRB.Settings.BEToken; }
     if (DRB.Xrm.IsJWTMode()) { token = DRB.Settings.JWTToken; }
     if (DRB.Xrm.IsDVDTMode()) { token = DRB.Settings.DVDTToken; }
     if (DRB.Xrm.IsDemoMode()) { token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJEUkIiLCJpYXQiOjE2NDA5OTUyMDAsImV4cCI6MTY0MDk5NTIwMCwiYXVkIjoiaHR0cHM6Ly9kZW1vY2FsbCIsInN1YiI6IkRSQiJ9.niwjJ3XiFvsJkisbrcT7P27NK9v1ZfICpw5ITHP1mHo"; }
@@ -2540,6 +2575,7 @@ DRB.Xrm.GetCurrentAccessToken = function () {
 DRB.Xrm.GetVersion = function () {
     var currentVersion = "";
     if (DRB.Xrm.IsXTBMode()) { currentVersion = DRB.Settings.XTBVersion; }
+    if (DRB.Xrm.IsBEMode()) { currentVersion = DRB.Settings.BEVersion; }
     if (DRB.Xrm.IsJWTMode()) { currentVersion = DRB.Settings.JWTVersion; }
     if (DRB.Xrm.IsDVDTMode()) { currentVersion = DRB.Settings.DVDTVersion; }
     if (DRB.Xrm.IsInstanceMode()) { currentVersion = DRB.Xrm.GetXrmObject().Utility.getGlobalContext().getVersion(); }
@@ -4057,6 +4093,17 @@ DRB.Common.RefreshXTBToken = function (token) {
 }
 
 /**
+ * Common - Refresh BE Token
+ * @param {string} token Token
+ */
+DRB.Common.RefreshBEToken = function (token) {
+    if (!DRB.Xrm.IsBEMode()) { console.log("This method id available only with BE Mode"); return; }
+    if (!DRB.Utilities.HasValue(token)) { console.log("Received BE token is not valid"); return; }
+    DRB.Settings.BEToken = token;
+    console.log("Refreshed token from BE");
+}
+
+/**
  * Common - Refresh DVDT Token
  * @param {string} token Token
  */
@@ -4068,7 +4115,7 @@ DRB.Common.RefreshDVDTToken = function (token) {
 }
 
 /**
- * Common - Listener for DVDT
+ * Common - Listener for DVDT and BE
  */
 window.addEventListener("message", (event) => {
     const message = event.data;
@@ -4102,6 +4149,37 @@ window.addEventListener("message", (event) => {
         case "dvdt_refreshtoken":
             var token = message.token;
             DRB.Common.RefreshDVDTToken(token);
+            break;
+
+        case "be_connection":
+            var token = message.token;
+            var parsedToken = DRB.Common.ParseJWT(token);
+            if (DRB.Utilities.HasValue(parsedToken)) {
+                var tokenUrl = parsedToken.aud;
+                var tokenExpireDate = parsedToken.exp * 1000;
+                var now = new Date().getTime();
+                if (DRB.Utilities.HasValue(tokenUrl) && tokenExpireDate > now) {
+                    tokenUrl = tokenUrl.replace(/\/$/, ""); // clean url from trailing slash
+                    DRB.UI.ShowLoading("Checking Token Settings...");
+
+                    DRB.Xrm.GetServerVersion(tokenUrl, token)
+                        .done(function (data) {
+                            DRB.Settings.BEToken = token;
+                            DRB.Settings.BEUrl = tokenUrl;
+                            DRB.Settings.BEVersion = data.Version;
+                            DRB.Settings.BEContext = true;
+
+                            DRB.UI.HideLoading();
+                            DRB.Logic.CompleteInitialize();
+                        })
+                        .fail(function (xhr) { DRB.UI.ShowError("DRB.Xrm.GetServerVersion Error", DRB.Common.GetErrorMessage(xhr)); });
+                } else { DRB.UI.ShowError("BE Connection Error", "The token from Browser Extension is not valid"); }
+            } else { DRB.UI.ShowError("BE Connection Error", "Failed to parse the token from Browser Extension"); }
+            break;
+
+        case "be_refreshtoken":
+            var token = message.token;
+            DRB.Common.RefreshBEToken(token);
             break;
     }
 });
@@ -4161,7 +4239,7 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
 
     // Portals replace for portalUri + "/_api" syntax (association)
     var replacePortalUri = 'Xrm.Utility.getGlobalContext().getClientUrl() + "/api/data/v9.0/';
-    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) { replacePortalUri = 'DRB.Xrm.GetClientUrl() + "/api/data/v9.0/'; }
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsBEMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) { replacePortalUri = 'DRB.Xrm.GetClientUrl() + "/api/data/v9.0/'; }
     codeValue = codeValue.replace(/portalUri \+\ "\/_api\//gi, replacePortalUri);
     codeValue = codeValue.replace(/portalUri\+\ "\/_api\//gi, replacePortalUri);
     codeValue = codeValue.replace(/portalUri \+\"\/_api\//gi, replacePortalUri);
@@ -4169,7 +4247,7 @@ DRB.Logic.ExecuteCodeFromEditor = function () {
 
     codeValue = codeValue.replace(/console.log/gi, "DRB.Logic.ConsoleToResultsEditor");
 
-    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) {
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsBEMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) {
         codeValue = codeValue.replace(/Xrm.Utility.getGlobalContext\(\).getClientUrl\(\)/gi, "DRB.Xrm.GetClientUrl()");
         if (DRB.Utilities.HasValue(token)) {
             codeValue = codeValue.replace(/headers: {/gi, 'headers: { "Authorization": "Bearer ' + token + '",');
@@ -4388,10 +4466,7 @@ DRB.Logic.GridDownloadCSV = function () {
     let fileName = tableName + "_" + fileDate + ".csv";
 
     let saveFile = new Blob([fileContent], { type: "text/csv" });
-    let customLink = document.createElement("a");
-    customLink.href = URL.createObjectURL(saveFile);
-    customLink.download = fileName;
-    customLink.click();
+    DRB.Utilities.DownloadFile(saveFile, fileName);
 }
 
 /**
@@ -4492,6 +4567,15 @@ DRB.Logic.CompleteInitialize = function () {
     // set URL to be visible
     $("#" + DRB.DOM.ContextSpan.Id).html(DRB.Xrm.GetContext());
 
+    // refresh Versions
+    var versions = ["9.0", "9.1", "9.2"];
+    var currentVersion = DRB.Xrm.GetVersion();
+    DRB.Settings.Versions = [];
+    for (var versionCount = 0; versionCount < versions.length; versionCount++) {
+        DRB.Settings.Versions.push(new DRB.Models.IdValue("v" + versions[versionCount], versions[versionCount]));
+        if (!DRB.Utilities.HasValue(currentVersion) || currentVersion === versions[versionCount]) { break; }
+    }
+
     // retrieve tables
     DRB.UI.ShowLoading("Retrieving Tables and Users...");
     setTimeout(function () {
@@ -4536,10 +4620,15 @@ DRB.Logic.CompleteInitialize = function () {
                         var warningResults = "NOTE: Due to asynchronous calls the output can appear later";
                         var warningFetchXML = "NOTE: Inside DRB for XrmToolBox you can send the code to <a target='_blank' href='https://fetchxmlbuilder.com'>FetchXML Builder</a>";
                         // warnings when DRB is running outside a managed solution
-                        if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) {
+                        if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsBEMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) {
                             if (DRB.Xrm.IsXTBMode()) {
                                 warningXrmWebApi = "NOTE: Xrm.WebApi is not available when DRB is executed inside XrmToolBox";
                                 warningClientUrl = "NOTE: Inside DRB for XrmToolBox, Xrm.Utility.getGlobalContext().getClientUrl() is routed to the Instance URL";
+                            }
+
+                            if (DRB.Xrm.IsBEMode()) {
+                                warningXrmWebApi = "NOTE: Xrm.WebApi is not available when DRB is executed inside Browser Extension";
+                                warningClientUrl = "NOTE: Inside DRB for Browser Extension, Xrm.Utility.getGlobalContext().getClientUrl() is routed to the Instance URL";
                             }
 
                             if (DRB.Xrm.IsJWTMode()) {
@@ -10642,7 +10731,7 @@ DRB.GenerateCode.Grid = function (requestType) {
 
     var codeToExecute = codejQuery.join('\n');
 
-    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) {
+    if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsBEMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) {
         let token = DRB.Xrm.GetCurrentAccessToken();
         if (DRB.Utilities.HasValue(token)) {
             codeToExecute = codeToExecute.replace(/headers: {/gi, 'headers: { "Authorization": "Bearer ' + token + '",');
@@ -16514,11 +16603,8 @@ DRB.Logic.ManageFileImageData.DownloadFile = function () {
         if (DRB.Utilities.HasValue(DRB.Metadata.CurrentNode.data.configuration.fileName)) { fileName = DRB.Metadata.CurrentNode.data.configuration.fileName; }
         var fileContent = new Uint8Array(byteNumbers);
         var saveFile = new Blob([fileContent], { type: "application/octet-stream" });
-        var customLink = document.createElement("a");
-        customLink.href = URL.createObjectURL(saveFile);
-        customLink.download = fileName;
-        customLink.click();
-        URL.revokeObjectURL(saveFile);
+        DRB.Utilities.DownloadFile(saveFile, fileName);
+        if (!DRB.Xrm.IsBEMode()) { URL.revokeObjectURL(saveFile); }
     } catch (e) {
         DRB.UI.ShowError("Download Error", "Unable to download the file");
     }
@@ -16872,10 +16958,7 @@ DRB.Collection.Save = function () {
         // create the blob content holding the json collection
         var saveFile = new Blob([JSON.stringify(collection, null, "\t")], { type: "application/json" });
         // download the blob content with the provided filename
-        var customLink = document.createElement("a");
-        customLink.href = URL.createObjectURL(saveFile);
-        customLink.download = fileName + "_" + fileDate + ".json";
-        customLink.click();
+        DRB.Utilities.DownloadFile(saveFile, fileName + "_" + fileDate + ".json");
     }
 }
 
@@ -17073,10 +17156,7 @@ DRB.Collection.ExportPostmanFile = function () {
     // create the blob content holding the json collection
     var saveFile = new Blob([JSON.stringify(collection, null, "\t")], { type: "application/json" });
     // download the blob content with the provided filename
-    var customLink = document.createElement("a");
-    customLink.href = URL.createObjectURL(saveFile);
-    customLink.download = fileName + "_" + fileDate + ".postman_collection.json";
-    customLink.click();
+    DRB.Utilities.DownloadFile(saveFile, fileName + "_" + fileDate + ".postman_collection.json");
 }
 
 /**
@@ -17152,10 +17232,7 @@ DRB.Collection.ExportRESTClientEnvironmentFile = function () {
     // create the blob content holding the json collection
     var saveFile = new Blob([JSON.stringify(environment, null, "\t")], { type: "application/json" });
     // download the blob content with the provided filename
-    var customLink = document.createElement("a");
-    customLink.href = URL.createObjectURL(saveFile);
-    customLink.download = "DRB_Environment_" + fileDate + ".settings.json";
-    customLink.click();
+    DRB.Utilities.DownloadFile(saveFile, "DRB_Environment_" + fileDate + ".settings.json");
 }
 
 /**
@@ -17263,10 +17340,7 @@ DRB.Collection.ExportRESTClientCollectionFile = function () {
     // create the blob content holding the json collection
     var saveFile = new Blob([collection]);
     // download the blob content with the provided filename
-    var customLink = document.createElement("a");
-    customLink.href = URL.createObjectURL(saveFile);
-    customLink.download = fileName + "_" + fileDate + ".http";
-    customLink.click();
+    DRB.Utilities.DownloadFile(saveFile, fileName + "_" + fileDate + ".http");
 }
 
 /**
@@ -17332,10 +17406,7 @@ DRB.Collection.ExportThunderClientEnvironmentFile = function () {
     // create the blob content holding the json collection
     var saveFile = new Blob([JSON.stringify(environment, null, "\t")], { type: "application/json" });
     // download the blob content with the provided filename
-    var customLink = document.createElement("a");
-    customLink.href = URL.createObjectURL(saveFile);
-    customLink.download = "DRB_Environment_" + fileDate + ".thunder_environment.json";
-    customLink.click();
+    DRB.Utilities.DownloadFile(saveFile, "DRB_Environment_" + fileDate + ".thunder_environment.json");
 }
 
 /**
@@ -17462,10 +17533,7 @@ DRB.Collection.ExportThunderClientCollectionFile = function () {
     // create the blob content holding the json collection
     var saveFile = new Blob([JSON.stringify(collection, null, "\t")], { type: "application/json" });
     // download the blob content with the provided filename
-    var customLink = document.createElement("a");
-    customLink.href = URL.createObjectURL(saveFile);
-    customLink.download = fileName + "_" + fileDate + ".thunder_collection.json";
-    customLink.click();
+    DRB.Utilities.DownloadFile(saveFile, fileName + "_" + fileDate + ".thunder_collection.json");
 }
 
 /**
@@ -18033,7 +18101,7 @@ DRB.InsertMainBodyContent = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.39";
+    var drbVersion = "1.0.0.40";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 
@@ -18094,6 +18162,10 @@ DRB.Initialize = async function () {
             localStorage.removeItem("DRB_JWT");
         }
     }
+    // #endregion
+
+    // #region BE
+    DRB.Settings.BEContext = false;
     // #endregion
 
     // #region DVDT

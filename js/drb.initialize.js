@@ -529,7 +529,7 @@ DRB.InsertMainBodyContent = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.39";
+    var drbVersion = "1.0.0.40";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 
@@ -590,6 +590,10 @@ DRB.Initialize = async function () {
             localStorage.removeItem("DRB_JWT");
         }
     }
+    // #endregion
+
+    // #region BE
+    DRB.Settings.BEContext = false;
     // #endregion
 
     // #region DVDT
