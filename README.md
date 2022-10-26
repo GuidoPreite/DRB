@@ -4,6 +4,8 @@ Dataverse REST Builder (DRB) is an application to create and execute requests ag
 
 The tool is released as <a target="_blank" href="https://github.com/GuidoPreite/DRB/releases">Managed Solution</a>, for <a target="_blank" href="https://www.xrmtoolbox.com">XrmToolBox</a> (listed inside the Tool Library) or can be loaded inside <a target="_blank" href="https://marketplace.visualstudio.com/items?itemName=danish-naglekar.dataverse-devtools">Dataverse DevTools (VS Code extension)</a>.
 
+The tool is also available as Browser Extension for <a target="_blank" href="https://chrome.google.com/webstore/detail/dataverse-rest-builder/ioajdaokkkgjehbpiogakecdifaeaeho">Google Chrome</a> and <a target="_blank" href="https://microsoftedge.microsoft.com/addons/detail/dataverse-rest-builder/bhdflihadhbkejonmncjabmionmbhahg">Microsoft Edge</a>.
+
 It is possible to export the requests in a format compatible with the following applications:
 - <a target="_blank" href="https://www.postman.com/">Postman</a>
 - <a target="_blank" href="https://marketplace.visualstudio.com/items?itemName=humao.rest-client">REST Client (VS Code extension)</a>
