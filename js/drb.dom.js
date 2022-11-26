@@ -76,7 +76,6 @@ DRB.DOM.Collection.Postman.ScopeInput = { Id: "txt_postman_scope" };
 DRB.DOM.Collection.Postman.ResourceSpan = { Id: "span_postman_resource", Name: "Resource" };
 DRB.DOM.Collection.Postman.ResourceInput = { Id: "txt_postman_resource" };
 
-
 DRB.DOM.Collection.RESTClient = {};
 DRB.DOM.Collection.RESTClient.Div = { Id: "div_export_restclient" };
 DRB.DOM.Collection.RESTClient.SettingsDiv = { Id: "div_export_restclient_setting" };
@@ -125,6 +124,9 @@ DRB.DOM.Collection.ThunderClient.ScopeInput = { Id: "txt_thunder_scope" };
 DRB.DOM.AccessToken = {}
 DRB.DOM.AccessToken.GetButton = { Id: "btn_token_get", Name: "Get Access Token", Class: "btn btn-primary" };
 DRB.DOM.AccessToken.InstanceUrlInput = { Id: "txt_token_instanceurl" };
+DRB.DOM.AccessToken.RecentEnvironmentsDiv = { Id: "div_recentenvironments" }; // defined also inside drb_be_gettoken.js
+DRB.DOM.AccessToken.RecentEnvironmentsSpan = { Id: "span_recentenvironments", Name: "Recent Environment URLs" };
+DRB.DOM.AccessToken.RecentEnvironmentsDropdown = { Id: "cbx_recentenvironments", Name: "Select an Environment URL" };
 
 // Show Token
 DRB.DOM.ShowToken = {};

@@ -1237,10 +1237,10 @@ DRB.Logic.DataverseExecute.Start = function (requestType) {
     // add link to Microsoft Docs for Action and Function
     switch (requestType) {
         case "executeaction":
-            $("#" + DRB.DOM.ConfigureContent.Id).append(DRB.UI.CreateExternalLink("https://docs.microsoft.com/en-us/dynamics365/customer-engagement/web-api/actions", "Web API Action Reference"));
+            $("#" + DRB.DOM.ConfigureContent.Id).append(DRB.UI.CreateExternalLink("https://learn.microsoft.com/en-us/power-apps/developer/data-platform/webapi/reference/actions", "Web API Action Reference"));
             break;
         case "executefunction":
-            $("#" + DRB.DOM.ConfigureContent.Id).append(DRB.UI.CreateExternalLink("https://docs.microsoft.com/en-us/dynamics365/customer-engagement/web-api/functions", "Web API Function Reference"));
+            $("#" + DRB.DOM.ConfigureContent.Id).append(DRB.UI.CreateExternalLink("https://learn.microsoft.com/en-us/power-apps/developer/data-platform/webapi/reference/functions", "Web API Function Reference"));
             break;
     }
 

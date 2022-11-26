@@ -105,7 +105,6 @@ DRB.DOM.Collection.Postman.ScopeInput = { Id: "txt_postman_scope" };
 DRB.DOM.Collection.Postman.ResourceSpan = { Id: "span_postman_resource", Name: "Resource" };
 DRB.DOM.Collection.Postman.ResourceInput = { Id: "txt_postman_resource" };
 
-
 DRB.DOM.Collection.RESTClient = {};
 DRB.DOM.Collection.RESTClient.Div = { Id: "div_export_restclient" };
 DRB.DOM.Collection.RESTClient.SettingsDiv = { Id: "div_export_restclient_setting" };
@@ -154,6 +153,9 @@ DRB.DOM.Collection.ThunderClient.ScopeInput = { Id: "txt_thunder_scope" };
 DRB.DOM.AccessToken = {}
 DRB.DOM.AccessToken.GetButton = { Id: "btn_token_get", Name: "Get Access Token", Class: "btn btn-primary" };
 DRB.DOM.AccessToken.InstanceUrlInput = { Id: "txt_token_instanceurl" };
+DRB.DOM.AccessToken.RecentEnvironmentsDiv = { Id: "div_recentenvironments" }; // defined also inside drb_be_gettoken.js
+DRB.DOM.AccessToken.RecentEnvironmentsSpan = { Id: "span_recentenvironments", Name: "Recent Environment URLs" };
+DRB.DOM.AccessToken.RecentEnvironmentsDropdown = { Id: "cbx_recentenvironments", Name: "Select an Environment URL" };
 
 // Show Token
 DRB.DOM.ShowToken = {};
@@ -6883,7 +6885,7 @@ DRB.GenerateCode.GetXrmWebApiWarnings = function (settings, includeExpandWarning
     if (settings.hasOwnProperty("detectDuplicates") && settings.detectDuplicates === true) { warnings.push("// WARNING: Xrm.WebApi doesn't support Detect Duplicates"); }
     if (settings.hasOwnProperty("prevent") && settings.prevent !== "none") { warnings.push("// WARNING: Xrm.WebApi doesn't support Prevent"); }
     if (settings.hasOwnProperty("useAlternateKey") && settings.useAlternateKey === true) { warnings.push("// WARNING: Xrm.WebApi doesn't support Alternate Key"); }
-    if (includeExpandWarning === true) { warnings.push("// WARNING: Xrm.WebApi.online.execute doesn't support $expand"); }
+    if (includeExpandWarning === true) { warnings.push("// WARNING: Xrm.WebApi.execute doesn't support $expand"); }
 
     if (warnings.length > 0) {
         warnings.push("// THE CODE HAS BEEN GENERATED CONSIDERING THESE WARNINGS");
@@ -6917,9 +6919,9 @@ DRB.GenerateCode.GetPortalsWarnings = function (settings) {
     var code = [];
     var warnings = [];
     code.push("// IMPORTANT NOTE! please read the following documentation regarding Portals Web API:");
-    code.push('// https://docs.microsoft.com/en-us/powerapps/maker/portals/web-api-overview');
+    code.push('// https://learn.microsoft.com/en-us/power-apps/maker/portals/web-api-overview');
     code.push('// "webapi.safeAjax" wrapper is based on the code from this page:');
-    code.push('// https://docs.microsoft.com/en-us/powerapps/maker/portals/web-api-http-requests-handle-errors');
+    code.push('// https://learn.microsoft.com/en-us/power-apps/maker/portals/web-api-http-requests-handle-errors');
     code.push('');
 
     if (settings.hasOwnProperty("async") && settings.async === false) { warnings.push("// WARNING: Portals doesn't support Synchronous mode"); }
@@ -7472,14 +7474,15 @@ DRB.GenerateCode.RetrieveSingle = function () {
 
     // #region Xrm.WebApi
     codeXrmWebApi = DRB.GenerateCode.GetXrmWebApiWarnings(settings);
-
+    codeXrmWebApi.push('// NOTE: retrieveRecord is available in online mode, if you need this functionality change the call to Xrm.WebApi.online.retrieveRecord');
+    codeXrmWebApi.push('// https://learn.microsoft.com/en-us/power-apps/developer/model-driven-apps/clientapi/reference/xrm-webapi/online');
     codeXrmWebApi.push('// NOTE: retrieveRecord is available in offline mode, if you need this functionality change the call to Xrm.WebApi.offline.retrieveRecord');
-    codeXrmWebApi.push('// https://docs.microsoft.com/en-us/powerapps/developer/model-driven-apps/clientapi/reference/xrm-webapi/offline');
+    codeXrmWebApi.push('// https://learn.microsoft.com/en-us/power-apps/developer/model-driven-apps/clientapi/reference/xrm-webapi/offline');
     var entityCriteriaXrmWebApi = entityCriteria;
     if (settings.useAlternateKey === true) { entityCriteriaXrmWebApi = ""; }
     var urlFieldsXrmWebApi = urlFields;
     if (urlFields !== '') { urlFieldsXrmWebApi = ', "' + urlFields + '"'; }
-    codeXrmWebApi.push('Xrm.WebApi.online.retrieveRecord("' + settings.primaryEntity.logicalName + '", "' + entityCriteriaXrmWebApi + '"' + urlFieldsXrmWebApi + ').then(');
+    codeXrmWebApi.push('Xrm.WebApi.retrieveRecord("' + settings.primaryEntity.logicalName + '", "' + entityCriteriaXrmWebApi + '"' + urlFieldsXrmWebApi + ').then(');
     codeXrmWebApi.push('\tfunction success(result) {');
     codeXrmWebApi.push('\t\tconsole.log(result);');
     var codeFieldsXrmWebApi = [];
@@ -7497,8 +7500,8 @@ DRB.GenerateCode.RetrieveSingle = function () {
     var urlHasExpand = false;
     if (urlFields.indexOf("$expand") > -1) { urlHasExpand = true; }
     codeXrmWebApiExecute = DRB.GenerateCode.GetXrmWebApiWarnings(settings, urlHasExpand);
-    codeXrmWebApiExecute.push('// NOTE: you can use Xrm.WebApi.online.execute if this request needs to be part of an executeMultiple collection');
-    codeXrmWebApiExecute.push('// https://docs.microsoft.com/en-us/powerapps/developer/model-driven-apps/clientapi/reference/xrm-webapi/online/executemultiple');
+    codeXrmWebApiExecute.push('// NOTE: you can use Xrm.WebApi.execute if this request needs to be part of an executeMultiple collection');
+    codeXrmWebApiExecute.push('// https://learn.microsoft.com/en-us/power-apps/developer/model-driven-apps/clientapi/reference/xrm-webapi/online/executemultiple');
 
     codeXrmWebApiExecute.push('var retrieveRequest = {');
     codeXrmWebApiExecute.push('\tentityReference: { entityType: "' + settings.primaryEntity.logicalName + '", id: "' + entityCriteriaXrmWebApi + '" },');
@@ -7516,7 +7519,7 @@ DRB.GenerateCode.RetrieveSingle = function () {
     codeXrmWebApiExecute.push('};');
     codeXrmWebApiExecute.push('');
 
-    codeXrmWebApiExecute.push('Xrm.WebApi.online.execute(retrieveRequest).then(');
+    codeXrmWebApiExecute.push('Xrm.WebApi.execute(retrieveRequest).then(');
     codeXrmWebApiExecute.push('\tfunction success(response) {');
     codeXrmWebApiExecute.push('\t\tif (response.ok) { return response.json(); }');
     codeXrmWebApiExecute.push('\t}');
@@ -7748,9 +7751,11 @@ DRB.GenerateCode.RetrieveMultiple = function () {
 
     // Xrm.WebApi
     codeXrmWebApi = DRB.GenerateCode.GetXrmWebApiWarnings(settings);
+    codeXrmWebApi.push('// NOTE: retrieveMultipleRecords is available in online mode, if you need this functionality change the call to Xrm.WebApi.online.retrieveMultipleRecords');
+    codeXrmWebApi.push('// https://learn.microsoft.com/en-us/power-apps/developer/model-driven-apps/clientapi/reference/xrm-webapi/online');
     codeXrmWebApi.push('// NOTE: retrieveMultipleRecords is available in offline mode, if you need this functionality change the call to Xrm.WebApi.offline.retrieveMultipleRecords');
-    codeXrmWebApi.push('// https://docs.microsoft.com/en-us/powerapps/developer/model-driven-apps/clientapi/reference/xrm-webapi/offline');
-    codeXrmWebApi.push('Xrm.WebApi.online.retrieveMultipleRecords("' + settings.primaryEntity.logicalName + '"' + urlFieldsXrmWebApi + ').then(');
+    codeXrmWebApi.push('// https://learn.microsoft.com/en-us/power-apps/developer/model-driven-apps/clientapi/reference/xrm-webapi/offline');
+    codeXrmWebApi.push('Xrm.WebApi.retrieveMultipleRecords("' + settings.primaryEntity.logicalName + '"' + urlFieldsXrmWebApi + ').then(');
     codeXrmWebApi.push('\tfunction success(results) {');
     codeXrmWebApi.push('\t\tconsole.log(results);');
     codeXrmWebApi.push('\t\tfor (var i = 0; i < results.entities.length; i++) {');
@@ -7965,11 +7970,13 @@ DRB.GenerateCode.Create = function () {
 
     // #region Xrm.WebApi
     codeXrmWebApi = DRB.GenerateCode.GetXrmWebApiWarnings(settings);
+    codeXrmWebApi.push('// NOTE: createRecord is available in online mode, if you need this functionality change the call to Xrm.WebApi.online.createRecord');
+    codeXrmWebApi.push('// https://learn.microsoft.com/en-us/power-apps/developer/model-driven-apps/clientapi/reference/xrm-webapi/online');
     codeXrmWebApi.push('// NOTE: createRecord is available in offline mode, if you need this functionality change the call to Xrm.WebApi.offline.createRecord');
-    codeXrmWebApi.push('// https://docs.microsoft.com/en-us/powerapps/developer/model-driven-apps/clientapi/reference/xrm-webapi/offline');
+    codeXrmWebApi.push('// https://learn.microsoft.com/en-us/power-apps/developer/model-driven-apps/clientapi/reference/xrm-webapi/offline');
 
     codeEntity.forEach(function (line) { codeXrmWebApi.push(line); });
-    codeXrmWebApi.push('Xrm.WebApi.online.createRecord("' + settings.primaryEntity.logicalName + '", record).then(');
+    codeXrmWebApi.push('Xrm.WebApi.createRecord("' + settings.primaryEntity.logicalName + '", record).then(');
     codeXrmWebApi.push('\tfunction success(result) {');
     codeXrmWebApi.push('\t\tvar newId = result.id;');
     codeXrmWebApi.push('\t\tconsole.log(newId);');
@@ -7982,8 +7989,8 @@ DRB.GenerateCode.Create = function () {
 
     // #region Xrm.WebApi.execute
     codeXrmWebApiExecute = DRB.GenerateCode.GetXrmWebApiWarnings(settings);
-    codeXrmWebApiExecute.push('// NOTE: you can use Xrm.WebApi.online.execute if this request needs to be part of an executeMultiple collection');
-    codeXrmWebApiExecute.push('// https://docs.microsoft.com/en-us/powerapps/developer/model-driven-apps/clientapi/reference/xrm-webapi/online/executemultiple');
+    codeXrmWebApiExecute.push('// NOTE: you can use Xrm.WebApi.execute if this request needs to be part of an executeMultiple collection');
+    codeXrmWebApiExecute.push('// https://learn.microsoft.com/en-us/power-apps/developer/model-driven-apps/clientapi/reference/xrm-webapi/online/executemultiple');
     // add Code Entity
     codeEntity.forEach(function (line) { codeXrmWebApiExecute.push(line); });
     codeXrmWebApiExecute.push('var createRequest = {');
@@ -7993,7 +8000,7 @@ DRB.GenerateCode.Create = function () {
     codeXrmWebApiExecute.push('};');
     codeXrmWebApiExecute.push('');
 
-    codeXrmWebApiExecute.push('Xrm.WebApi.online.execute(createRequest).then(');
+    codeXrmWebApiExecute.push('Xrm.WebApi.execute(createRequest).then(');
     codeXrmWebApiExecute.push('\tfunction success(response) {');
     codeXrmWebApiExecute.push('\t\tif (response.ok) {');
     codeXrmWebApiExecute.push('\t\t\tconsole.log("Record created");');
@@ -8186,13 +8193,15 @@ DRB.GenerateCode.Update = function () {
 
     // #region Xrm.WebApi
     codeXrmWebApi = DRB.GenerateCode.GetXrmWebApiWarnings(settings);
+    codeXrmWebApi.push('// NOTE: updateRecord is available in online mode, if you need this functionality change the call to Xrm.WebApi.online.updateRecord');
+    codeXrmWebApi.push('// https://learn.microsoft.com/en-us/power-apps/developer/model-driven-apps/clientapi/reference/xrm-webapi/online');
     codeXrmWebApi.push('// NOTE: updateRecord is available in offline mode, if you need this functionality change the call to Xrm.WebApi.offline.updateRecord');
-    codeXrmWebApi.push('// https://docs.microsoft.com/en-us/powerapps/developer/model-driven-apps/clientapi/reference/xrm-webapi/offline');
+    codeXrmWebApi.push('// https://learn.microsoft.com/en-us/power-apps/developer/model-driven-apps/clientapi/reference/xrm-webapi/offline');
 
     codeEntity.forEach(function (line) { codeXrmWebApi.push(line); });
     var entityCriteriaXrmWebApi = entityCriteria;
     if (settings.useAlternateKey === true) { entityCriteriaXrmWebApi = ""; }
-    codeXrmWebApi.push('Xrm.WebApi.online.updateRecord("' + settings.primaryEntity.logicalName + '", "' + entityCriteriaXrmWebApi + '", record).then(');
+    codeXrmWebApi.push('Xrm.WebApi.updateRecord("' + settings.primaryEntity.logicalName + '", "' + entityCriteriaXrmWebApi + '", record).then(');
     codeXrmWebApi.push('\tfunction success(result) {');
     codeXrmWebApi.push('\t\tvar updatedId = result.id;');
     codeXrmWebApi.push('\t\tconsole.log(updatedId);');
@@ -8205,8 +8214,8 @@ DRB.GenerateCode.Update = function () {
 
     // #region Xrm.WebApi.execute
     codeXrmWebApiExecute = DRB.GenerateCode.GetXrmWebApiWarnings(settings);
-    codeXrmWebApiExecute.push('// NOTE: you can use Xrm.WebApi.online.execute if this request needs to be part of an executeMultiple collection');
-    codeXrmWebApiExecute.push('// https://docs.microsoft.com/en-us/powerapps/developer/model-driven-apps/clientapi/reference/xrm-webapi/online/executemultiple');
+    codeXrmWebApiExecute.push('// NOTE: you can use Xrm.WebApi.execute if this request needs to be part of an executeMultiple collection');
+    codeXrmWebApiExecute.push('// https://learn.microsoft.com/en-us/power-apps/developer/model-driven-apps/clientapi/reference/xrm-webapi/online/executemultiple');
 
     codeEntity.forEach(function (line) { codeXrmWebApiExecute.push(line); });
     codeXrmWebApiExecute.push('var updateRequest = {');
@@ -8216,7 +8225,7 @@ DRB.GenerateCode.Update = function () {
     codeXrmWebApiExecute.push('\tgetMetadata: function () { return { boundParameter: null, parameterTypes: {}, operationType: 2, operationName: "Update" }; }');
     codeXrmWebApiExecute.push('};');
     codeXrmWebApiExecute.push('');
-    codeXrmWebApiExecute.push('Xrm.WebApi.online.execute(updateRequest).then(');
+    codeXrmWebApiExecute.push('Xrm.WebApi.execute(updateRequest).then(');
     codeXrmWebApiExecute.push('\tfunction success(response) {');
     codeXrmWebApiExecute.push('\t\tif (response.ok) {');
     codeXrmWebApiExecute.push('\t\t\tconsole.log("Record updated");');
@@ -8391,11 +8400,13 @@ DRB.GenerateCode.Delete = function () {
 
     // #region Xrm.WebApi
     codeXrmWebApi = DRB.GenerateCode.GetXrmWebApiWarnings(settings);
+    codeXrmWebApi.push('// NOTE: deleteRecord is available in online mode, if you need this functionality change the call to Xrm.WebApi.online.deleteRecord');
+    codeXrmWebApi.push('// https://learn.microsoft.com/en-us/power-apps/developer/model-driven-apps/clientapi/reference/xrm-webapi/online');
     codeXrmWebApi.push('// NOTE: deleteRecord is available in offline mode, if you need this functionality change the call to Xrm.WebApi.offline.deleteRecord');
-    codeXrmWebApi.push('// https://docs.microsoft.com/en-us/powerapps/developer/model-driven-apps/clientapi/reference/xrm-webapi/offline');
+    codeXrmWebApi.push('// https://learn.microsoft.com/en-us/power-apps/developer/model-driven-apps/clientapi/reference/xrm-webapi/offline');
     var entityCriteriaXrmWebApi = entityCriteria;
     if (settings.useAlternateKey === true) { entityCriteriaXrmWebApi = ""; }
-    codeXrmWebApi.push('Xrm.WebApi.online.deleteRecord("' + settings.primaryEntity.logicalName + '", "' + entityCriteriaXrmWebApi + '").then(');
+    codeXrmWebApi.push('Xrm.WebApi.deleteRecord("' + settings.primaryEntity.logicalName + '", "' + entityCriteriaXrmWebApi + '").then(');
     codeXrmWebApi.push('\tfunction success(result) {');
     codeXrmWebApi.push('\t\tconsole.log(result);');
     codeXrmWebApi.push('\t},');
@@ -8407,14 +8418,14 @@ DRB.GenerateCode.Delete = function () {
 
     // #region Xrm.WebApi.execute
     codeXrmWebApiExecute = DRB.GenerateCode.GetXrmWebApiWarnings(settings);
-    codeXrmWebApiExecute.push('// NOTE: you can use Xrm.WebApi.online.execute if this request needs to be part of an executeMultiple collection');
-    codeXrmWebApiExecute.push('// https://docs.microsoft.com/en-us/powerapps/developer/model-driven-apps/clientapi/reference/xrm-webapi/online/executemultiple');
+    codeXrmWebApiExecute.push('// NOTE: you can use Xrm.WebApi.execute if this request needs to be part of an executeMultiple collection');
+    codeXrmWebApiExecute.push('// https://learn.microsoft.com/en-us/power-apps/developer/model-driven-apps/clientapi/reference/xrm-webapi/online/executemultiple');
     codeXrmWebApiExecute.push('var deleteRequest = {');
     codeXrmWebApiExecute.push('\tentityReference: { entityType: "' + settings.primaryEntity.logicalName + '", id: "' + entityCriteriaXrmWebApi + '" },');
     codeXrmWebApiExecute.push('\tgetMetadata: function () { return { boundParameter: null, parameterTypes: {}, operationType: 2, operationName: "Delete" }; }');
     codeXrmWebApiExecute.push('};');
     codeXrmWebApiExecute.push('');
-    codeXrmWebApiExecute.push('Xrm.WebApi.online.execute(deleteRequest).then(');
+    codeXrmWebApiExecute.push('Xrm.WebApi.execute(deleteRequest).then(');
     codeXrmWebApiExecute.push('\tfunction success(response) {');
     codeXrmWebApiExecute.push('\t\tif (response.ok) {');
     codeXrmWebApiExecute.push('\t\t\tconsole.log("Record deleted");');
@@ -8554,7 +8565,7 @@ DRB.GenerateCode.Associate = function () {
     codeXrmWebApi.push('\tgetMetadata: function () { return { boundParameter: null, parameterTypes: {}, operationType: 2, operationName: "Associate" }; }');
     codeXrmWebApi.push('};');
     codeXrmWebApi.push('');
-    codeXrmWebApi.push('Xrm.WebApi.online.execute(associateRequest).then(');
+    codeXrmWebApi.push('Xrm.WebApi.execute(associateRequest).then(');
     codeXrmWebApi.push('\tfunction success(response) {');
     codeXrmWebApi.push('\t\tif (response.ok) {');
     codeXrmWebApi.push('\t\t\tconsole.log("Success");');
@@ -8701,7 +8712,7 @@ DRB.GenerateCode.Disassociate = function () {
     codeXrmWebApi.push('\tgetMetadata: function () { return { boundParameter: null, parameterTypes: {}, operationType: 2, operationName: "Disassociate" }; }');
     codeXrmWebApi.push('};');
     codeXrmWebApi.push('');
-    codeXrmWebApi.push('Xrm.WebApi.online.execute(disassociateRequest).then(');
+    codeXrmWebApi.push('Xrm.WebApi.execute(disassociateRequest).then(');
     codeXrmWebApi.push('\tfunction success(response) {');
     codeXrmWebApi.push('\t\tif (response.ok) {');
     codeXrmWebApi.push('\t\t\tconsole.log("Success");');
@@ -8968,7 +8979,7 @@ DRB.GenerateCode.PredefinedQuery = function () {
         codeXrmWebApi.push('');
     }
     if (settings.queryType !== "fetchxml") { queryParameter += '"'; }
-    codeXrmWebApi.push('Xrm.WebApi.online.retrieveMultipleRecords("' + settings.primaryEntity.logicalName + '", "' + queryParameter + ').then(');
+    codeXrmWebApi.push('Xrm.WebApi.retrieveMultipleRecords("' + settings.primaryEntity.logicalName + '", "' + queryParameter + ').then(');
     codeXrmWebApi.push('\tfunction success(results) {');
     codeXrmWebApi.push('\t\tconsole.log(results);');
     codeXrmWebApi.push('\t},');
@@ -9152,7 +9163,7 @@ DRB.GenerateCode.DataverseExecute = function (requestType) {
     codeXrmWebApi.push('\t}');
     codeXrmWebApi.push('};');
     codeXrmWebApi.push('');
-    codeXrmWebApi.push('Xrm.WebApi.online.execute(execute_' + settings.dataverseExecute + '_Request).then(');
+    codeXrmWebApi.push('Xrm.WebApi.execute(execute_' + settings.dataverseExecute + '_Request).then(');
     codeXrmWebApi.push('\tfunction success(response) {');
 
     if (settings.dataverseReturnType !== null) {
@@ -9419,7 +9430,7 @@ DRB.GenerateCode.ExecuteWorkflow = function () {
     codeXrmWebApi.push('\t}');
     codeXrmWebApi.push('};');
     codeXrmWebApi.push('');
-    codeXrmWebApi.push('Xrm.WebApi.online.execute(executeWorkflowRequest).then(');
+    codeXrmWebApi.push('Xrm.WebApi.execute(executeWorkflowRequest).then(');
     codeXrmWebApi.push('\tfunction success(response) {');
     codeXrmWebApi.push('\t\tif (response.ok) { return response.json(); }');
     codeXrmWebApi.push('\t}');
@@ -16272,10 +16283,10 @@ DRB.Logic.DataverseExecute.Start = function (requestType) {
     // add link to Microsoft Docs for Action and Function
     switch (requestType) {
         case "executeaction":
-            $("#" + DRB.DOM.ConfigureContent.Id).append(DRB.UI.CreateExternalLink("https://docs.microsoft.com/en-us/dynamics365/customer-engagement/web-api/actions", "Web API Action Reference"));
+            $("#" + DRB.DOM.ConfigureContent.Id).append(DRB.UI.CreateExternalLink("https://learn.microsoft.com/en-us/power-apps/developer/data-platform/webapi/reference/actions", "Web API Action Reference"));
             break;
         case "executefunction":
-            $("#" + DRB.DOM.ConfigureContent.Id).append(DRB.UI.CreateExternalLink("https://docs.microsoft.com/en-us/dynamics365/customer-engagement/web-api/functions", "Web API Function Reference"));
+            $("#" + DRB.DOM.ConfigureContent.Id).append(DRB.UI.CreateExternalLink("https://learn.microsoft.com/en-us/power-apps/developer/data-platform/webapi/reference/functions", "Web API Function Reference"));
             break;
     }
 
@@ -18101,7 +18112,7 @@ DRB.InsertMainBodyContent = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.40";
+    var drbVersion = "1.0.0.42";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 
