@@ -432,6 +432,7 @@ DRB.Logic.CompleteInitialize = function () {
                         var warningEditor = "NOTE: console.log messages will appear inside the Results tab";
                         var warningResults = "NOTE: Due to asynchronous calls the output can appear later";
                         var warningFetchXML = "NOTE: Inside DRB for XrmToolBox you can send the code to <a target='_blank' href='https://fetchxmlbuilder.com'>FetchXML Builder</a>";
+						var warningSDK = "NOTE: the C# SDK syntax is experimental";
                         // warnings when DRB is running outside a managed solution
                         if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsBEMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) {
                             if (DRB.Xrm.IsXTBMode()) {
@@ -480,6 +481,9 @@ DRB.Logic.CompleteInitialize = function () {
                                             $("#" + DRB.DOM.TabsWarning.Id + tab.Id).append(btn_copyFetchXML);
                                         }
                                     }
+                                }
+								if (DRB.Utilities.HasValue(tab.WarningSDK) && tab.WarningSDK === true) {
+                                    $("#" + DRB.DOM.TabsWarning.Id + tab.Id).html(warningSDK);
                                 }
                             }
                         });

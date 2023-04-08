@@ -500,6 +500,13 @@ DRB.DOM.FetchXML.Span = { Id: "span_fetchxml", Name: "Fetch XML" };
 DRB.DOM.FetchXML.Editor = { Id: "editor_fetchxml", Class: "code_editor" };
 // #endregion
 
+// SDK
+DRB.DOM.SDK = {};
+DRB.DOM.SDK.Div = { Id: "div_sdk" };
+DRB.DOM.SDK.Span = { Id: "span_sdk", Name: "C# SDK" };
+DRB.DOM.SDK.Editor = { Id: "editor_sdk", Class: "code_editor" };
+// #endregion
+
 // #region Dataverse Execute
 // Dataverse Custom API
 DRB.DOM.DataverseCustomAPI = {};
@@ -4621,6 +4628,7 @@ DRB.Logic.CompleteInitialize = function () {
                         var warningEditor = "NOTE: console.log messages will appear inside the Results tab";
                         var warningResults = "NOTE: Due to asynchronous calls the output can appear later";
                         var warningFetchXML = "NOTE: Inside DRB for XrmToolBox you can send the code to <a target='_blank' href='https://fetchxmlbuilder.com'>FetchXML Builder</a>";
+						var warningSDK = "NOTE: the C# SDK syntax is experimental";
                         // warnings when DRB is running outside a managed solution
                         if (DRB.Xrm.IsXTBMode() || DRB.Xrm.IsBEMode() || DRB.Xrm.IsJWTMode() || DRB.Xrm.IsDVDTMode()) {
                             if (DRB.Xrm.IsXTBMode()) {
@@ -4669,6 +4677,9 @@ DRB.Logic.CompleteInitialize = function () {
                                             $("#" + DRB.DOM.TabsWarning.Id + tab.Id).append(btn_copyFetchXML);
                                         }
                                     }
+                                }
+								if (DRB.Utilities.HasValue(tab.WarningSDK) && tab.WarningSDK === true) {
+                                    $("#" + DRB.DOM.TabsWarning.Id + tab.Id).html(warningSDK);
                                 }
                             }
                         });
@@ -5744,7 +5755,7 @@ DRB.Logic.ClickSelectRelationshipColumns = function (relationshipType) {
  * @param {string[]} codeFetchAPI Code Fetch API
  * @param {string[]} codePortals Code Portals
  */
-DRB.GenerateCode.SetCodeEditors = function (codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, codeFetchXML) {
+DRB.GenerateCode.SetCodeEditors = function (codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, codeFetchXML, codeSDK) {
     if (!DRB.Utilities.HasValue(codeXrmWebApi)) { codeXrmWebApi = []; }
     if (!DRB.Utilities.HasValue(codeXrmWebApiExecute)) { codeXrmWebApiExecute = []; } // Xrm.WebApi execute is available only for Retrieve Single, Create, Update, Delete
     if (!DRB.Utilities.HasValue(codejQuery)) { codejQuery = []; }
@@ -5752,6 +5763,7 @@ DRB.GenerateCode.SetCodeEditors = function (codeXrmWebApi, codeXrmWebApiExecute,
     if (!DRB.Utilities.HasValue(codeFetchAPI)) { codeFetchAPI = []; }
     if (!DRB.Utilities.HasValue(codePortals)) { codePortals = []; } // Portals is available only for Retrieve Single, Retrieve Multiple, Create, Update, Delete, Associate, Disassociate
     if (!DRB.Utilities.HasValue(codeFetchXML)) { codeFetchXML = []; }
+	if (!DRB.Utilities.HasValue(codeSDK)) { codeSDK = []; }
 
     DRB.Settings.Editors["code_xrmwebapi"].session.setValue(codeXrmWebApi.join('\n'));
     DRB.Settings.Editors["code_xrmwebapiexecute"].session.setValue(codeXrmWebApiExecute.join('\n'));
@@ -5760,6 +5772,7 @@ DRB.GenerateCode.SetCodeEditors = function (codeXrmWebApi, codeXrmWebApiExecute,
     DRB.Settings.Editors["code_xmlhttprequest"].session.setValue(codeXMLHttpRequest.join('\n'));
     DRB.Settings.Editors["code_portals"].session.setValue(codePortals.join('\n'));
     DRB.Settings.Editors["code_fetchxml"].session.setValue(codeFetchXML.join('\n'));
+	DRB.Settings.Editors["code_sdk"].session.setValue(codeSDK.join('\n'));
 }
 
 /**
@@ -6265,6 +6278,65 @@ DRB.GenerateCode.GetAlternateKeys = function (settings) {
 }
 
 /**
+ * Generate Code - Get SDK Alternate Keys
+ * Used in Retrieve Single, Retrieve Multiple, Update, Delete
+ * @param {any} settings Configuration
+ */
+DRB.GenerateCode.GetSDKAlternateKeys = function (settings) {
+    var criteria = [];
+	criteria.push('KeyAttributeCollection alternateKey = new KeyAttributeCollection();');
+	
+    settings.alternateKeyFields.forEach(function (field) {
+		var keyRow = 'alternateKey.Add("' + field.logicalName + '", ';
+        var keyValue = field.value;
+		
+        if (keyValue === "" || keyValue === null) {
+			criteria.push(keyRow + 'null);');
+        } else {
+            switch (field.type) {
+                case "Uniqueidentifier":
+					criteria.push(keyRow + 'new Guid("' + keyValue + '"));');
+					break;
+                case "Picklist":
+					criteria.push(keyRow + 'new OptionSetValue(' + keyValue + '));');
+					break;
+                case "Integer":
+				criteria.push(keyRow + keyValue + ');');
+                    break;
+                case "Decimal":
+					criteria.push(keyRow + keyValue + 'm);');
+                    break;
+                case "String":
+                    keyValue = keyValue.replace(/"/g, '\\"');
+                    criteria.push(keyRow + '"' + keyValue + '");');
+                    break;
+                case "DateTime":
+                    if (field.dateTimeBehavior === "DateOnly") {
+						criteria.push(keyRow + 'new DateTime("' + keyValue + '"));');
+					}
+                    else {
+                        try {
+                            var isoString = new Date(keyValue).toISOString();
+							criteria.push(keyRow + 'DateTime.Parse("' + isoString + '"));');
+                        } catch { criteria.push(keyRow + '"' + keyValue + '");'); }
+                    }
+                    break;
+                case "Lookup":
+                    if (DRB.Utilities.HasValue(field.value.id)) { 
+						criteria.push(keyRow + 'new EntityReference("' + field.value.entityType + '", new Guid("' + field.value.id + '")));');
+					}
+                    else {
+						criteria.push(keyRow + 'null);');
+					}
+                    break;
+            }
+        }
+    });
+	criteria.push('');
+    return criteria;
+}
+
+/**
  * Generate Code - Get Request Header Values
  * @param {any} settings Configuration
  * @param {bool} isBinary Is Binary
@@ -6370,6 +6442,72 @@ DRB.GenerateCode.GetXHRRequestHeaders = function (settings, isBinary) {
         if (key === "If-None-Match" && headerValues[key] === "W/\\\"000000\\\"") { headers[headers.length - 1] = headers[headers.length - 1] + " // Change 000000 to your value"; }
     });
     return headers;
+}
+
+/**
+ * Generate Code - Get Portals Request Headers
+ * @param {any} settings Configuration
+ */
+DRB.GenerateCode.GetPortalsRequestHeaders = function (settings) {
+    // Default Headers
+    var headerValues = {};
+
+    // Formatted Values and Return Record
+    if (settings.hasOwnProperty("formattedValues")) {
+        if (!settings.hasOwnProperty("topCount")) {
+            if (settings.formattedValues === true) { headerValues["Prefer"] = "odata.include-annotations=*"; }
+        }
+        else {
+            if (settings.hasOwnProperty("topCount")) {
+                var hasTopCount = DRB.Utilities.HasValue(settings.topCount);
+                if (settings.formattedValues === true && hasTopCount !== true) { headerValues["Prefer"] = "odata.include-annotations=*"; }
+                if (settings.formattedValues !== true && hasTopCount === true) { headerValues["Prefer"] = "odata.maxpagesize=" + settings.topCount; }
+                if (settings.formattedValues === true && hasTopCount === true) { headerValues["Prefer"] = "odata.include-annotations=*,odata.maxpagesize=" + settings.topCount; }
+            }
+        }
+    }
+
+    // Request Headers
+    var headers = [];
+    Object.keys(headerValues).forEach(function (key) {
+        headers.push('"' + key + '": "' + headerValues[key] + '",');
+        if (key === "Authorization") { headers[headers.length - 1] = headers[headers.length - 1] + " // Set token value"; }
+        if (key === "If-None-Match" && headerValues[key] === "W/\\\"000000\\\"") { headers[headers.length - 1] = headers[headers.length - 1] + " // Change 000000 to your value"; }
+    });
+	if (headers.length > 0) {
+		if (headers[headers.length - 1].slice(-1) === ',') {
+			headers[headers.length - 1] = headers[headers.length - 1].slice(0, -1); // remove the last ","
+		} else {
+			var lastCommaPos = headers[headers.length - 1].lastIndexOf("/") - 3;
+			if (lastCommaPos >= 0 && headers[headers.length - 1].charAt(lastCommaPos) === ",") {
+				headers[headers.length - 1] = headers[headers.length - 1].substring(0, lastCommaPos) + headers[headers.length - 1].substring(lastCommaPos + 1);
+			}
+		}
+	}
+    return headers;
+}
+
+/**
+ * Generate Code - Get SDK Impersonation
+ * @param {any} settings Configuration
+ */
+DRB.GenerateCode.GetSDKImpersonation = function (settings) {
+    var impersonation = [];
+	
+	// Impersonate
+    if (settings.hasOwnProperty("impersonate") && settings.impersonate === true) {
+        var impersonateId = "";
+        var propertyName = "CallerId";
+        if (DRB.Utilities.HasValue(settings.impersonateType)) {
+            switch (settings.impersonateType) {
+                case "mscrmcallerid": propertyName = "CallerId"; break;
+                case "callerobjectid": propertyName = "CallerAADObjectId"; break;
+            }
+        }
+        if (DRB.Utilities.HasValue(settings.impersonateId)) { impersonateId = settings.impersonateId; }
+		impersonation.push('service.' + propertyName + ' = new Guid("' + impersonateId + '");');
+    }
+    return impersonation;
 }
 
 /**
@@ -6508,6 +6646,136 @@ DRB.GenerateCode.GetCodeFields = function (settings) {
         codeFields.push('}');
         codeFieldsFormatted.push('}');
     });
+    return [codeFields, codeFieldsFormatted, codeFieldsFormattedOnlyRecord];
+}
+
+/**
+ * Generate Code - Get SDK Code Fields
+ * Used in Retrieve Single, Create, Update
+ * @param {any} settings Configuration
+ */
+DRB.GenerateCode.GetSDKCodeFields = function (settings, requestType) {
+    // Code Fields
+    var codeFields = [];
+	var codeFieldsFormatted = [];
+	var codeFieldsFormattedOnlyRecord = [];
+	
+    var formattedTypes = ["Picklist", "MultiPicklist", "State", "Status", "DateTime", "Owner", "Lookup", "Customer", "Boolean", "Decimal", "BigInt", "Integer", "EntityName", "Double"];
+    var logicalNameTypes = ["Lookup", "Owner", "Customer"];
+
+    var fieldLogicalNames = settings.fields.map(function (field) { return field.logicalName; });
+    codeFields.push('// Columns');
+    var mainFields = JSON.parse(JSON.stringify(settings.fields));
+    if (fieldLogicalNames.indexOf(settings.primaryIdField) === -1) { mainFields.unshift({ logicalName: settings.primaryIdField, oDataName: settings.primaryIdField, type: "Uniqueidentifier" }); }
+
+    mainFields.forEach(function (field) {
+        var renamedFieldType = DRB.GenerateCode.ConvertFieldType(field.type);
+		var sdkType = "";
+		
+		switch(field.type) {
+			case "Uniqueidentifier": sdkType = "Guid"; break;
+			case "Picklist": sdkType = "OptionSetValue"; break;
+			case "MultiPicklist": sdkType = "OptionSetValueCollection"; break;
+			case "Customer": sdkType = "EntityReference"; break;
+			case "DateTime": sdkType = "DateTime"; break;
+			case "Decimal": sdkType = "decimal"; break;
+			case "File": sdkType = "Guid"; break;
+			case "String": sdkType = "string"; break;
+			case "Double": sdkType = "double"; break;
+			case "Image": sdkType = "byte[]"; break;
+			case "Lookup": sdkType = "EntityReference"; break;
+			case "Money": sdkType = "Money"; break;
+			case "Memo": sdkType = "string"; break;
+			case "Owner": sdkType = "EntityReference"; break;
+			case "State": sdkType = "OptionSetValue"; break;
+			case "Status": sdkType = "OptionSetValue"; break;
+			case "Boolean": sdkType = "bool"; break;
+			case "BigInt": sdkType = "Int64"; break;
+			case "Integer": sdkType = "int"; break;
+		}
+		
+        codeFields.push(sdkType + ' ' + field.logicalName + ' = result.GetAttributeValue<' + sdkType + '>("' + field.logicalName + '"); // ' + renamedFieldType);
+    });
+	
+	if (requestType !== "retrievesingle") {
+		if (settings.oneToMany.length > 0) {
+			codeFields.push('');
+			codeFields.push('// One To Many Relationships');
+			codeFieldsFormatted.push('');
+			codeFieldsFormatted.push('// One To Many Relationships');
+		}
+		settings.oneToMany.forEach(function (oneToMany) {
+			codeFields.push('for (var j = 0; j < result.' + oneToMany.schemaName + '.length; j++) {');
+			codeFieldsFormatted.push('for (var j = 0; j < result.' + oneToMany.schemaName + '.length; j++) {');
+			oneToMany.fields.forEach(function (field) {
+	
+				var renamedFieldType = DRB.GenerateCode.ConvertFieldType(field.type);
+	
+				codeFields.push('\tvar ' + oneToMany.schemaName + '_' + field.logicalName + ' = result.' + oneToMany.schemaName + '[j]["' + field.oDataName + '"]; // ' + renamedFieldType);
+				codeFieldsFormatted.push('\tvar ' + oneToMany.schemaName + '_' + field.logicalName + ' = result.' + oneToMany.schemaName + '[j]["' + field.oDataName + '"]; // ' + renamedFieldType);
+				if (formattedTypes.indexOf(field.type) > -1) {
+					codeFieldsFormatted.push('\tvar ' + oneToMany.schemaName + '_' + field.logicalName + '_formatted = result.' + oneToMany.schemaName + '[j]["' + field.oDataName + '@OData.Community.Display.V1.FormattedValue"];');
+				}
+				if (logicalNameTypes.indexOf(field.type) > -1) {
+					codeFieldsFormatted.push('\tvar ' + oneToMany.schemaName + '_' + field.logicalName + '_lookuplogicalname = result.' + oneToMany.schemaName + '[j]["' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname"];');
+				}
+			});
+			codeFields.push('}');
+			codeFieldsFormatted.push('}');
+		});
+	
+		if (settings.manyToOne.length > 0) {
+			codeFields.push('');
+			codeFields.push('// Many To One Relationships');
+			codeFieldsFormatted.push('');
+			codeFieldsFormatted.push('// Many To One Relationships');
+		}
+		settings.manyToOne.forEach(function (manyToOne) {
+			codeFields.push('if (result.hasOwnProperty("' + manyToOne.navigationProperty + '") && result["' + manyToOne.navigationProperty + '"] !== null) {');
+			codeFieldsFormatted.push('if (result.hasOwnProperty("' + manyToOne.navigationProperty + '") && result["' + manyToOne.navigationProperty + '"] !== null) {');
+			manyToOne.fields.forEach(function (field) {
+	
+				var renamedFieldType = DRB.GenerateCode.ConvertFieldType(field.type);
+	
+				codeFields.push('\tvar ' + manyToOne.navigationProperty + '_' + field.logicalName + ' = result["' + manyToOne.navigationProperty + '"]["' + field.oDataName + '"]; // ' + renamedFieldType);
+				codeFieldsFormatted.push('\tvar ' + manyToOne.navigationProperty + '_' + field.logicalName + ' = result["' + manyToOne.navigationProperty + '"]["' + field.oDataName + '"]; // ' + renamedFieldType);
+				if (formattedTypes.indexOf(field.type) > -1) {
+					codeFieldsFormatted.push('\tvar ' + manyToOne.navigationProperty + '_' + field.logicalName + '_formatted = result["' + manyToOne.navigationProperty + '"]["' + field.oDataName + '@OData.Community.Display.V1.FormattedValue"];');
+				}
+				if (logicalNameTypes.indexOf(field.type) > -1) {
+					codeFieldsFormatted.push('\tvar ' + manyToOne.navigationProperty + '_' + field.logicalName + '_lookuplogicalname = result["' + manyToOne.navigationProperty + '"]["' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname"];');
+				}
+			});
+			codeFields.push('}');
+			codeFieldsFormatted.push('}');
+		});
+	
+		if (settings.manyToMany.length > 0) {
+			codeFields.push('');
+			codeFields.push('// Many To Many Relationships');
+			codeFieldsFormatted.push('');
+			codeFieldsFormatted.push('// Many To Many Relationships');
+		}
+		settings.manyToMany.forEach(function (manyToMany) {
+			codeFields.push('for (var j = 0; j < result.' + manyToMany.schemaName + '.length; j++) {');
+			codeFieldsFormatted.push('for (var j = 0; j < result.' + manyToMany.schemaName + '.length; j++) {');
+			manyToMany.fields.forEach(function (field) {
+	
+				var renamedFieldType = DRB.GenerateCode.ConvertFieldType(field.type);
+	
+				codeFields.push('\tvar ' + manyToMany.schemaName + '_' + field.logicalName + ' = result.' + manyToMany.schemaName + '[j]["' + field.oDataName + '"]; // ' + renamedFieldType);
+				codeFieldsFormatted.push('\tvar ' + manyToMany.schemaName + '_' + field.logicalName + ' = result.' + manyToMany.schemaName + '[j]["' + field.oDataName + '"]; // ' + renamedFieldType);
+				if (formattedTypes.indexOf(field.type) > -1) {
+					codeFieldsFormatted.push('\tvar ' + manyToMany.schemaName + '_' + field.logicalName + '_formatted = result.' + manyToMany.schemaName + '[j]["' + field.oDataName + '@OData.Community.Display.V1.FormattedValue"];');
+				}
+				if (logicalNameTypes.indexOf(field.type) > -1) {
+					codeFieldsFormatted.push('\tvar ' + manyToMany.schemaName + '_' + field.logicalName + '_lookuplogicalname = result.' + manyToMany.schemaName + '[j]["' + field.oDataName + '@Microsoft.Dynamics.CRM.lookuplogicalname"];');
+				}
+			});
+			codeFields.push('}');
+			codeFieldsFormatted.push('}');
+		});
+	}
     return [codeFields, codeFieldsFormatted, codeFieldsFormattedOnlyRecord];
 }
 
@@ -6869,6 +7137,117 @@ DRB.GenerateCode.GetCodeEntity = function (settings) {
 }
 
 /**
+ * Generate Code - Get SDK Code Entity
+ * Used in Create, Update
+ * @param {any} settings Configuration
+ */
+DRB.GenerateCode.GetSDKCodeEntity = function (settings) {
+    var codeEntity = [];
+    settings.setFields.forEach(function (field) {
+
+        var renamedFieldType = DRB.GenerateCode.ConvertFieldType(field.type);
+
+        switch (field.type) {
+            case "Uniqueidentifier":
+				var clearedValue = field.value;
+                if (!DRB.Utilities.HasValue(clearedValue)) { clearedValue = null; }
+				else { clearedValue = 'new Guid("' + field.value + '")'; }
+                codeEntity.push('record["' + field.logicalName + '"] = ' + clearedValue + '; // ' + renamedFieldType);
+                break;
+            case "EntityName":
+            case "String":
+            case "Memo":
+                var clearedValue = field.value;
+                if (DRB.Utilities.HasValue(clearedValue)) {
+                    clearedValue = field.value.replace(/"/g, '\\"');
+                    clearedValue = clearedValue.replace(/\r?\n/g, "\\n");
+                }
+                if (!DRB.Utilities.HasValue(clearedValue)) { codeEntity.push('record["' + field.logicalName + '"] = null; // ' + renamedFieldType); }
+                else { codeEntity.push('record["' + field.logicalName + '"] = "' + clearedValue + '"; // ' + renamedFieldType); }
+                break;
+            case "ManagedProperty":
+                var clearedValue = field.value;
+                if (!DRB.Utilities.HasValue(clearedValue)) { clearedValue = null; }
+                codeEntity.push('record["' + field.logicalName + '"] = "' + clearedValue + '"; // ' + renamedFieldType);
+                break;
+            case "BigInt":
+            case "Integer":
+			case "Boolean":
+				var clearedValue = field.value;
+                if (!DRB.Utilities.HasValue(clearedValue)) { clearedValue = null; }
+                codeEntity.push('record["' + field.logicalName + '"] = ' + clearedValue + '; // ' + renamedFieldType);
+                break;
+            case "Decimal":
+			    var clearedValue = field.value;
+                if (!DRB.Utilities.HasValue(clearedValue)) { clearedValue = null; }
+                codeEntity.push('record["' + field.logicalName + '"] = ' + clearedValue + 'm; // ' + renamedFieldType);
+                break;
+            case "Double":
+			    var clearedValue = field.value;
+                if (!DRB.Utilities.HasValue(clearedValue)) { clearedValue = null; }
+                codeEntity.push('record["' + field.logicalName + '"] = ' + clearedValue + 'd; // ' + renamedFieldType);
+                break;
+			
+            case "Picklist":
+            case "State":
+            case "Status":
+                var clearedValue = field.value;
+                if (!DRB.Utilities.HasValue(clearedValue)) { clearedValue = null; }
+				else { clearedValue = 'new OptionSetValue(' + field.value + ')'; }
+                codeEntity.push('record["' + field.logicalName + '"] = ' + clearedValue + '; // ' + renamedFieldType);
+                break;
+            case "Money":
+                var clearedValue = field.value;
+                if (DRB.Utilities.HasValue(clearedValue)) {
+                    clearedValue = 'new Money(' + clearedValue + 'm)';
+                } else { clearedValue = null; }
+                codeEntity.push('record["' + field.logicalName + '"] = ' + clearedValue + '; // ' + renamedFieldType);
+                break;
+            case "MultiPicklist":
+                var clearedValue = null;
+                if (DRB.Utilities.HasValue(field.value)) {
+                    if (field.value.length === 0) { clearedValue = null; }
+                    else {
+						var multiValue = [];
+						var pre = 'new OptionSetValue(';
+						var preList = (pre + field.value.join(')|' + pre)).split('|');
+						clearedValue = 'new OptionSetValueCollection { ' + preList.join(", ") + ') }';
+					}
+                }
+                codeEntity.push('record["' + field.logicalName + '"] = ' + clearedValue + '; // ' + renamedFieldType);
+                break;
+            case "Lookup":
+            case "Owner":
+            case "Customer":
+                if (DRB.Utilities.HasValue(field.value)) {
+                    var clearedValue = null;
+                    if (DRB.Utilities.HasValue(field.value.id)) {
+                        clearedValue = 'new EntityReference("' + field.value.entityType + '", new Guid("'+ field.value.id + '"))';
+                    }
+                    codeEntity.push('record["' + field.logicalName + '"] = ' + clearedValue + '; // ' + renamedFieldType);
+                }
+                break;
+            case "DateTime":
+                var clearedValue = field.value;
+                if (!DRB.Utilities.HasValue(clearedValue)) { codeEntity.push('record["' + field.logicalName + '"] = null; // ' + renamedFieldType); }
+                else {
+                    if (field.dateTimeBehavior === "DateOnly") {
+                        codeEntity.push('record["' + field.logicalName + '"] = DateTime.Parse("' + clearedValue + '"); // ' + renamedFieldType);
+                    }
+                    else { codeEntity.push('record["' + field.logicalName + '"] = DateTime.Parse("' + clearedValue + '"); // ' + renamedFieldType); }
+                }
+                break;
+            case "Image":
+                var clearedValue = field.value;
+                if (!DRB.Utilities.HasValue(clearedValue)) { codeEntity.push('record["' + field.logicalName + '"] = null; // ' + renamedFieldType); }
+                else { codeEntity.push('record["' + field.logicalName + '"] = "' + clearedValue + '"; // ' + renamedFieldType); }
+                break;
+        }
+    });
+    return codeEntity;
+}
+
+/**
  * Generate Code - Get Xrm.WebApi Warnings
  * @param {any} settings Configuration
  */
@@ -6927,7 +7306,6 @@ DRB.GenerateCode.GetPortalsWarnings = function (settings) {
     if (settings.hasOwnProperty("async") && settings.async === false) { warnings.push("// WARNING: Portals doesn't support Synchronous mode"); }
     if (settings.hasOwnProperty("tokenHeader") && settings.tokenHeader === true) { warnings.push("// WARNING: Portals doesn't support Token Header"); }
     if (settings.hasOwnProperty("impersonate") && settings.impersonate === true) { warnings.push("// WARNING: Portals doesn't support Impersonation"); }
-    if (settings.hasOwnProperty("formattedValues") && settings.formattedValues === true) { warnings.push("// WARNING: Portals doesn't support Formatted Values"); }
     if (settings.hasOwnProperty("detectChanges") && settings.detectChanges === true) { warnings.push("// WARNING: Portals doesn't support Detect Changes"); }
     if (settings.hasOwnProperty("returnRecord") && settings.returnRecord === true) { warnings.push("// WARNING: Portals doesn't support Return Record"); }
     if (settings.hasOwnProperty("detectDuplicates") && settings.detectDuplicates === true) { warnings.push("// WARNING: Portals doesn't support Detect Duplicates"); }
@@ -6939,6 +7317,31 @@ DRB.GenerateCode.GetPortalsWarnings = function (settings) {
         code.push('');
     }
 
+    return code;
+}
+
+/**
+ * Generate Code - Get SDK Warnings
+ * @param {any} settings Configuration
+ */
+DRB.GenerateCode.GetSDKWarnings = function (settings) {
+    var code = [];
+    var warnings = [];
+
+    if (settings.hasOwnProperty("tokenHeader") && settings.tokenHeader === true) { warnings.push("// WARNING: C# SDK doesn't support Token Header"); }
+	if (settings.hasOwnProperty("retrieveCount") && settings.retrieveCount === true) { warnings.push("// WARNING: C# SDK doesn't support Retrieve Count"); }
+    if (settings.hasOwnProperty("formattedValues") && settings.formattedValues === true) { warnings.push("// WARNING: C# SDK doesn't support Formatted Values"); }
+    if (settings.hasOwnProperty("detectChanges") && settings.detectChanges === true) { warnings.push("// WARNING: C# SDK doesn't support Detect Changes"); }
+    if (settings.hasOwnProperty("returnRecord") && settings.returnRecord === true) { warnings.push("// WARNING: C# SDK doesn't support Return Record"); }
+    if (settings.hasOwnProperty("detectDuplicates") && settings.detectDuplicates === true) { warnings.push("// WARNING: C# SDK doesn't support Detect Duplicates"); }
+    if (settings.hasOwnProperty("prevent") && settings.prevent !== "none") { warnings.push("// WARNING: C# SDK doesn't support Prevent"); }
+
+    if (warnings.length > 0) {
+        code.push("// NOTE: The following warnings may not be correct");
+        code.push(warnings.join('\n'));
+        code.push('');
+    }
+	if (settings.hasOwnProperty("async") && settings.async === true) { code.push("// NOTE: Asynchronous is only supported with the Microsoft.PowerPlatform.Dataverse.Client package"); }
     return code;
 }
 
@@ -7439,6 +7842,7 @@ DRB.GenerateCode.RetrieveSingle = function () {
     var codeFetchAPI = [];
     var codePortals = [];
     var codeFetchXML = [];
+	var codeSDK = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity)) {
         // Don't generate the code if a table is not selected
@@ -7450,7 +7854,9 @@ DRB.GenerateCode.RetrieveSingle = function () {
         codeFetchAPI.push(errorMessage);
         codePortals.push(errorMessage);
         codeFetchXML.push(errorMessage);
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, codeFetchXML);
+		codeSDK.push(errorMessage);
+		
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, codeFetchXML, codeSDK);
         return;
     }
 
@@ -7466,6 +7872,7 @@ DRB.GenerateCode.RetrieveSingle = function () {
     // Request Headers
     var jQueryHeaders = DRB.GenerateCode.GetJQueryRequestHeaders(settings);
     var xhrHeaders = DRB.GenerateCode.GetXHRRequestHeaders(settings);
+	var portalsHeaders = DRB.GenerateCode.GetPortalsRequestHeaders(settings);
     // Code Fields
     var getCodeFields = DRB.GenerateCode.GetCodeFields(settings);
     var codeFields = getCodeFields[0];
@@ -7645,13 +8052,20 @@ DRB.GenerateCode.RetrieveSingle = function () {
     codePortals.push('\ttype: "GET",');
     codePortals.push('\turl: "' + portalsUrl + '",');
     codePortals.push('\tcontentType: "application/json",');
+	if (portalsHeaders.length > 0) {
+	    codePortals.push('\theaders: {');
+		portalsHeaders.forEach(function (reqHeader) { codePortals.push('\t\t' + reqHeader); });
+		codePortals.push('\t},');
+	}
     codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
     codePortals.push('\t\tvar result = data;');
     codePortals.push('\t\tconsole.log(result);');
 
-    var codeFieldsPortals = [];
-    codeFields.forEach(function (codeField) { codeFieldsPortals.push('\t\t' + codeField); });
-    codePortals.push(codeFieldsPortals.join('\n'));
+	if (settings.formattedValues === true) {
+        codeFieldsFormatted.forEach(function (codeField) { codePortals.push('\t\t' + codeField); });
+    } else {
+        codeFields.forEach(function (codeField) { codePortals.push('\t\t' + codeField); });
+    }
 
     codePortals.push('\t},');
     codePortals.push('\terror: function (xhr, textStatus, errorThrown) {');
@@ -7676,8 +8090,53 @@ DRB.GenerateCode.RetrieveSingle = function () {
     var fetchXMLEndTable = DRB.GenerateCode.GetFetchXMLEndTable();
     fetchXMLEndTable.forEach(function (endTable) { codeFetchXML.push(endTable); });
     // #endregion
+	
+	// #region SDK
+	var methodCode = "service.Retrieve";
+	if (settings.async === true) { methodCode = "await service.RetrieveAsync"; }
+	var methodCodeAlternate = "service.Execute";
+	if (settings.async === true) { methodCodeAlternate = "await service.ExecuteAsync"; }
+	
+	codeSDK = DRB.GenerateCode.GetSDKWarnings(settings);
+	
+	if (settings.oneToMany.length > 0) { codeSDK.push("// NOTE: C# SDK doesn't support One To Many Relationships with the Retrieve request"); }
+	if (settings.manyToOne.length > 0) { codeSDK.push("// NOTE: C# SDK doesn't support Many To One Relationships with the Retrieve request"); }
+	if (settings.manyToMany.length > 0) { codeSDK.push("// NOTE: C# SDK doesn't support Many To Many Relationships with the Retrieve request"); }
+	
+	var impersonation = DRB.GenerateCode.GetSDKImpersonation(settings);
+	if (impersonation.length > 0) { codeSDK = codeSDK.concat(impersonation); }
+	
+	var pre = '"';
+	var fieldLogicalNames = settings.fields.map(function (field) { return field.logicalName; });
+	var preList = (pre + fieldLogicalNames.join('"|' + pre)).split('|');
+	var columnsValue = 'ColumnSet columns = new ColumnSet(' + preList.join(", ") + '");';
+	
+	if (settings.useAlternateKey === true) {
+		var alternateKey = DRB.GenerateCode.GetSDKAlternateKeys(settings);
+		codeSDK = codeSDK.concat(alternateKey);
+		codeSDK.push(columnsValue);
+		codeSDK.push('');
+		codeSDK.push('RetrieveRequest retrieveRequest = new RetrieveRequest');
+		codeSDK.push('{');
+		codeSDK.push('\tColumnSet = columns,');
+		codeSDK.push('\tTarget = new EntityReference("' + settings.primaryEntity.logicalName + '", alternateKey)');
+		codeSDK.push('};');
+		codeSDK.push('RetrieveResponse retrieveResponse = (RetrieveResponse)' + methodCodeAlternate + '(retrieveRequest);');
+		codeSDK.push('Entity result = retrieveResponse.Entity;');
+		
+	} else {
+		codeSDK.push('Guid id = new Guid("' + settings.primaryId + '");');
+		codeSDK.push(columnsValue);
+		codeSDK.push('Entity result = ' + methodCode + '("' + settings.primaryEntity.logicalName + '", id, columns);');
+	}
+	
+	// Code Fields
+    var getCodeFields = DRB.GenerateCode.GetSDKCodeFields(settings, "retrievesingle");
+    var codeFields = getCodeFields[0];
+	codeSDK.push(codeFields.join('\n'));
+	// #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, codeFetchXML);
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, codeFetchXML, codeSDK);
 }
 
 /**
@@ -7693,6 +8152,7 @@ DRB.GenerateCode.RetrieveMultiple = function () {
     var codeFetchAPI = [];
     var codePortals = [];
     var codeFetchXML = [];
+	var codeSDK = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity)) {
         // Don't generate the code if a table is not selected
@@ -7703,8 +8163,9 @@ DRB.GenerateCode.RetrieveMultiple = function () {
         codeFetchAPI.push(errorMessage);
         codePortals.push(errorMessage);
         codeFetchXML.push(errorMessage);
+		codeSDK.push(errorMessage);
 
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, codeFetchXML);
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, codeFetchXML, codeSDK);
         return;
     }
 
@@ -7725,6 +8186,7 @@ DRB.GenerateCode.RetrieveMultiple = function () {
     // Request Headers
     var jQueryHeaders = DRB.GenerateCode.GetJQueryRequestHeaders(settings);
     var xhrHeaders = DRB.GenerateCode.GetXHRRequestHeaders(settings);
+	var portalsHeaders = DRB.GenerateCode.GetPortalsRequestHeaders(settings);
     // Code Fields
     var getCodeFields = DRB.GenerateCode.GetCodeFields(settings);
     var codeFields = getCodeFields[0];
@@ -7864,15 +8326,23 @@ DRB.GenerateCode.RetrieveMultiple = function () {
     codePortals.push('\ttype: "GET",');
     codePortals.push('\turl: "' + portalsUrl + '",');
     codePortals.push('\tcontentType: "application/json",');
+	if (portalsHeaders.length > 0) {
+	    codePortals.push('\theaders: {');
+		portalsHeaders.forEach(function (reqHeader) { codePortals.push('\t\t' + reqHeader); });
+		codePortals.push('\t},');
+	}
     codePortals.push('\tsuccess: function (data, textStatus, xhr) {');
     codePortals.push('\t\tvar results = data;');
     codePortals.push('\t\tconsole.log(results);');
     if (settings.retrieveCount === true) { codePortals.push('\t\tvar odata_count = results["@odata.count"];'); }
     codePortals.push('\t\tfor (var i = 0; i < results.value.length; i++) {');
     codePortals.push('\t\t\tvar result = results.value[i];');
-    var codeFieldsPortals = [];
-    codeFields.forEach(function (codeField) { codeFieldsPortals.push('\t\t\t' + codeField); });
-    codePortals.push(codeFieldsPortals.join('\n'));
+	
+	if (settings.formattedValues === true) {
+        codeFieldsFormatted.forEach(function (codeField) { codePortals.push('\t\t\t' + codeField); });
+    } else {
+        codeFields.forEach(function (codeField) { codePortals.push('\t\t\t' + codeField); });
+    }
     codePortals.push('\t\t}');
     codePortals.push('\t},');
     codePortals.push('\terror: function (xhr, textStatus, errorThrown) {');
@@ -7916,8 +8386,82 @@ DRB.GenerateCode.RetrieveMultiple = function () {
     var fetchXMLEndTable = DRB.GenerateCode.GetFetchXMLEndTable();
     fetchXMLEndTable.forEach(function (endTable) { codeFetchXML.push(endTable); });
     // #endregion
+	
+	
+		// #region SDK
+	var methodCode = "service.RetrieveMultiple";
+	if (settings.async === true) { methodCode = "await service.RetrieveMultipleAsync"; }
+	
+	codeSDK = DRB.GenerateCode.GetSDKWarnings(settings);
+	var impersonation = DRB.GenerateCode.GetSDKImpersonation(settings);
+	if (impersonation.length > 0) { codeSDK = codeSDK.concat(impersonation); }
+	
+	var pre = '"';
+	var fieldLogicalNames = settings.fields.map(function (field) { return field.logicalName; });
+	var preList = (pre + fieldLogicalNames.join('"|' + pre)).split('|');
+	var columnsValue = 'query.ColumnSet = new ColumnSet(' + preList.join(", ") + '");';
+	
+	codeSDK.push('QueryExpression query = new QueryExpression("' + settings.primaryEntity.logicalName + '");');
+	if (DRB.Utilities.HasValue(settings.topCount)) {
+		codeSDK.push('query.TopCount = '+ settings.topCount + ';');
+	}
+	codeSDK.push(columnsValue);
+	
+	if (settings.oneToMany.length > 0) { codeSDK.push('// One To Many Relationships'); }
+	settings.oneToMany.forEach(function (rel) {
+		codeSDK.push('// - ' + rel.schemaName);
+		var preColumn = '"';
+		var fieldColumnLogicalNames = rel.fields.map(function (field) { return field.logicalName; });
+		var preColumnList = (preColumn + fieldColumnLogicalNames.join('"|' + preColumn)).split('|');
+		var relColumnsValue = '1n_' + rel.schemaName + '.Columns.AddColumns(' + preColumnList.join(", ") + '");';
+		codeSDK.push('LinkEntity 1n_' + rel.schemaName + ' = query.AddLink("' + rel.targetEntity + '", "' + settings.primaryIdField + '", " ' + rel.targetEntityPrimaryIdField + '");');
+		codeSDK.push('1n_' + rel.schemaName + '.EntityAlias = "1n_' + rel.schemaName + '";');
+		codeSDK.push(relColumnsValue);
+	});
+	
+	if (settings.manyToOne.length > 0) { codeSDK.push('// Many To One Relationships'); }
+	settings.manyToOne.forEach(function (rel) {
+		codeSDK.push('// - ' + rel.schemaName);
+		var preColumn = '"';
+		var fieldColumnLogicalNames = rel.fields.map(function (field) { return field.logicalName; });
+		var preColumnList = (preColumn + fieldColumnLogicalNames.join('"|' + preColumn)).split('|');
+		var relColumnsValue = 'n1_' + rel.schemaName + '.Columns.AddColumns(' + preColumnList.join(", ") + '");';
+		codeSDK.push('LinkEntity n1_' + rel.schemaName + ' = query.AddLink("' + rel.targetEntity + '", "' + rel.navigationAttribute + '", " ' + rel.targetEntityPrimaryIdField + '");');
+		codeSDK.push('n1_' + rel.schemaName + '.EntityAlias = "n1_' + rel.schemaName + '";');
+		codeSDK.push(relColumnsValue);
+	});
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, codeFetchXML);
+	if (settings.manyToMany.length > 0) { codeSDK.push('// Many To Many Relationships'); }
+	settings.manyToMany.forEach(function (rel) {
+		codeSDK.push('// - ' + rel.schemaName);
+		var preColumn = '"';
+		var fieldColumnLogicalNames = rel.fields.map(function (field) { return field.logicalName; });
+		var preColumnList = (preColumn + fieldColumnLogicalNames.join('"|' + preColumn)).split('|');
+		var relColumnsValue = 'nn_' + rel.schemaName + '.Columns.AddColumns(' + preColumnList.join(", ") + '");';
+		codeSDK.push('LinkEntity nn_' + rel.schemaName + ' = query.AddLink("' + rel.targetEntity + '", "' + settings.primaryIdField + '", " ' + rel.targetEntityPrimaryIdField + '");');
+		codeSDK.push('nn_' + rel.schemaName + '.EntityAlias = "nn_' + rel.schemaName + '";');
+		codeSDK.push(relColumnsValue);
+	});
+	
+	if (settings.orderFields.length > 0) { codeSDK.push('// Orders'); }
+	settings.orderFields.forEach(function (orderField) {
+		var order = "OrderType.Ascending";
+		if (orderField.value === "desc") { order = "OrderType.Descending"; }
+		codeSDK.push('query.AddOrder("' + orderField.logicalName + '", ' + order + ');');
+	});
+	
+	codeSDK.push('EntityCollection resultCollection = ' + methodCode + '(query);');
+	codeSDK.push('');
+	codeSDK.push('foreach (Entity result in resultCollection.Entities) {');
+	
+	// Code Fields
+    var getCodeFields = DRB.GenerateCode.GetSDKCodeFields(settings, "retrievesingle");
+    var codeFields = getCodeFields[0];
+    codeFields.forEach(function (codeField) { codeSDK.push('\t' + codeField); });
+	codeSDK.push('}');
+	// #endregion
+
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, codeFetchXML, codeSDK);
 }
 
 /**
@@ -7933,6 +8477,7 @@ DRB.GenerateCode.Create = function () {
     var codeXMLHttpRequest = [];
     var codeFetchAPI = [];
     var codePortals = [];
+	var codeSDK = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity)) {
         // Don't generate the code if a table is not selected
@@ -7943,8 +8488,9 @@ DRB.GenerateCode.Create = function () {
         codeXMLHttpRequest.push(errorMessage);
         codeFetchAPI.push(errorMessage);
         codePortals.push(errorMessage);
-
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
+		codeSDK.push(errorMessage);
+		
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, null, codeSDK);
         return;
     }
 
@@ -8138,8 +8684,22 @@ DRB.GenerateCode.Create = function () {
     codePortals.push('\t}');
     codePortals.push('});');
     // #endregion
+	
+	// #region SDK
+	var methodCode = "service.Create";
+	if (settings.async === true) { methodCode = "await service.CreateAsync"; }
+	
+	codeSDK = DRB.GenerateCode.GetSDKWarnings(settings);
+	var impersonation = DRB.GenerateCode.GetSDKImpersonation(settings);
+	if (impersonation.length > 0) { codeSDK = codeSDK.concat(impersonation); }
+	
+	codeSDK.push('Entity record = new Entity("' + settings.primaryEntity.logicalName + '");');
+	var codeEntity = DRB.GenerateCode.GetSDKCodeEntity(settings);
+	codeSDK = codeSDK.concat(codeEntity);
+	codeSDK.push('Guid id = ' + methodCode + '(record);');
+	// #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, null, codeSDK);
 }
 
 /**
@@ -8155,6 +8715,7 @@ DRB.GenerateCode.Update = function () {
     var codeXMLHttpRequest = [];
     var codeFetchAPI = [];
     var codePortals = [];
+	var codeSDK = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity)) {
         // Don't generate the code if a table is not selected
@@ -8165,8 +8726,9 @@ DRB.GenerateCode.Update = function () {
         codeXMLHttpRequest.push(errorMessage);
         codeFetchAPI.push(errorMessage);
         codePortals.push(errorMessage);
+		codeSDK.push(errorMessage);
 
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, null, codeSDK);
         return;
     }
     var urlFields = '';
@@ -8357,8 +8919,30 @@ DRB.GenerateCode.Update = function () {
     codePortals.push('\t}');
     codePortals.push('});');
     // #endregion
+	
+	// #region SDK
+	var methodCode = "service.Update";
+	if (settings.async === true) { methodCode = "await service.UpdateAsync"; }
+	
+	codeSDK = DRB.GenerateCode.GetSDKWarnings(settings);
+	var impersonation = DRB.GenerateCode.GetSDKImpersonation(settings);
+	if (impersonation.length > 0) { codeSDK = codeSDK.concat(impersonation); }
+	
+	if (settings.useAlternateKey === true) {
+		var alternateKey = DRB.GenerateCode.GetSDKAlternateKeys(settings);
+		codeSDK = codeSDK.concat(alternateKey);
+		codeSDK.push('Entity record = new Entity("' + settings.primaryEntity.logicalName + '", alternateKey)');
+		
+	} else {
+		codeSDK.push('Entity record = new Entity("' + settings.primaryEntity.logicalName + '", new Guid("' + settings.primaryId + '"));');
+	}
+	
+	var codeEntity = DRB.GenerateCode.GetSDKCodeEntity(settings);
+	codeSDK = codeSDK.concat(codeEntity);
+	codeSDK.push(methodCode + '(record);');
+	// #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, null, codeSDK);
 }
 
 /**
@@ -8373,6 +8957,7 @@ DRB.GenerateCode.Delete = function () {
     var codeXMLHttpRequest = [];
     var codeFetchAPI = [];
     var codePortals = [];
+	var codeSDK = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity)) {
         // Don't generate the code if a table is not selected
@@ -8383,8 +8968,8 @@ DRB.GenerateCode.Delete = function () {
         codeXMLHttpRequest.push(errorMessage);
         codeFetchAPI.push(errorMessage);
         codePortals.push(errorMessage);
-
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
+		codeSDK.push(errorMessage);
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, null, codeSDK);
         return;
     }
 
@@ -8504,8 +9089,33 @@ DRB.GenerateCode.Delete = function () {
     codePortals.push('\t}');
     codePortals.push('});');
     // #endregion
+	
+	// #region SDK
+	var methodCode = "service.Delete";
+	if (settings.async === true) { methodCode = "await service.DeleteAsync"; }
+	var methodCodeAlternate = "service.Execute";
+	if (settings.async === true) { methodCodeAlternate = "await service.ExecuteAsync"; }
+	
+	codeSDK = DRB.GenerateCode.GetSDKWarnings(settings);
+	var impersonation = DRB.GenerateCode.GetSDKImpersonation(settings);
+	if (impersonation.length > 0) { codeSDK = codeSDK.concat(impersonation); }
+	
+	if (settings.useAlternateKey === true) {
+		var alternateKey = DRB.GenerateCode.GetSDKAlternateKeys(settings);
+		codeSDK = codeSDK.concat(alternateKey);
+		codeSDK.push('DeleteRequest deleteRequest = new DeleteRequest');
+		codeSDK.push('{');
+		codeSDK.push('\tTarget = new EntityReference("' + settings.primaryEntity.logicalName + '", alternateKey)');
+		codeSDK.push('};');
+		codeSDK.push('DeleteResponse deleteResponse = (DeleteResponse)' + methodCodeAlternate + '(deleteRequest);');
+		
+	} else {
+		codeSDK.push('Guid id = new Guid("' + settings.primaryId + '");');
+		codeSDK.push(methodCode + '("' + settings.primaryEntity.logicalName + '", id);');
+	}
+	// #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, codeXrmWebApiExecute, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, null, codeSDK);
 }
 
 /**
@@ -8520,6 +9130,7 @@ DRB.GenerateCode.Associate = function () {
     var codeXMLHttpRequest = [];
     var codeFetchAPI = [];
     var codePortals = [];
+	var codeSDK = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity) || !DRB.Utilities.HasValue(settings.secondaryEntity)) {
         // Don't generate the code if a table is not selected
@@ -8533,8 +9144,8 @@ DRB.GenerateCode.Associate = function () {
         codeXMLHttpRequest.push(errorMessage);
         codeFetchAPI.push(errorMessage);
         codePortals.push(errorMessage);
-
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
+		codeSDK.push(errorMessage);
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, null, codeSDK);
         return;
     }
 
@@ -8663,8 +9274,25 @@ DRB.GenerateCode.Associate = function () {
     codePortals.push('\t}');
     codePortals.push('});');
     // #endregion
+	
+	// #region SDK
+	codeSDK = DRB.GenerateCode.GetSDKWarnings(settings);
+	codeSDK.push("// NOTE: Associate Request in C# SDK supports multiple children, you can add them inside the relatedReferences object");
+	
+	var impersonation = DRB.GenerateCode.GetSDKImpersonation(settings);
+	if (impersonation.length > 0) { codeSDK = codeSDK.concat(impersonation); }
+	
+	
+	codeSDK.push('Guid primaryId = new Guid("' + settings.primaryId + '");');
+	codeSDK.push('Relationship relationship = new Relationship("' + settings.relationship + '");');
+	codeSDK.push('EntityReferenceCollection relatedReferences = new EntityReferenceCollection();');
+	codeSDK.push('relatedReferences.Add(new EntityReference("' + settings.secondaryEntity.logicalName + '", new Guid("' + settings.secondaryIds[0] + '"));');
+	var methodCode = "service.Associate";
+	if (settings.async === true) { methodCode = "await service.AssociateAsync"; }
+	codeSDK.push(methodCode + '("' + settings.primaryEntity.logicalName + '", primaryId, relationship, relatedReferences);');
+	// #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, null, codeSDK);
 }
 
 /**
@@ -8679,6 +9307,7 @@ DRB.GenerateCode.Disassociate = function () {
     var codeXMLHttpRequest = [];
     var codeFetchAPI = [];
     var codePortals = [];
+	var codeSDK = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity) || !DRB.Utilities.HasValue(settings.secondaryEntity)) {
         // Don't generate the code if a table is not selected
@@ -8691,8 +9320,9 @@ DRB.GenerateCode.Disassociate = function () {
         codeXMLHttpRequest.push(errorMessage);
         codeFetchAPI.push(errorMessage);
         codePortals.push(errorMessage);
+		codeSDK.push(errorMessage);
 
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, null, codeSDK);
         return;
     }
 
@@ -8791,8 +9421,25 @@ DRB.GenerateCode.Disassociate = function () {
     codePortals.push('\t}');
     codePortals.push('});');
     // #endregion
+	
+		// #region SDK
+	codeSDK = DRB.GenerateCode.GetSDKWarnings(settings);
+	codeSDK.push("// NOTE: Disassociate Request in C# SDK supports multiple children, you can add them inside the relatedReferences object");
+	
+	var impersonation = DRB.GenerateCode.GetSDKImpersonation(settings);
+	if (impersonation.length > 0) { codeSDK = codeSDK.concat(impersonation); }
+	
+	
+	codeSDK.push('Guid primaryId = new Guid("' + settings.primaryId + '");');
+	codeSDK.push('Relationship relationship = new Relationship("' + settings.relationship + '");');
+	codeSDK.push('EntityReferenceCollection relatedReferences = new EntityReferenceCollection();');
+	codeSDK.push('relatedReferences.Add(new EntityReference("' + settings.secondaryEntity.logicalName + '", new Guid("' + settings.secondaryIds[0] + '"));');
+	var methodCode = "service.Disassociate";
+	if (settings.async === true) { methodCode = "await service.DisassociateAsync"; }
+	codeSDK.push(methodCode + '("' + settings.primaryEntity.logicalName + '", primaryId, relationship, relatedReferences);');
+	// #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, null, codeSDK);
 }
 
 /**
@@ -8936,6 +9583,7 @@ DRB.GenerateCode.PredefinedQuery = function () {
     var codejQuery = [];
     var codeXMLHttpRequest = [];
     var codeFetchAPI = [];
+	var codeSDK = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity) || !DRB.Utilities.HasValue(settings.queryType)) {
         // Don't generate the code if a table or a query type is not selected
@@ -8947,7 +9595,8 @@ DRB.GenerateCode.PredefinedQuery = function () {
         codejQuery.push(errorMessage);
         codeXMLHttpRequest.push(errorMessage);
         codeFetchAPI.push(errorMessage);
-        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, null);
+		codeSDK.push(errorMessage);
+        DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, null, null, codeSDK);
         return;
     }
 
@@ -9072,8 +9721,45 @@ DRB.GenerateCode.PredefinedQuery = function () {
     codeFetchAPI.push('\tconsole.log(error.message);');
     codeFetchAPI.push('});');
     // #endregion
+	
+	// #region SDK
+	codeSDK = DRB.GenerateCode.GetSDKWarnings(settings);
+	var impersonation = DRB.GenerateCode.GetSDKImpersonation(settings);
+	if (impersonation.length > 0) { codeSDK = codeSDK.concat(impersonation); }
+	
+	var methodCode = "service.RetrieveMultiple";
+	var methodCodeView = "service.Retrieve";
+	if (settings.async === true) {
+		methodCode = "await service.RetrieveMultipleAsync";
+		methodCodeView = "await service.RetrieveAsync";
+	}
+	
+	var entityView = "";
+	var entityId = "";
+	
+	switch (settings.queryType) {
+        case "savedquery":
+			entityView = "savedquery";
+			entityId = settings.systemViewId;
+			break;
+        case "userquery":
+		entityView = "userquery";
+		entityId = settings.personalViewId;
+		break;
+    }
+	
+	if (entityView !== "") {
+		codeSDK.push('Entity view = ' + methodCodeView + '("' + entityView + '", new Guid("' + entityId + '"), new ColumnSet("fetchxml"));');
+		codeSDK.push('string fetchXML = view.GetAttributeValue<string>("fetchxml");');
+	} else {
+		var escapedQuoteFetchXML = settings.fetchXML.replaceAll('"', '""');
+		codeSDK.push('string fetchXML = @"' + escapedQuoteFetchXML + '";');
+	}
+	codeSDK.push('');
+	codeSDK.push('EntityCollection collection = ' + methodCode + '(new FetchExpression(fetchXML));');
+	// #endregion
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, null);
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, null, null, codeSDK);
 }
 
 /**
@@ -9399,6 +10085,7 @@ DRB.GenerateCode.ExecuteWorkflow = function () {
     var codejQuery = [];
     var codeXMLHttpRequest = [];
     var codeFetchAPI = [];
+	var codeSDK = [];
 
     // #region XHR settings
     // Main Url
@@ -9507,8 +10194,25 @@ DRB.GenerateCode.ExecuteWorkflow = function () {
     codeFetchAPI.push('\tconsole.log(error.message);');
     codeFetchAPI.push('});');
     // #endregion
+	
+	// #region SDK
+	codeSDK = DRB.GenerateCode.GetSDKWarnings(settings);
+	var impersonation = DRB.GenerateCode.GetSDKImpersonation(settings);
+	if (impersonation.length > 0) { codeSDK = codeSDK.concat(impersonation); }
 
-    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, null);
+	
+	var methodCode = "service.Execute";
+	if (settings.async === true) { methodCode = "await service.ExecuteAsync"; }
+
+	codeSDK.push('ExecuteWorkflowRequest executeWorkflowRequest = new ExecuteWorkflowRequest');
+	codeSDK.push('{');
+	codeSDK.push('\tWorkflowId = new Guid("' + settings.workflowId + '"),');
+	codeSDK.push('\tEntityId = new Guid("' + settings.primaryId + '")');
+	codeSDK.push('};');
+	codeSDK.push('ExecuteWorkflowResponse executeWorkflowResponse = (ExecuteWorkflowResponse)' + methodCode + '(executeWorkflowRequest);');
+	// #endregion
+
+    DRB.GenerateCode.SetCodeEditors(codeXrmWebApi, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, null, null, codeSDK);
 }
 
 /**
@@ -9521,6 +10225,7 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
     var codeXMLHttpRequest = [];
     var codeFetchAPI = [];
     var codePortals = [];
+	var codeSDK = [];
 
     if (!DRB.Utilities.HasValue(settings.primaryEntity) || !DRB.Utilities.HasValue(settings.fileField) || !DRB.Utilities.HasValue(settings.fileOperation)) {
         var errorMessage = "";
@@ -9532,6 +10237,7 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             codeXMLHttpRequest.push(errorMessage);
             codeFetchAPI.push(errorMessage);
             codePortals.push(errorMessage);
+			codeSDK.push(errorMessage);
         }
 
         if (!DRB.Utilities.HasValue(settings.fileField)) {
@@ -9541,6 +10247,7 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             codeXMLHttpRequest.push(errorMessage);
             codeFetchAPI.push(errorMessage);
             codePortals.push(errorMessage);
+			codeSDK.push(errorMessage);
         }
 
         if (!DRB.Utilities.HasValue(settings.fileOperation)) {
@@ -9550,9 +10257,10 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             codeXMLHttpRequest.push(errorMessage);
             codeFetchAPI.push(errorMessage);
             codePortals.push(errorMessage);
+			codeSDK.push(errorMessage);
         }
 
-        DRB.GenerateCode.SetCodeEditors(null, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
+        DRB.GenerateCode.SetCodeEditors(null, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, null, codeSDK);
         return;
     }
 
@@ -9573,9 +10281,6 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
     var binaryValue = "/$value";
     var dataComment = " // Binary";
     if (settings.fileBase64 === true) { fileBase64 = true; binaryValue = ""; dataComment = " // Base 64"; }
-
-
-
 
     var entityCriteria = settings.primaryId;
     var field = "";
@@ -9833,6 +10538,63 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             codePortals.push('\t}');
             codePortals.push('});');
             // #endregion
+			
+			// #region SDK
+			var methodCodeExecute = "service.Execute";
+			if (settings.async === true) { methodCodeExecute = "await service.ExecuteAsync"; }
+			var methodCodeRetrieve = "service.Retrieve";
+			if (settings.async === true) { methodCodeRetrieve = "await service.RetrieveAsync"; }
+			var methodCodeUpdate = "service.Update";
+			if (settings.async === true) { methodCodeUpdate = "await service.UpdateAsync"; }
+			
+            codeSDK = DRB.GenerateCode.GetSDKWarnings(settings);
+			var impersonation = DRB.GenerateCode.GetSDKImpersonation(settings);
+			if (impersonation.length > 0) { codeSDK = codeSDK.concat(impersonation); }
+
+			codeSDK.push('Guid id = new Guid("' + settings.primaryId + '");');
+			
+			if (requestType === "manageimagedata") {
+				if (fileFullSize === true) {
+					codeSDK.push('InitializeFileBlocksDownloadRequest initializeFileBlocksDownloadRequest = new InitializeFileBlocksDownloadRequest');
+					codeSDK.push('{');
+					codeSDK.push('\tTarget = new EntityReference("' + settings.primaryEntity.logicalName + '", id),');
+					codeSDK.push('\tFileAttributeName = "' + settings.fileField.logicalName + '"');
+					codeSDK.push('};');
+					codeSDK.push('');
+					codeSDK.push('InitializeFileBlocksDownloadResponse initializeFileBlocksDownloadResponse = (InitializeFileBlocksDownloadResponse)' + methodCodeExecute + '(initializeFileBlocksDownloadRequest);');
+					codeSDK.push('DownloadBlockRequest downloadBlockRequest = new DownloadBlockRequest { FileContinuationToken = initializeFileBlocksDownloadResponse.FileContinuationToken };');
+					codeSDK.push('DownloadBlockResponse downloadBlockResponse = (DownloadBlockResponse)' + methodCodeExecute + '(downloadBlockRequest);');
+					codeSDK.push('string fileName = initializeFileBlocksDownloadResponse.FileName;');
+					codeSDK.push('byte[] fileContent = downloadBlockResponse.Data;');
+					if (fileBase64 === true) {
+						codeSDK.push('string fileContentBase64 = Convert.ToBase64String(fileContent);');
+					}
+				} else {
+					codeSDK.push('Entity record = ' + methodCodeRetrieve + '("' + settings.primaryEntity.logicalName + '", id, new ColumnSet("' + settings.fileField.logicalName + '"));');
+					codeSDK.push('byte[] fileContent = record.GetAttributeValue<byte[]>("' + settings.fileField.logicalName + '");');
+					if (fileBase64 === true) {
+						codeSDK.push('string fileContentBase64 = Convert.ToBase64String(fileContent);');
+					}
+				}
+			}
+	
+			if (requestType === "managefiledata") {
+				codeSDK.push('InitializeFileBlocksDownloadRequest initializeFileBlocksDownloadRequest = new InitializeFileBlocksDownloadRequest');
+				codeSDK.push('{');
+				codeSDK.push('\tTarget = new EntityReference("' + settings.primaryEntity.logicalName + '", id),');
+				codeSDK.push('\tFileAttributeName = "' + settings.fileField.logicalName + '"');
+				codeSDK.push('};');
+				codeSDK.push('');
+				codeSDK.push('InitializeFileBlocksDownloadResponse initializeFileBlocksDownloadResponse = (InitializeFileBlocksDownloadResponse)' + methodCodeExecute + '(initializeFileBlocksDownloadRequest);');
+				codeSDK.push('DownloadBlockRequest downloadBlockRequest = new DownloadBlockRequest { FileContinuationToken = initializeFileBlocksDownloadResponse.FileContinuationToken };');
+				codeSDK.push('DownloadBlockResponse downloadBlockResponse = (DownloadBlockResponse)' + methodCodeExecute + '(downloadBlockRequest);');
+				codeSDK.push('string fileName = initializeFileBlocksDownloadResponse.FileName;');
+				codeSDK.push('byte[] fileContent = downloadBlockResponse.Data;');
+				if (fileBase64 === true) {
+					codeSDK.push('string fileContentBase64 = Convert.ToBase64String(fileContent);');
+				}
+			}
+            // #endregion
             break;
 
         case "upload":
@@ -9928,6 +10690,75 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             codePortals.push('\t}');
             codePortals.push('});');
             // #endregion
+			
+			// #region SDK
+			var methodCodeExecute = "service.Execute";
+			if (settings.async === true) { methodCodeExecute = "await service.ExecuteAsync"; }
+			var methodCodeUpdate = "service.Update";
+			if (settings.async === true) { methodCodeUpdate = "await service.UpdateAsync"; }
+			
+            codeSDK = DRB.GenerateCode.GetSDKWarnings(settings);
+			var impersonation = DRB.GenerateCode.GetSDKImpersonation(settings);
+			if (impersonation.length > 0) { codeSDK = codeSDK.concat(impersonation); }
+
+			
+			
+			if (requestType === "manageimagedata") {
+				codeSDK.push('string fileContentBase64 = "' + fileContent + '";');
+				codeSDK.push('byte[] fileContent = Convert.FromBase64String(fileContentBase64);');
+				codeSDK.push('');
+				codeSDK.push('Guid id = new Guid("' + settings.primaryId + '");');
+				codeSDK.push('Entity record = new Entity("' + settings.primaryEntity.logicalName + '", id);');
+				codeSDK.push('record["' + settings.fileField.logicalName + '"] = fileContent;');
+				codeSDK.push(methodCodeUpdate + '(record);');
+			}
+	
+			if (requestType === "managefiledata") {
+				codeSDK.push('string fileContentBase64 = "' + fileContent + '";');
+				codeSDK.push('byte[] fileContent = Convert.FromBase64String(fileContentBase64);');
+				codeSDK.push('string fileName = "' + settings.fileName + '";');
+				codeSDK.push('int blockSize = 4194304; // 4 MB');
+				codeSDK.push('int numBlocks = fileContent.Length / blockSize;');
+				codeSDK.push('if (fileContent.Length % blockSize > 0) { numBlocks++; }');
+				codeSDK.push('');
+				codeSDK.push('Guid id = new Guid("' + settings.primaryId + '");');
+				codeSDK.push('InitializeFileBlocksUploadRequest initializeFileBlocksUploadRequest = new InitializeFileBlocksUploadRequest');
+				codeSDK.push('{');
+				codeSDK.push('\tTarget = new EntityReference("' + settings.primaryEntity.logicalName + '", id),');
+				codeSDK.push('\tFileAttributeName = "' + settings.fileField.logicalName + '",');
+				codeSDK.push('\tFileName = fileName');
+				codeSDK.push('};');
+				codeSDK.push('');
+				codeSDK.push('InitializeFileBlocksUploadResponse initializeFileBlocksUploadResponse = (InitializeFileBlocksUploadResponse)' + methodCodeExecute + '(initializeFileBlocksUploadRequest);');
+				codeSDK.push('');
+				codeSDK.push('List<string> blockList = new List<string>();');
+				codeSDK.push('for (int i = 0; i < numBlocks; i++)');
+				codeSDK.push('{');
+				codeSDK.push('\tbyte[] buffer = fileContent.Skip(i * blockSize).Take(blockSize).ToArray();');
+				codeSDK.push('');
+				codeSDK.push('\tUploadBlockRequest uploadBlockRequest = new UploadBlockRequest');
+				codeSDK.push('\t{');
+				codeSDK.push('\t\tBlockData = buffer,');
+				codeSDK.push('\t\tBlockId = Convert.ToBase64String(Encoding.UTF8.GetBytes(Guid.NewGuid().ToString())),');
+				codeSDK.push('\t\tFileContinuationToken = initializeFileBlocksUploadResponse.FileContinuationToken');
+				codeSDK.push('\t};');
+				codeSDK.push('');
+				codeSDK.push('\t' + methodCodeExecute + '(uploadBlockRequest);');
+				codeSDK.push('\tblockList.Add(uploadBlockRequest.BlockId);');
+				codeSDK.push('}');
+				codeSDK.push('');
+				codeSDK.push('CommitFileBlocksUploadRequest commitFileBlocksUploadRequest = new CommitFileBlocksUploadRequest');
+				codeSDK.push('{');
+				codeSDK.push('\tBlockList = blockList.ToArray(),');
+				codeSDK.push('\tFileContinuationToken = initializeFileBlocksUploadResponse.FileContinuationToken,');
+				codeSDK.push('\tFileName = initializeFileBlocksUploadRequest.FileName,');
+				codeSDK.push('\tMimeType = System.Web.MimeMapping.GetMimeMapping(fileName)');
+				codeSDK.push('};');
+				codeSDK.push('');
+				codeSDK.push('CommitFileBlocksUploadResponse commitFileBlocksUploadResponse = (CommitFileBlocksUploadResponse)' + methodCodeExecute + '(commitFileBlocksUploadRequest);');
+				codeSDK.push('Guid fileId = commitFileBlocksUploadResponse.FileId;');
+			}
+            // #endregion
             break;
 
         case "delete":
@@ -9999,9 +10830,41 @@ DRB.GenerateCode.ManageFileImageData = function (requestType) {
             codePortals.push('\t}');
             codePortals.push('});');
             // #endregion
+			
+			// #region SDK
+			var methodCodeExecute = "service.Execute";
+			if (settings.async === true) { methodCodeExecute = "await service.ExecuteAsync"; }
+			var methodCodeRetrieve = "service.Retrieve";
+			if (settings.async === true) { methodCodeRetrieve = "await service.RetrieveAsync"; }
+			var methodCodeUpdate = "service.Update";
+			if (settings.async === true) { methodCodeUpdate = "await service.UpdateAsync"; }
+			
+            codeSDK = DRB.GenerateCode.GetSDKWarnings(settings);
+			var impersonation = DRB.GenerateCode.GetSDKImpersonation(settings);
+			if (impersonation.length > 0) { codeSDK = codeSDK.concat(impersonation); }
+
+			codeSDK.push('Guid id = new Guid("' + settings.primaryId + '");');
+			
+			if (requestType === "manageimagedata") {
+				codeSDK.push('Entity record = ' + methodCodeRetrieve + '("' + settings.primaryEntity.logicalName + '", id);');
+				codeSDK.push('record["' + settings.fileField.logicalName + '"] = null;');
+				codeSDK.push(methodCodeUpdate + '(record);');
+			}
+	
+			if (requestType === "managefiledata") {
+				codeSDK.push('Entity record = ' + methodCodeRetrieve + '("' + settings.primaryEntity.logicalName + '", id, new ColumnSet("' + settings.fileField.logicalName + '"));');
+				codeSDK.push('Guid fileId = record.GetAttributeValue<Guid>("' + settings.fileField.logicalName + '");');
+				codeSDK.push('');
+				codeSDK.push('DeleteFileRequest deleteFileRequest = new DeleteFileRequest');
+				codeSDK.push('{');
+				codeSDK.push('\tFileId =  fileId');
+				codeSDK.push('};');
+				codeSDK.push('DeleteFileResponse deleteFileResponse = (DeleteFileResponse)' + methodCodeExecute + '(deleteFileRequest);');
+			}
+            // #endregion
             break;
     }
-    DRB.GenerateCode.SetCodeEditors(null, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals);
+    DRB.GenerateCode.SetCodeEditors(null, null, codejQuery, codeXMLHttpRequest, codeFetchAPI, codePortals, null, codeSDK);
 }
 
 /**
@@ -17985,6 +18848,7 @@ DRB.DefineOperations = function () {
     DRB.Settings.Tabs.push({ Id: "code_fetchxml", Name: "FetchXML", GenerateCode: true, ShowEditor: true, EditorMode: "xml", CopyCode: true, SendFetchXML: true, ShowWarning: true, WarningFetchXML: true, EnabledRequests: ["retrievesingle", "retrievemultiple"] });
     DRB.Settings.Tabs.push({ Id: "code_powerquery", Name: "Power Query (M)", GenerateCode: true, EmptyDiv: true, EnabledRequests: ["retrievemultiple"] });
     DRB.Settings.Tabs.push({ Id: "code_grid", Name: "Grid", GenerateCode: true, RefreshGrid: true, EmptyDiv: true, EnabledRequests: ["retrievemultiple"] });
+	DRB.Settings.Tabs.push({ Id: "code_sdk", Name: "C# SDK", ShowEditor: true,  EditorMode: "csharp", GenerateCode: true, CopyCode: true, EmptyDiv: true, ShowWarning: true, WarningSDK: true, EnabledRequests: ["retrievesingle", "create", "update", "delete", "associate", "disassociate", "predefinedquery", "executeworkflow", "managefiledata", "manageimagedata"] });
 
     var tabs_Request = DRB.UI.CreateTabs(DRB.DOM.TabsRequest.Id, DRB.Settings.Tabs);
     var tabs_Content = DRB.UI.CreateTabContents(DRB.DOM.TabsContent.Id, DRB.Settings.Tabs);
@@ -18112,7 +18976,7 @@ DRB.InsertMainBodyContent = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.42";
+    var drbVersion = "1.0.0.43";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 

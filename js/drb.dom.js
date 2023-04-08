@@ -471,6 +471,13 @@ DRB.DOM.FetchXML.Span = { Id: "span_fetchxml", Name: "Fetch XML" };
 DRB.DOM.FetchXML.Editor = { Id: "editor_fetchxml", Class: "code_editor" };
 // #endregion
 
+// SDK
+DRB.DOM.SDK = {};
+DRB.DOM.SDK.Div = { Id: "div_sdk" };
+DRB.DOM.SDK.Span = { Id: "span_sdk", Name: "C# SDK" };
+DRB.DOM.SDK.Editor = { Id: "editor_sdk", Class: "code_editor" };
+// #endregion
+
 // #region Dataverse Execute
 // Dataverse Custom API
 DRB.DOM.DataverseCustomAPI = {};

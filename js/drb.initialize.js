@@ -402,6 +402,7 @@ DRB.DefineOperations = function () {
     DRB.Settings.Tabs.push({ Id: "code_fetchxml", Name: "FetchXML", GenerateCode: true, ShowEditor: true, EditorMode: "xml", CopyCode: true, SendFetchXML: true, ShowWarning: true, WarningFetchXML: true, EnabledRequests: ["retrievesingle", "retrievemultiple"] });
     DRB.Settings.Tabs.push({ Id: "code_powerquery", Name: "Power Query (M)", GenerateCode: true, EmptyDiv: true, EnabledRequests: ["retrievemultiple"] });
     DRB.Settings.Tabs.push({ Id: "code_grid", Name: "Grid", GenerateCode: true, RefreshGrid: true, EmptyDiv: true, EnabledRequests: ["retrievemultiple"] });
+	DRB.Settings.Tabs.push({ Id: "code_sdk", Name: "C# SDK", ShowEditor: true,  EditorMode: "csharp", GenerateCode: true, CopyCode: true, EmptyDiv: true, ShowWarning: true, WarningSDK: true, EnabledRequests: ["retrievesingle", "create", "update", "delete", "associate", "disassociate", "predefinedquery", "executeworkflow", "managefiledata", "manageimagedata"] });
 
     var tabs_Request = DRB.UI.CreateTabs(DRB.DOM.TabsRequest.Id, DRB.Settings.Tabs);
     var tabs_Content = DRB.UI.CreateTabContents(DRB.DOM.TabsContent.Id, DRB.Settings.Tabs);
@@ -529,7 +530,7 @@ DRB.InsertMainBodyContent = function () {
  */
 DRB.Initialize = async function () {
     // DRB Version
-    var drbVersion = "1.0.0.42";
+    var drbVersion = "1.0.0.43";
     document.title = document.title + " " + drbVersion;
     $("#" + DRB.DOM.VersionSpan.Id).html(drbVersion);
 
